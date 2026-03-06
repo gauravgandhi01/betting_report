@@ -1,2 +1,0 @@
-=== 2026-03-06T17:19:00-05:00 START betting ===
-Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
