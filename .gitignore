@@ -5,7 +5,7 @@ __pycache__/
 bets.csv
 # C extensions
 *.so
-betting_report/betting_analysis/cron_log.txt
+betting_analysis/cron_log.txt
 # Distribution / packaging
 .Python
 build/
