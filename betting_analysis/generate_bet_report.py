@@ -551,7 +551,7 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate an HTML analysis report from bets.csv")
     parser.add_argument("--input", default="bets.csv", help="Path to bets.csv")
-    parser.add_argument("--output", default="bets_report.html", help="Output HTML file")
+    parser.add_argument("--output", default="../index.html", help="Output HTML file")
     parser.add_argument(
         "--sync-url",
         default="",
