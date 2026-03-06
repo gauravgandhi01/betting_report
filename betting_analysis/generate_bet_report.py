@@ -389,9 +389,11 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
     # cumulative net by date
     net_by_date: Dict[dt.date, float] = defaultdict(float)
     risk_by_date: Dict[dt.date, float] = defaultdict(float)
+    count_by_date: Dict[dt.date, int] = defaultdict(int)
     for b in bets:
         net_by_date[b.date] += _nan_to_zero(b.net)
         risk_by_date[b.date] += _nan_to_zero(b.risk)
+        count_by_date[b.date] += 1
 
     dates_sorted = sorted(net_by_date.keys())
     cum_net = 0.0
@@ -452,6 +454,18 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
             }
         )
 
+    recent_7_day_calendar: List[Dict[str, Any]] = []
+    for i in range(6, -1, -1):
+        d = as_of - dt.timedelta(days=i)
+        recent_7_day_calendar.append(
+            {
+                "date": d.isoformat(),
+                "net": net_by_date.get(d, 0.0),
+                "risk": risk_by_date.get(d, 0.0),
+                "bets": count_by_date.get(d, 0),
+            }
+        )
+
     best_day = None
     worst_day = None
     if settled_dates:
@@ -498,6 +512,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         },
         "recent_periods": recent_periods,
         "recent_daily_series": recent_daily_series,
+        "recent_7_day_calendar": recent_7_day_calendar,
         "open_exposure": open_exposure,
         "streaks": {
             "daily": daily_streaks,
@@ -698,6 +713,43 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             )
         return _render_table(headers, rows)
 
+    def daily_net_risk_calendar(day_rows: List[Dict[str, Any]]) -> str:
+        if not day_rows:
+            return '<div class="note">No recent daily data.</div>'
+
+        cards = []
+        for r in day_rows:
+            date_s = str(r.get("date", "")).strip()
+            try:
+                d = dt.date.fromisoformat(date_s)
+                day_name = f"{d:%a}"
+                day_label = f"{d:%b} {d.day}"
+            except ValueError:
+                day_name = ""
+                day_label = date_s
+
+            net = float(r.get("net", 0.0) or 0.0)
+            risk = float(r.get("risk", 0.0) or 0.0)
+            bets = int(r.get("bets", 0) or 0)
+            card_cls = "day-card pos" if net > 0 else ("day-card neg" if net < 0 else "day-card flat")
+            net_cls = "positive" if net > 0 else ("negative" if net < 0 else "")
+            bet_word = "bet" if bets == 1 else "bets"
+
+            cards.append(
+                f"""
+                <div class="{card_cls}">
+                  <div class="day-top">
+                    <div class="day-name">{html.escape(day_name)}</div>
+                    <div class="day-date">{html.escape(day_label)}</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="{net_cls}">{_fmt_money(net)}</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>{_fmt_money(risk)}</strong></div>
+                  <div class="day-count">{bets} {bet_word}</div>
+                </div>
+                """
+            )
+        return f'<div class="calendar-scroll"><div class="calendar-strip">{"".join(cards)}</div></div>'
+
     def streak_line(title_text: str, streak: Dict[str, Any]) -> str:
         if streak["length"] <= 0:
             return f"<div><strong>{html.escape(title_text)}:</strong> none</div>"
@@ -797,6 +849,41 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
       line-height: 1.4;
       white-space: nowrap;
     }}
+    .calendar-scroll {{ overflow-x: auto; padding-bottom: 4px; }}
+    .calendar-strip {{
+      display: grid;
+      grid-template-columns: repeat(7, minmax(128px, 1fr));
+      gap: 10px;
+      min-width: 920px;
+    }}
+    .day-card {{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,0.02);
+    }}
+    .day-card.pos {{ border-color: rgba(52,211,153,0.45); }}
+    .day-card.neg {{ border-color: rgba(251,113,133,0.45); }}
+    .day-card.flat {{ border-color: rgba(157,176,208,0.35); }}
+    .day-top {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 6px;
+    }}
+    .day-name {{ font-size: 12px; color: var(--muted); font-weight: 600; }}
+    .day-date {{ font-size: 13px; font-weight: 700; }}
+    .day-row {{
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }}
+    .day-row strong {{ font-size: 13px; color: var(--text); }}
+    .day-count {{ margin-top: 8px; font-size: 11px; color: var(--muted); }}
 
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
@@ -846,6 +933,12 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
           <div class="section-title">Open Bets</div>
           <div class="note">All open bets.</div>
           <div class="scroll">{bets_table(summary['open_bets'])}</div>
+        </div>
+
+        <div class="card full">
+          <div class="section-title">Daily Net / Risk (Last 7 Days)</div>
+          <div class="note">Calendar-style daily view ending on {html.escape(as_of)}.</div>
+          {daily_net_risk_calendar(summary['recent_7_day_calendar'])}
         </div>
 
         <div class="card full">

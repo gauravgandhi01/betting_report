@@ -64,6 +64,41 @@
       line-height: 1.4;
       white-space: nowrap;
     }
+    .calendar-scroll { overflow-x: auto; padding-bottom: 4px; }
+    .calendar-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(128px, 1fr));
+      gap: 10px;
+      min-width: 920px;
+    }
+    .day-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    .day-card.pos { border-color: rgba(52,211,153,0.45); }
+    .day-card.neg { border-color: rgba(251,113,133,0.45); }
+    .day-card.flat { border-color: rgba(157,176,208,0.35); }
+    .day-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 6px;
+    }
+    .day-name { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .day-date { font-size: 13px; font-weight: 700; }
+    .day-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .day-row strong { font-size: 13px; color: var(--text); }
+    .day-count { margin-top: 8px; font-size: 11px; color: var(--muted); }
 
     .positive { color: var(--good); }
     .negative { color: var(--bad); }
@@ -113,6 +148,82 @@
           <div class="section-title">Open Bets</div>
           <div class="note">All open bets.</div>
           <div class="scroll"><table><thead><tr><th>Date</th><th>League</th><th>Book</th><th>Type</th><th>Pick</th><th>Odds</th><th>Risk</th><th>Result</th><th>Net</th></tr></thead><tbody><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Side</td><td>BAY -12.5</td><td>-106</td><td>$106.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Total</td><td>UGA/MSST o163.5</td><td>-105</td><td>$105.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#1D4ED8; border-color:#1D4ED8; color:#F8FAFC;">Rivers</span></td><td>Total</td><td>HOU/OKST u150.5</td><td>-115</td><td>$93.01</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#1D4ED8; border-color:#1D4ED8; color:#F8FAFC;">Rivers</span></td><td>Total</td><td>KSU/KU o150.5</td><td>-115</td><td>$93.01</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#1D4ED8; border-color:#1D4ED8; color:#F8FAFC;">Rivers</span></td><td>Total</td><td>LSU/TAMU o158.5</td><td>-113</td><td>$91.96</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#1D4ED8; border-color:#1D4ED8; color:#F8FAFC;">Rivers</span></td><td>Total</td><td>LSU/TAMU o158.5</td><td>-113</td><td>$91.96</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#1D4ED8; border-color:#1D4ED8; color:#F8FAFC;">Rivers</span></td><td>Total</td><td>XAV/NOVA o153.5</td><td>-109</td><td>$88.93</td><td></td><td class="negative"></td></tr><tr><td>Mar 7</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#CC0033; border-color:#CC0033; color:#F8FAFC;">Bally&#x27;s</span></td><td>Total</td><td>KSU/KU o150.5</td><td>-114</td><td>$26.27</td><td></td><td class="negative"></td></tr><tr><td>Mar 6</td><td><span class="badge" style="background:#1D4ED8; border-color:#1D4ED8; color:#F8FAFC;">NHL</span></td><td><span class="badge" style="background:#64748B; border-color:#64748B; color:#F8FAFC;">BM</span></td><td>Total</td><td>MTL/ANA 1P o1.5</td><td>-153</td><td>$153.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 6</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Total</td><td>WMU/KENT u158.5</td><td>-105</td><td>$115.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 6</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Total</td><td>CIT/UTC o144.5</td><td>-115</td><td>$115.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 6</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Total</td><td>BUFF/TOL o152.5</td><td>-110</td><td>$110.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 6</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Parlay</td><td>DRAK, CIT &amp; VAL ML</td><td>4677</td><td>$10.00</td><td></td><td class="negative"></td></tr><tr><td>Mar 6</td><td><span class="badge" style="background:#D97706; border-color:#D97706; color:#F8FAFC;">NCAAB</span></td><td><span class="badge" style="background:#0077FF; border-color:#0077FF; color:#F8FAFC;">FanDuel</span></td><td>Parlay</td><td>SET, OHIO &amp; UND ML</td><td>2375</td><td>$10.00</td><td></td><td class="negative"></td></tr></tbody></table></div>
+        </div>
+
+        <div class="card full">
+          <div class="section-title">Daily Net / Risk (Last 7 Days)</div>
+          <div class="note">Calendar-style daily view ending on 2026-03-06.</div>
+          <div class="calendar-scroll"><div class="calendar-strip">
+                <div class="day-card neg">
+                  <div class="day-top">
+                    <div class="day-name">Sat</div>
+                    <div class="day-date">Feb 28</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="negative">$-86.03</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$6,888.23</strong></div>
+                  <div class="day-count">68 bets</div>
+                </div>
+                
+                <div class="day-card neg">
+                  <div class="day-top">
+                    <div class="day-name">Sun</div>
+                    <div class="day-date">Mar 1</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="negative">$-789.99</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$789.99</strong></div>
+                  <div class="day-count">11 bets</div>
+                </div>
+                
+                <div class="day-card flat">
+                  <div class="day-top">
+                    <div class="day-name">Mon</div>
+                    <div class="day-date">Mar 2</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="">$0.00</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$0.00</strong></div>
+                  <div class="day-count">0 bets</div>
+                </div>
+                
+                <div class="day-card pos">
+                  <div class="day-top">
+                    <div class="day-name">Tue</div>
+                    <div class="day-date">Mar 3</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="positive">$691.00</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$315.39</strong></div>
+                  <div class="day-count">8 bets</div>
+                </div>
+                
+                <div class="day-card pos">
+                  <div class="day-top">
+                    <div class="day-name">Wed</div>
+                    <div class="day-date">Mar 4</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="positive">$80.11</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$553.53</strong></div>
+                  <div class="day-count">5 bets</div>
+                </div>
+                
+                <div class="day-card pos">
+                  <div class="day-top">
+                    <div class="day-name">Thu</div>
+                    <div class="day-date">Mar 5</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="positive">$280.00</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$382.86</strong></div>
+                  <div class="day-count">5 bets</div>
+                </div>
+                
+                <div class="day-card pos">
+                  <div class="day-top">
+                    <div class="day-name">Fri</div>
+                    <div class="day-date">Mar 6</div>
+                  </div>
+                  <div class="day-row"><span>Net</span><strong class="positive">$10.64</strong></div>
+                  <div class="day-row"><span>Risk</span><strong>$712.36</strong></div>
+                  <div class="day-count">8 bets</div>
+                </div>
+                </div></div>
         </div>
 
         <div class="card full">
