@@ -167,6 +167,108 @@ def _safe_div(n: float, d: float) -> Optional[float]:
     return n / d
 
 
+def _period_metrics(bets: List[Bet], start_date: dt.date, end_date: dt.date, days: int) -> Dict[str, Any]:
+    window = [b for b in bets if start_date <= b.date <= end_date]
+    resolved = [b for b in window if b.result in {"W", "L"}]
+    wins = sum(1 for b in resolved if b.result == "W")
+    losses = sum(1 for b in resolved if b.result == "L")
+    pushes = sum(1 for b in window if b.result == "P")
+    open_count = sum(1 for b in window if not b.result)
+    other = sum(1 for b in window if b.result not in {"", "W", "L", "P"})
+    risk = sum(_nan_to_zero(b.risk) for b in window)
+    net = sum(_nan_to_zero(b.net) for b in window)
+    return {
+        "label": f"Last {days} days",
+        "days": days,
+        "start": start_date.isoformat(),
+        "end": end_date.isoformat(),
+        "bets": len(window),
+        "resolved": len(resolved),
+        "wins": wins,
+        "losses": losses,
+        "pushes": pushes,
+        "open": open_count,
+        "other": other,
+        "risk": risk,
+        "net": net,
+        "roi": _safe_div(net, risk),
+        "win_rate": _safe_div(wins, len(resolved)),
+    }
+
+
+def _longest_sign_streak(entries: List[Tuple[str, int]]) -> Dict[str, Any]:
+    best_win_len = 0
+    best_loss_len = 0
+    best_win_start: Optional[str] = None
+    best_win_end: Optional[str] = None
+    best_loss_start: Optional[str] = None
+    best_loss_end: Optional[str] = None
+
+    current_sign = 0
+    current_len = 0
+    current_start: Optional[str] = None
+
+    for label, sign in entries:
+        if sign == 0:
+            current_sign = 0
+            current_len = 0
+            current_start = None
+            continue
+        if sign == current_sign:
+            current_len += 1
+        else:
+            current_sign = sign
+            current_len = 1
+            current_start = label
+
+        if sign > 0 and current_len > best_win_len:
+            best_win_len = current_len
+            best_win_start = current_start
+            best_win_end = label
+        elif sign < 0 and current_len > best_loss_len:
+            best_loss_len = current_len
+            best_loss_start = current_start
+            best_loss_end = label
+
+    # Current active streak from the end of the sequence.
+    current_type = ""
+    current_start_out: Optional[str] = None
+    current_end_out: Optional[str] = None
+    current_len_out = 0
+
+    i = len(entries) - 1
+    while i >= 0 and entries[i][1] == 0:
+        i -= 1
+    if i >= 0:
+        current_sign = entries[i][1]
+        current_end_out = entries[i][0]
+        j = i
+        while j >= 0 and entries[j][1] == current_sign:
+            j -= 1
+        current_len_out = i - j
+        current_start_out = entries[j + 1][0]
+        current_type = "win" if current_sign > 0 else "loss"
+
+    return {
+        "current": {
+            "type": current_type,
+            "length": current_len_out,
+            "start": current_start_out,
+            "end": current_end_out,
+        },
+        "best_win": {
+            "length": best_win_len,
+            "start": best_win_start,
+            "end": best_win_end,
+        },
+        "best_loss": {
+            "length": best_loss_len,
+            "start": best_loss_start,
+            "end": best_loss_end,
+        },
+    }
+
+
 def summarize(bets: List[Bet]) -> Dict[str, Any]:
     resolved = [b for b in bets if b.result in {"W", "L"}]
     pushes = [b for b in bets if b.result == "P"]
@@ -222,6 +324,55 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
             }
         )
 
+    settled_bets = [b for b in bets if b.result]
+    settled_dates = sorted({b.date for b in settled_bets})
+    settled_net_by_date: Dict[dt.date, float] = defaultdict(float)
+    for b in settled_bets:
+        settled_net_by_date[b.date] += _nan_to_zero(b.net)
+
+    daily_entries: List[Tuple[str, int]] = []
+    for d in settled_dates:
+        net = settled_net_by_date[d]
+        sign = 1 if net > 0 else (-1 if net < 0 else 0)
+        daily_entries.append((d.isoformat(), sign))
+    daily_streaks = _longest_sign_streak(daily_entries)
+
+    resolved_sorted = sorted(
+        ((idx, b) for idx, b in enumerate(bets) if b.result in {"W", "L"}),
+        key=lambda pair: (pair[1].date, pair[0]),
+    )
+    bet_entries = [(f"{b.date.isoformat()} #{idx + 1}", 1 if b.result == "W" else -1) for idx, b in resolved_sorted]
+    bet_streaks = _longest_sign_streak(bet_entries)
+
+    all_dates = [b.date for b in bets]
+    today = dt.date.today()
+    non_future_dates = [d for d in all_dates if d <= today]
+    as_of = max(non_future_dates) if non_future_dates else (max(all_dates) if all_dates else today)
+
+    recent_periods = []
+    for days in (7, 14, 30):
+        start = as_of - dt.timedelta(days=days - 1)
+        recent_periods.append(_period_metrics(bets, start, as_of, days))
+
+    recent_daily_series: List[Dict[str, Any]] = []
+    for i in range(29, -1, -1):
+        d = as_of - dt.timedelta(days=i)
+        recent_daily_series.append(
+            {
+                "date": d.isoformat(),
+                "net": net_by_date.get(d, 0.0),
+                "risk": risk_by_date.get(d, 0.0),
+            }
+        )
+
+    best_day = None
+    worst_day = None
+    if settled_dates:
+        best_date = max(settled_dates, key=lambda d: settled_net_by_date[d])
+        worst_date = min(settled_dates, key=lambda d: settled_net_by_date[d])
+        best_day = {"date": best_date.isoformat(), "net": settled_net_by_date[best_date]}
+        worst_day = {"date": worst_date.isoformat(), "net": settled_net_by_date[worst_date]}
+
     top_wins = sorted(
         [b for b in bets if not math.isnan(b.net) and b.net > 0],
         key=lambda b: b.net,
@@ -232,9 +383,11 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         key=lambda b: b.net,
     )[:10]
 
-    open_bets_sorted = sorted(open_bets, key=lambda b: b.date, reverse=True)[:100]
+    open_bets_sorted = sorted(open_bets, key=lambda b: b.date, reverse=True)
+    open_exposure = sum(_nan_to_zero(b.risk) for b in open_bets)
 
     return {
+        "as_of": as_of.isoformat(),
         "counts": {
             "total": len(bets),
             "resolved": len(resolved),
@@ -255,6 +408,15 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
             "avg_implied_prob": avg_implied,
             "win_rate": win_rate,
         },
+        "recent_periods": recent_periods,
+        "recent_daily_series": recent_daily_series,
+        "open_exposure": open_exposure,
+        "streaks": {
+            "daily": daily_streaks,
+            "bets": bet_streaks,
+        },
+        "best_day": best_day,
+        "worst_day": worst_day,
         "by_league": by_league,
         "by_book": by_book,
         "by_type": by_type,
@@ -348,11 +510,13 @@ def _render_table(headers: List[str], rows: List[List]) -> str:
 
 
 def build_html_report(summary: Dict[str, Any], title: str) -> str:
+    as_of = summary["as_of"]
     counts = summary["counts"]
     totals = summary["totals"]
     avgs = summary["averages"]
 
     series_json = json.dumps(summary["series"])
+    recent_series_json = json.dumps(summary["recent_daily_series"])
 
     def group_table(group_rows: List[Dict[str, Any]], limit: int = 25) -> str:
         headers = ["Group", "Bets", "Resolved", "W", "L", "Risk", "Net", "ROI", "Win%"]
@@ -361,9 +525,9 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
             net_fmt = _fmt_money(r["net"])
             net_cls = "positive" if r["net"] >= 0 else "negative"
             roi_fmt = _fmt_pct(r["roi"])
-            roi_cls = "positive" if r["roi"] >= 0 else "negative"
+            roi_cls = "positive" if (r["roi"] is not None and r["roi"] >= 0) else "negative"
             win_fmt = _fmt_pct(r["win_rate"])
-            win_cls = "above50" if r["win_rate"] > 0.5 else "below50"
+            win_cls = "above50" if (r["win_rate"] is not None and r["win_rate"] > 0.5) else "below50"
             rows.append(
                 [
                     html.escape(str(r["key"])),
@@ -400,6 +564,58 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
             )
         return _render_table(headers, rows)
 
+    def period_table(period_rows: List[Dict[str, Any]]) -> str:
+        headers = ["Window", "Bets", "Resolved", "W-L", "Win%", "Risk", "Net", "ROI", "Open"]
+        rows = []
+        for r in period_rows:
+            net_cls = "positive" if r["net"] >= 0 else "negative"
+            roi_cls = "positive" if (r["roi"] is not None and r["roi"] >= 0) else "negative"
+            rows.append(
+                [
+                    html.escape(r["label"]),
+                    str(r["bets"]),
+                    str(r["resolved"]),
+                    f"{r['wins']}-{r['losses']}",
+                    _fmt_pct(r["win_rate"]),
+                    _fmt_money(r["risk"]),
+                    (_fmt_money(r["net"]), net_cls),
+                    (_fmt_pct(r["roi"]), roi_cls),
+                    str(r["open"]),
+                ]
+            )
+        return _render_table(headers, rows)
+
+    def streak_line(title_text: str, streak: Dict[str, Any]) -> str:
+        if streak["length"] <= 0:
+            return f"<div><strong>{html.escape(title_text)}:</strong> none</div>"
+        if streak["start"] == streak["end"]:
+            span = streak["start"]
+        else:
+            span = f"{streak['start']} to {streak['end']}"
+        return f"<div><strong>{html.escape(title_text)}:</strong> {streak['length']} ({html.escape(span)})</div>"
+
+    daily_streaks = summary["streaks"]["daily"]
+    bet_streaks = summary["streaks"]["bets"]
+
+    if daily_streaks["current"]["length"] > 0:
+        daily_current_text = (
+            f"{daily_streaks['current']['length']} {daily_streaks['current']['type']} "
+            f"day(s) ({daily_streaks['current']['start']} to {daily_streaks['current']['end']})"
+        )
+    else:
+        daily_current_text = "No active daily win/loss streak"
+
+    if bet_streaks["current"]["length"] > 0:
+        bet_current_text = (
+            f"{bet_streaks['current']['length']} {bet_streaks['current']['type']} "
+            f"bet(s) ({bet_streaks['current']['start']} to {bet_streaks['current']['end']})"
+        )
+    else:
+        bet_current_text = "No active bet-level win/loss streak"
+
+    best_day = summary["best_day"]
+    worst_day = summary["worst_day"]
+
     html_doc = f"""<!doctype html>
 <html lang=\"en\">
 <head>
@@ -423,6 +639,19 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
     .container {{ max-width: 1200px; margin: 0 auto; padding: 24px; }}
     h1 {{ margin: 0 0 8px 0; font-size: 26px; }}
     .subtitle {{ color: var(--muted); margin-bottom: 18px; }}
+    .tabs {{ display: flex; gap: 8px; margin-bottom: 14px; }}
+    .tab-btn {{
+      background: rgba(157, 176, 208, 0.15);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }}
+    .tab-btn.active {{ background: rgba(96, 165, 250, 0.28); border-color: rgba(96, 165, 250, 0.6); }}
+    .tab-panel {{ display: none; }}
+    .tab-panel.active {{ display: block; }}
     .grid {{ display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }}
     .card {{ background: linear-gradient(180deg, var(--panel), var(--panel2)); border: 1px solid var(--border); border-radius: 14px; padding: 14px 14px; }}
     .kpi {{ grid-column: span 3; }}
@@ -457,69 +686,114 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
 <body>
   <div class=\"container\">
     <h1>{html.escape(title)}</h1>
-    <div class=\"subtitle\">Generated from bets.csv (assumed year 2026)</div>
-
-    <div class=\"grid\">
-      <div class="card kpi">
-        <div class="label">Total Bets</div>
-        <div class="value">{counts['total']}</div>
-        <div class="note">Resolved: {counts['resolved']} | Open: {counts['open']} | Push/Void: {counts['pushes']} | Other: {counts['other']}</div>
-      </div>
-      <div class=\"card kpi\">
-        <div class=\"label\">Net Profit</div>
-        <div class=\"value {'good' if totals['net'] >= 0 else 'bad'}\">{_fmt_money(totals['net'])}</div>
-        <div class=\"note\">ROI: {_fmt_pct(totals['roi'])}</div>
-      </div>
-      <div class=\"card kpi\">
-        <div class=\"label\">Win Rate (W/L only)</div>
-        <div class=\"value\">{_fmt_pct(avgs['win_rate'])}</div>
-        <div class=\"note\">W: {counts['wins']} | L: {counts['losses']}</div>
-      </div>
-      <div class=\"card kpi\">
-        <div class=\"label\">Avg Risk / Bet</div>
-        <div class=\"value\">{_fmt_money(avgs['avg_risk'])}</div>
-        <div class=\"note\">Avg odds: {_fmt_num(avgs['avg_odds'])} | Avg implied: {_fmt_pct(avgs['avg_implied_prob'])}</div>
-      </div>
-
-      <div class="card full">
-        <div class="section-title">Cumulative Profit</div>
-        <div id="chart-cum" style="height: 360px;"></div>
-        <div class="note">Uses the CSV's <code>Net</code> field for each bet; cumulative ROI = cumulative net / cumulative risk.</div>
-      </div>
-
-      <div class="card full">
-        <div class="section-title">Open Bets</div>
-        <div class="scroll">{bets_table(summary['open_bets'])}</div>
-      </div>
-
-      <div class=\"card half\">
-        <div class=\"section-title\">By League (top 25 by Net)</div>
-        <div class=\"scroll\">{group_table(summary['by_league'])}</div>
-      </div>
-      <div class=\"card half\">
-        <div class=\"section-title\">By Book (top 25 by Net)</div>
-        <div class=\"scroll\">{group_table(summary['by_book'])}</div>
-      </div>
-
-      <div class=\"card half\">
-        <div class=\"section-title\">By Type (top 25 by Net)</div>
-        <div class=\"scroll\">{group_table(summary['by_type'])}</div>
-      </div>
-      <div class=\"card half\">
-        <div class=\"section-title\">Biggest Wins (top 20)</div>
-        <div class=\"scroll\">{bets_table(summary['top_wins'])}</div>
-      </div>
-
-      <div class=\"card full\">
-        <div class=\"section-title\">Biggest Losses (top 20)</div>
-        <div class=\"scroll\">{bets_table(summary['top_losses'])}</div>
-      </div>
-
+    <div class=\"subtitle\">Generated from bets.csv | As of {html.escape(as_of)} (assumed first-row year anchor: 2025)</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="home">Home</button>
+      <button class="tab-btn" data-tab="history">History</button>
     </div>
+
+    <section id="tab-home" class="tab-panel active">
+      <div class=\"grid\">
+        <div class="card kpi">
+          <div class="label">Total Bets</div>
+          <div class="value">{counts['total']}</div>
+          <div class="note">Resolved: {counts['resolved']} | Open: {counts['open']} | Push/Void: {counts['pushes']} | Other: {counts['other']}</div>
+        </div>
+        <div class=\"card kpi\">
+          <div class=\"label\">Net Profit</div>
+          <div class=\"value {'good' if totals['net'] >= 0 else 'bad'}\">{_fmt_money(totals['net'])}</div>
+          <div class=\"note\">ROI: {_fmt_pct(totals['roi'])}</div>
+        </div>
+        <div class=\"card kpi\">
+          <div class=\"label\">Win Rate (W/L only)</div>
+          <div class=\"value\">{_fmt_pct(avgs['win_rate'])}</div>
+          <div class=\"note\">W: {counts['wins']} | L: {counts['losses']}</div>
+        </div>
+        <div class=\"card kpi\">
+          <div class=\"label\">Open Risk Exposure</div>
+          <div class=\"value\">{_fmt_money(summary['open_exposure'])}</div>
+          <div class=\"note\">All bets where <code>R</code> is blank</div>
+        </div>
+
+        <div class="card full">
+          <div class="section-title">Recent Performance</div>
+          <div class="note">Calendar-day windows ending on {html.escape(as_of)}.</div>
+          <div class="scroll">{period_table(summary['recent_periods'])}</div>
+        </div>
+
+        <div class="card half">
+          <div class="section-title">Notable Streaks</div>
+          <div class="note">{html.escape(daily_current_text)}</div>
+          <div class="note">{html.escape(bet_current_text)}</div>
+          <div style="margin-top: 8px; line-height: 1.6;">
+            {streak_line("Longest daily win streak", daily_streaks["best_win"])}
+            {streak_line("Longest daily loss streak", daily_streaks["best_loss"])}
+            {streak_line("Longest bet win streak", bet_streaks["best_win"])}
+            {streak_line("Longest bet loss streak", bet_streaks["best_loss"])}
+          </div>
+        </div>
+
+        <div class="card half">
+          <div class="section-title">Recent Highlights</div>
+          <div class="note">Avg Risk / Bet: {_fmt_money(avgs['avg_risk'])}</div>
+          <div class="note">Avg odds: {_fmt_num(avgs['avg_odds'])} | Avg implied: {_fmt_pct(avgs['avg_implied_prob'])}</div>
+          <div style="margin-top: 8px; line-height: 1.6;">
+            <div><strong>Best settled day:</strong> {html.escape(best_day['date']) if best_day else 'n/a'} ({_fmt_money(best_day['net']) if best_day else 'n/a'})</div>
+            <div><strong>Worst settled day:</strong> {html.escape(worst_day['date']) if worst_day else 'n/a'} ({_fmt_money(worst_day['net']) if worst_day else 'n/a'})</div>
+          </div>
+        </div>
+
+        <div class="card full">
+          <div class="section-title">Last 30 Days Net (daily)</div>
+          <div id="chart-recent" style="height: 320px;"></div>
+          <div class="note">Includes zero values on days with no bets.</div>
+        </div>
+
+        <div class="card full">
+          <div class="section-title">Open Bets</div>
+          <div class="note">All open bets (blank <code>R</code>).</div>
+          <div class="scroll">{bets_table(summary['open_bets'])}</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-history" class="tab-panel">
+      <div class=\"grid\">
+        <div class="card full">
+          <div class="section-title">Cumulative Profit</div>
+          <div id="chart-cum" style="height: 360px;"></div>
+          <div class="note">Uses the CSV's <code>Net</code> field for each bet; cumulative ROI = cumulative net / cumulative risk.</div>
+        </div>
+
+        <div class=\"card half\">
+          <div class=\"section-title\">By League (top 25 by Net)</div>
+          <div class=\"scroll\">{group_table(summary['by_league'])}</div>
+        </div>
+        <div class=\"card half\">
+          <div class=\"section-title\">By Book (top 25 by Net)</div>
+          <div class=\"scroll\">{group_table(summary['by_book'])}</div>
+        </div>
+
+        <div class=\"card half\">
+          <div class=\"section-title\">By Type (top 25 by Net)</div>
+          <div class=\"scroll\">{group_table(summary['by_type'])}</div>
+        </div>
+        <div class=\"card half\">
+          <div class=\"section-title\">Biggest Wins (top 10)</div>
+          <div class=\"scroll\">{bets_table(summary['top_wins'])}</div>
+        </div>
+
+        <div class=\"card full\">
+          <div class=\"section-title\">Biggest Losses (top 10)</div>
+          <div class=\"scroll\">{bets_table(summary['top_losses'])}</div>
+        </div>
+      </div>
+    </section>
   </div>
 
 <script>
   const series = {series_json};
+  const recentSeries = {recent_series_json};
 
   const x = series.map(d => d.date);
   const yCum = series.map(d => d.cum_net);
@@ -559,6 +833,46 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
   }};
 
   Plotly.newPlot('chart-cum', [traceDaily, traceCum, traceCumRoi], layout, {{displayModeBar: false, responsive: true}});
+
+  const recentX = recentSeries.map(d => d.date);
+  const recentY = recentSeries.map(d => d.net);
+  const recentTrace = {{
+    x: recentX,
+    y: recentY,
+    type: 'bar',
+    marker: {{ color: recentY.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
+    hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
+  }};
+  const recentLayout = {{
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: {{ color: '#e6eefc' }},
+    margin: {{ l: 55, r: 25, t: 10, b: 45 }},
+    xaxis: {{ gridcolor: 'rgba(255,255,255,0.06)' }},
+    yaxis: {{ title: 'Net ($)', gridcolor: 'rgba(255,255,255,0.06)' }},
+  }};
+  Plotly.newPlot('chart-recent', [recentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
+
+  const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+  const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
+  function resizeCharts() {{
+    const recentChart = document.getElementById('chart-recent');
+    const cumulativeChart = document.getElementById('chart-cum');
+    if (recentChart) Plotly.Plots.resize(recentChart);
+    if (cumulativeChart) Plotly.Plots.resize(cumulativeChart);
+  }}
+  function activateTab(tabName) {{
+    tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabName));
+    tabPanels.forEach((panel) => panel.classList.toggle('active', panel.id === `tab-${{tabName}}`));
+    localStorage.setItem('bettingReportActiveTab', tabName);
+    requestAnimationFrame(resizeCharts);
+  }}
+  tabButtons.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
+  const savedTab = localStorage.getItem('bettingReportActiveTab');
+  if (savedTab === 'history' || savedTab === 'home') {{
+    activateTab(savedTab);
+  }}
+  window.addEventListener('resize', resizeCharts);
 </script>
 
 </body>
