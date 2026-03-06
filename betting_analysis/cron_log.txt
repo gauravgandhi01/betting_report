@@ -6,3 +6,4 @@ Wrote: /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/bets_report.h
 To https://github.com/gauravgandhi01/betting_report.git
    76d2833..cc6b690  main -> main
 Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
+Wrote: /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/bets_report.html
