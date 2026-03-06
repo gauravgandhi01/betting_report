@@ -511,20 +511,20 @@ def _render_table(headers: List[str], rows: List[List]) -> str:
     return f"<table><thead><tr>{ths}</tr></thead><tbody>{''.join(trs)}</tbody></table>"
 
 
-def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[str, Any]) -> str:
+def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[str, Any]) -> str:
     as_of = summary["as_of"]
     counts = summary["counts"]
     totals = summary["totals"]
     avgs = summary["averages"]
-    ncaam_as_of = ncaam_summary["as_of"]
-    ncaam_counts = ncaam_summary["counts"]
-    ncaam_totals = ncaam_summary["totals"]
-    ncaam_avgs = ncaam_summary["averages"]
+    ncaab_as_of = ncaab_summary["as_of"]
+    ncaab_counts = ncaab_summary["counts"]
+    ncaab_totals = ncaab_summary["totals"]
+    ncaab_avgs = ncaab_summary["averages"]
 
     series_json = json.dumps(summary["series"])
     recent_series_json = json.dumps(summary["recent_daily_series"])
-    ncaam_series_json = json.dumps(ncaam_summary["series"])
-    ncaam_recent_series_json = json.dumps(ncaam_summary["recent_daily_series"])
+    ncaab_series_json = json.dumps(ncaab_summary["series"])
+    ncaab_recent_series_json = json.dumps(ncaab_summary["recent_daily_series"])
 
     def group_table(group_rows: List[Dict[str, Any]], limit: int = 25) -> str:
         headers = ["Group", "Bets", "Resolved", "W", "L", "Risk", "Net", "ROI", "Win%"]
@@ -623,8 +623,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[s
 
     best_day = summary["best_day"]
     worst_day = summary["worst_day"]
-    ncaam_best_day = ncaam_summary["best_day"]
-    ncaam_worst_day = ncaam_summary["worst_day"]
+    ncaab_best_day = ncaab_summary["best_day"]
+    ncaab_worst_day = ncaab_summary["worst_day"]
 
     html_doc = f"""<!doctype html>
 <html lang=\"en\">
@@ -700,7 +700,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[s
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
-      <button class="tab-btn" data-tab="ncaam">NCAAM</button>
+      <button class="tab-btn" data-tab="ncaab">NCAAB</button>
     </div>
 
     <section id="tab-home" class="tab-panel active">
@@ -807,82 +807,82 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[s
       </div>
     </section>
 
-    <section id="tab-ncaam" class="tab-panel">
+    <section id="tab-ncaab" class="tab-panel">
       <div class="grid">
         <div class="card kpi">
-          <div class="label">NCAAM Total Bets</div>
-          <div class="value">{ncaam_counts['total']}</div>
-          <div class="note">Resolved: {ncaam_counts['resolved']} | Open: {ncaam_counts['open']} | Push/Void: {ncaam_counts['pushes']} | Other: {ncaam_counts['other']}</div>
+          <div class="label">NCAAB Total Bets</div>
+          <div class="value">{ncaab_counts['total']}</div>
+          <div class="note">Resolved: {ncaab_counts['resolved']} | Open: {ncaab_counts['open']} | Push/Void: {ncaab_counts['pushes']} | Other: {ncaab_counts['other']}</div>
         </div>
         <div class="card kpi">
-          <div class="label">NCAAM Net Profit</div>
-          <div class="value {'good' if ncaam_totals['net'] >= 0 else 'bad'}">{_fmt_money(ncaam_totals['net'])}</div>
-          <div class="note">ROI: {_fmt_pct(ncaam_totals['roi'])}</div>
+          <div class="label">NCAAB Net Profit</div>
+          <div class="value {'good' if ncaab_totals['net'] >= 0 else 'bad'}">{_fmt_money(ncaab_totals['net'])}</div>
+          <div class="note">ROI: {_fmt_pct(ncaab_totals['roi'])}</div>
         </div>
         <div class="card kpi">
-          <div class="label">NCAAM Win Rate (W/L)</div>
-          <div class="value">{_fmt_pct(ncaam_avgs['win_rate'])}</div>
-          <div class="note">W: {ncaam_counts['wins']} | L: {ncaam_counts['losses']}</div>
+          <div class="label">NCAAB Win Rate (W/L)</div>
+          <div class="value">{_fmt_pct(ncaab_avgs['win_rate'])}</div>
+          <div class="note">W: {ncaab_counts['wins']} | L: {ncaab_counts['losses']}</div>
         </div>
         <div class="card kpi">
-          <div class="label">NCAAM Open Exposure</div>
-          <div class="value">{_fmt_money(ncaam_summary['open_exposure'])}</div>
-          <div class="note">As of {html.escape(ncaam_as_of)} | League tag = <code>NCAAM</code></div>
+          <div class="label">NCAAB Open Exposure</div>
+          <div class="value">{_fmt_money(ncaab_summary['open_exposure'])}</div>
+          <div class="note">As of {html.escape(ncaab_as_of)} | League tag = <code>NCAAB</code></div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAM Recent Performance</div>
-          <div class="note">Calendar-day windows ending on {html.escape(ncaam_as_of)}.</div>
-          <div class="scroll">{period_table(ncaam_summary['recent_periods'])}</div>
+          <div class="section-title">NCAAB Recent Performance</div>
+          <div class="note">Calendar-day windows ending on {html.escape(ncaab_as_of)}.</div>
+          <div class="scroll">{period_table(ncaab_summary['recent_periods'])}</div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAM Cumulative Profit</div>
-          <div id="chart-cum-ncaam" style="height: 320px;"></div>
+          <div class="section-title">NCAAB Cumulative Profit</div>
+          <div id="chart-cum-ncaab" style="height: 320px;"></div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAM Last 30 Days Net (daily)</div>
-          <div id="chart-recent-ncaam" style="height: 320px;"></div>
+          <div class="section-title">NCAAB Last 30 Days Net (daily)</div>
+          <div id="chart-recent-ncaab" style="height: 320px;"></div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAM Recently Settled Bets</div>
+          <div class="section-title">NCAAB Recently Settled Bets</div>
           <div class="note">Most recent settled bets (non-blank <code>R</code>), latest 25.</div>
-          <div class="scroll">{bets_table(ncaam_summary['recently_settled'][:25])}</div>
+          <div class="scroll">{bets_table(ncaab_summary['recently_settled'][:25])}</div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAM Open Bets</div>
-          <div class="note">Open bets tagged with League <code>NCAAM</code>.</div>
-          <div class="scroll">{bets_table(ncaam_summary['open_bets'])}</div>
+          <div class="section-title">NCAAB Open Bets</div>
+          <div class="note">Open bets tagged with League <code>NCAAB</code>.</div>
+          <div class="scroll">{bets_table(ncaab_summary['open_bets'])}</div>
         </div>
 
         <div class="card half">
-          <div class="section-title">NCAAM By Book</div>
-          <div class="scroll">{group_table(ncaam_summary['by_book'])}</div>
+          <div class="section-title">NCAAB By Book</div>
+          <div class="scroll">{group_table(ncaab_summary['by_book'])}</div>
         </div>
         <div class="card half">
-          <div class="section-title">NCAAM By Type</div>
-          <div class="scroll">{group_table(ncaam_summary['by_type'])}</div>
+          <div class="section-title">NCAAB By Type</div>
+          <div class="scroll">{group_table(ncaab_summary['by_type'])}</div>
         </div>
 
         <div class="card half">
-          <div class="section-title">NCAAM Biggest Wins (top 10)</div>
-          <div class="scroll">{bets_table(ncaam_summary['top_wins'])}</div>
+          <div class="section-title">NCAAB Biggest Wins (top 10)</div>
+          <div class="scroll">{bets_table(ncaab_summary['top_wins'])}</div>
         </div>
         <div class="card half">
-          <div class="section-title">NCAAM Biggest Losses (top 10)</div>
-          <div class="scroll">{bets_table(ncaam_summary['top_losses'])}</div>
+          <div class="section-title">NCAAB Biggest Losses (top 10)</div>
+          <div class="scroll">{bets_table(ncaab_summary['top_losses'])}</div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAM Highlights</div>
-          <div class="note">Avg Risk / Bet: {_fmt_money(ncaam_avgs['avg_risk'])}</div>
-          <div class="note">Avg odds: {_fmt_num(ncaam_avgs['avg_odds'])} | Avg implied: {_fmt_pct(ncaam_avgs['avg_implied_prob'])}</div>
+          <div class="section-title">NCAAB Highlights</div>
+          <div class="note">Avg Risk / Bet: {_fmt_money(ncaab_avgs['avg_risk'])}</div>
+          <div class="note">Avg odds: {_fmt_num(ncaab_avgs['avg_odds'])} | Avg implied: {_fmt_pct(ncaab_avgs['avg_implied_prob'])}</div>
           <div style="margin-top: 8px; line-height: 1.6;">
-            <div><strong>Best settled day:</strong> {html.escape(ncaam_best_day['date']) if ncaam_best_day else 'n/a'} ({_fmt_money(ncaam_best_day['net']) if ncaam_best_day else 'n/a'})</div>
-            <div><strong>Worst settled day:</strong> {html.escape(ncaam_worst_day['date']) if ncaam_worst_day else 'n/a'} ({_fmt_money(ncaam_worst_day['net']) if ncaam_worst_day else 'n/a'})</div>
+            <div><strong>Best settled day:</strong> {html.escape(ncaab_best_day['date']) if ncaab_best_day else 'n/a'} ({_fmt_money(ncaab_best_day['net']) if ncaab_best_day else 'n/a'})</div>
+            <div><strong>Worst settled day:</strong> {html.escape(ncaab_worst_day['date']) if ncaab_worst_day else 'n/a'} ({_fmt_money(ncaab_worst_day['net']) if ncaab_worst_day else 'n/a'})</div>
           </div>
         </div>
       </div>
@@ -892,8 +892,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[s
 <script>
   const series = {series_json};
   const recentSeries = {recent_series_json};
-  const ncaamSeries = {ncaam_series_json};
-  const ncaamRecentSeries = {ncaam_recent_series_json};
+  const ncaabSeries = {ncaab_series_json};
+  const ncaabRecentSeries = {ncaab_recent_series_json};
 
   const x = series.map(d => d.date);
   const yCum = series.map(d => d.cum_net);
@@ -953,51 +953,51 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[s
   }};
   Plotly.newPlot('chart-recent', [recentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
 
-  const ncaamX = ncaamSeries.map(d => d.date);
-  const ncaamYCum = ncaamSeries.map(d => d.cum_net);
-  const ncaamYDaily = ncaamSeries.map(d => d.net);
-  const ncaamYCumRoi = ncaamSeries.map(d => d.cum_roi == null ? null : d.cum_roi * 100.0);
-  const ncaamTraceCum = {{
-    x: ncaamX, y: ncaamYCum, type: 'scatter', mode: 'lines+markers', name: 'NCAAM Cumulative Net',
+  const ncaabX = ncaabSeries.map(d => d.date);
+  const ncaabYCum = ncaabSeries.map(d => d.cum_net);
+  const ncaabYDaily = ncaabSeries.map(d => d.net);
+  const ncaabYCumRoi = ncaabSeries.map(d => d.cum_roi == null ? null : d.cum_roi * 100.0);
+  const ncaabTraceCum = {{
+    x: ncaabX, y: ncaabYCum, type: 'scatter', mode: 'lines+markers', name: 'NCAAB Cumulative Net',
     line: {{ color: '#60a5fa', width: 3 }},
     hovertemplate: '%{{x}}<br>Cumulative Net: %{{y:$,.2f}}<extra></extra>'
   }};
-  const ncaamTraceDaily = {{
-    x: ncaamX, y: ncaamYDaily, type: 'bar', name: 'NCAAM Daily Net',
-    marker: {{ color: ncaamYDaily.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
+  const ncaabTraceDaily = {{
+    x: ncaabX, y: ncaabYDaily, type: 'bar', name: 'NCAAB Daily Net',
+    marker: {{ color: ncaabYDaily.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
     opacity: 0.55,
     hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
   }};
-  const ncaamTraceRoi = {{
-    x: ncaamX, y: ncaamYCumRoi, type: 'scatter', mode: 'lines', name: 'NCAAM Cumulative ROI %',
+  const ncaabTraceRoi = {{
+    x: ncaabX, y: ncaabYCumRoi, type: 'scatter', mode: 'lines', name: 'NCAAB Cumulative ROI %',
     yaxis: 'y2',
     line: {{ color: 'rgba(157,176,208,0.9)', width: 2, dash: 'dot' }},
     hovertemplate: '%{{x}}<br>Cumulative ROI: %{{y:.2f}}%<extra></extra>'
   }};
-  Plotly.newPlot('chart-cum-ncaam', [ncaamTraceDaily, ncaamTraceCum, ncaamTraceRoi], layout, {{displayModeBar: false, responsive: true}});
+  Plotly.newPlot('chart-cum-ncaab', [ncaabTraceDaily, ncaabTraceCum, ncaabTraceRoi], layout, {{displayModeBar: false, responsive: true}});
 
-  const ncaamRecentX = ncaamRecentSeries.map(d => d.date);
-  const ncaamRecentY = ncaamRecentSeries.map(d => d.net);
-  const ncaamRecentTrace = {{
-    x: ncaamRecentX,
-    y: ncaamRecentY,
+  const ncaabRecentX = ncaabRecentSeries.map(d => d.date);
+  const ncaabRecentY = ncaabRecentSeries.map(d => d.net);
+  const ncaabRecentTrace = {{
+    x: ncaabRecentX,
+    y: ncaabRecentY,
     type: 'bar',
-    marker: {{ color: ncaamRecentY.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
+    marker: {{ color: ncaabRecentY.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
     hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
   }};
-  Plotly.newPlot('chart-recent-ncaam', [ncaamRecentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
+  Plotly.newPlot('chart-recent-ncaab', [ncaabRecentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
 
   const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
   function resizeCharts() {{
     const recentChart = document.getElementById('chart-recent');
     const cumulativeChart = document.getElementById('chart-cum');
-    const ncaamRecentChart = document.getElementById('chart-recent-ncaam');
-    const ncaamCumulativeChart = document.getElementById('chart-cum-ncaam');
+    const ncaabRecentChart = document.getElementById('chart-recent-ncaab');
+    const ncaabCumulativeChart = document.getElementById('chart-cum-ncaab');
     if (recentChart) Plotly.Plots.resize(recentChart);
     if (cumulativeChart) Plotly.Plots.resize(cumulativeChart);
-    if (ncaamRecentChart) Plotly.Plots.resize(ncaamRecentChart);
-    if (ncaamCumulativeChart) Plotly.Plots.resize(ncaamCumulativeChart);
+    if (ncaabRecentChart) Plotly.Plots.resize(ncaabRecentChart);
+    if (ncaabCumulativeChart) Plotly.Plots.resize(ncaabCumulativeChart);
   }}
   function activateTab(tabName) {{
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabName));
@@ -1007,7 +1007,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaam_summary: Dict[s
   }}
   tabButtons.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
   const savedTab = localStorage.getItem('bettingReportActiveTab');
-  if (savedTab === 'history' || savedTab === 'home' || savedTab === 'ncaam') {{
+  if (savedTab === 'history' || savedTab === 'home' || savedTab === 'ncaab') {{
     activateTab(savedTab);
   }}
   window.addEventListener('resize', resizeCharts);
@@ -1061,11 +1061,11 @@ def main() -> int:
     # Temporary reporting scope: only include bets from 2026 onward.
     bets = [b for b in bets if b.date >= dt.date(2026, 1, 1)]
     summary = summarize(bets)
-    ncaam_bets = [b for b in bets if b.league.strip().upper() == "NCAAM"]
-    ncaam_summary = summarize(ncaam_bets)
+    ncaab_bets = [b for b in bets if b.league.strip().upper() == "NCAAB"]
+    ncaab_summary = summarize(ncaab_bets)
 
     title = "Betting Report"
-    html_report = build_html_report(summary, title=title, ncaam_summary=ncaam_summary)
+    html_report = build_html_report(summary, title=title, ncaab_summary=ncaab_summary)
 
     out_dir = os.path.dirname(os.path.abspath(args.output))
     if out_dir and not os.path.exists(out_dir):
