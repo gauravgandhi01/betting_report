@@ -1170,7 +1170,7 @@ def main() -> int:
     ncaab_bets = [b for b in bets if b.league.strip().upper() == "NCAAB"]
     ncaab_summary = summarize(ncaab_bets)
 
-    title = "Betting Report"
+    title = "G's Betting Report"
     html_report = build_html_report(summary, title=title, ncaab_summary=ncaab_summary)
 
     out_dir = os.path.dirname(os.path.abspath(args.output))
