@@ -1,28 +1,2 @@
-Wrote: /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/bets_report.html
-[main cc6b690] Auto-update: betting report 2026-03-06 15:31
- 4 files changed, 6 insertions(+), 5 deletions(-)
- rename index.html => betting_analysis/bets_report.html (98%)
- create mode 100644 betting_analysis/cron_log.txt
-To https://github.com/gauravgandhi01/betting_report.git
-   76d2833..cc6b690  main -> main
+=== 2026-03-06T17:14:00-05:00 START betting ===
 Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
-Wrote: /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/bets_report.html
-[main c655918] Auto-update: betting report 2026-03-06 16:00
- 2 files changed, 262 insertions(+)
- create mode 100644 betting_analysis/bets_report.html
-To https://github.com/gauravgandhi01/betting_report.git
-   920f7bd..c655918  main -> main
-zsh: no such file or directory: Users/ggandhi001/nhl_tools/betting_report/index.html
-zsh: no such file or directory: Users/ggandhi001/nhl_tools/betting_report/index.html
-Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
-[main 5af7977] Auto-update: betting report 2026-03-06 16:05
- 4 files changed, 23 insertions(+), 276 deletions(-)
- delete mode 100644 betting_analysis/bets_report.html
-To https://github.com/gauravgandhi01/betting_report.git
-   c655918..5af7977  main -> main
-Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
-[main da28e3b] Auto-update: betting report 2026-03-06 16:15
- 4 files changed, 43 insertions(+), 25 deletions(-)
- create mode 100755 update.sh
-To https://github.com/gauravgandhi01/betting_report.git
-   5af7977..da28e3b  main -> main
