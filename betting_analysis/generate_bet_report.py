@@ -29,6 +29,93 @@ class Bet:
     bet_type: str
 
 
+LEAGUE_COLOR_MAP = {
+    "NHL": "#1D4ED8",
+    "NCAAB": "#D97706",
+    "NBA": "#C8102E",
+    "NFL": "#013369",
+    "MLB": "#0477BF",
+    "NCAAF": "#7C2D12",
+    "PGA": "#15803D",
+    "OTHER": "#6B7280",
+    "CROSSSPORT": "#8B5CF6",
+}
+
+
+BOOK_COLOR_MAP = {
+    "FANDUEL": "#0077FF",
+    "DRAFTKINGS": "#53B949",
+    "CAESARS": "#C7A257",
+    "BETMGM": "#C0A362",
+    "MGM": "#C0A362",
+    "FANATICS": "#E31837",
+    "BET365": "#1E9B4F",
+    "BALLYS": "#CC0033",
+    "RIVERS": "#1D4ED8",
+    "NOVIG": "#4F46E5",
+    "PROPHETX": "#06B6D4",
+    "SPORTTRADE": "#0EA5E9",
+    "BOOKIE": "#7C3AED",
+    "BM": "#64748B",
+    "BOL": "#F97316",
+    "BUCKEYE": "#DC2626",
+}
+
+
+BADGE_FALLBACK_PALETTE = [
+    "#38BDF8",
+    "#22C55E",
+    "#F59E0B",
+    "#EF4444",
+    "#A78BFA",
+    "#14B8A6",
+    "#F97316",
+    "#84CC16",
+    "#06B6D4",
+    "#E879F9",
+]
+
+
+def _normalize_key(label: str) -> str:
+    return "".join(ch for ch in (label or "").upper() if ch.isalnum())
+
+
+def _fallback_color(label: str) -> str:
+    key = _normalize_key(label)
+    if not key:
+        return "#64748B"
+    return BADGE_FALLBACK_PALETTE[sum(ord(ch) for ch in key) % len(BADGE_FALLBACK_PALETTE)]
+
+
+def _text_color_for_bg(hex_color: str) -> str:
+    s = (hex_color or "").lstrip("#")
+    if len(s) != 6:
+        return "#F8FAFC"
+    r = int(s[0:2], 16)
+    g = int(s[2:4], 16)
+    b = int(s[4:6], 16)
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+    return "#0B1220" if luminance > 0.62 else "#F8FAFC"
+
+
+def _badge_html(label: str, color: str) -> str:
+    safe = html.escape((label or "").strip() or "(blank)")
+    fg = _text_color_for_bg(color)
+    return f'<span class="badge" style="background:{color}; border-color:{color}; color:{fg};">{safe}</span>'
+
+
+def _league_badge(league: str) -> str:
+    key = _normalize_key(league)
+    color = LEAGUE_COLOR_MAP.get(key, _fallback_color(league))
+    return _badge_html(league, color)
+
+
+def _book_badge(book: str) -> str:
+    key = _normalize_key(book)
+    color = BOOK_COLOR_MAP.get(key, _fallback_color(book))
+    return _badge_html(book, color)
+
+
 def _parse_money(value: str) -> float:
     # Handles values like "$1,381.91", "-$105.05", "$105.05" or "105.05"
     s = (value or "").strip()
@@ -526,7 +613,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     ncaab_series_json = json.dumps(ncaab_summary["series"])
     ncaab_recent_series_json = json.dumps(ncaab_summary["recent_daily_series"])
 
-    def group_table(group_rows: List[Dict[str, Any]], limit: int = 25) -> str:
+    def group_table(group_rows: List[Dict[str, Any]], limit: int = 25, badge_kind: str = "") -> str:
         headers = ["Group", "Bets", "Resolved", "W", "L", "Risk", "Net", "ROI", "Win%"]
         rows = []
         for r in group_rows[:limit]:
@@ -536,9 +623,16 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             roi_cls = "positive" if (r["roi"] is not None and r["roi"] >= 0) else "negative"
             win_fmt = _fmt_pct(r["win_rate"])
             win_cls = "above50" if (r["win_rate"] is not None and r["win_rate"] > 0.5) else "below50"
+            key_label = str(r["key"])
+            if badge_kind == "league":
+                group_cell = _league_badge(key_label)
+            elif badge_kind == "book":
+                group_cell = _book_badge(key_label)
+            else:
+                group_cell = html.escape(key_label)
             rows.append(
                 [
-                    html.escape(str(r["key"])),
+                    group_cell,
                     str(r["count"]),
                     str(r["resolved"]),
                     str(r["wins"]),
@@ -560,8 +654,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             rows.append(
                 [
                     html.escape(r["date"]),
-                    html.escape(r["league"]),
-                    html.escape(r["book"]),
+                    _league_badge(r["league"]),
+                    _book_badge(r["book"]),
                     html.escape(r["type"]),
                     html.escape(r["pick"]),
                     html.escape(_fmt_num(r["odds"])),
@@ -680,6 +774,18 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     .scroll {{ overflow-x: auto; }}
     .section-title {{ margin: 6px 0 10px; font-size: 16px; }}
     .note {{ color: var(--muted); font-size: 12px; line-height: 1.4; }}
+    .badge {{
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      line-height: 1.4;
+      white-space: nowrap;
+    }}
 
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
@@ -784,11 +890,11 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 
         <div class=\"card half\">
           <div class=\"section-title\">By League (top 25 by Net)</div>
-          <div class=\"scroll\">{group_table(summary['by_league'])}</div>
+          <div class=\"scroll\">{group_table(summary['by_league'], badge_kind='league')}</div>
         </div>
         <div class=\"card half\">
           <div class=\"section-title\">By Book (top 25 by Net)</div>
-          <div class=\"scroll\">{group_table(summary['by_book'])}</div>
+          <div class=\"scroll\">{group_table(summary['by_book'], badge_kind='book')}</div>
         </div>
 
         <div class=\"card half\">
@@ -860,7 +966,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 
         <div class="card half">
           <div class="section-title">NCAAB By Book</div>
-          <div class="scroll">{group_table(ncaab_summary['by_book'])}</div>
+          <div class="scroll">{group_table(ncaab_summary['by_book'], badge_kind='book')}</div>
         </div>
         <div class="card half">
           <div class="section-title">NCAAB By Type</div>
