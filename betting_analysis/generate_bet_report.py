@@ -696,7 +696,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 <body>
   <div class=\"container\">
     <h1>{html.escape(title)}</h1>
-    <div class=\"subtitle\">Generated from bets.csv | As of {html.escape(as_of)} (assumed first-row year anchor: 2025) | Showing data from 2026-01-01 onward</div>
+    <div class=\"subtitle\">Generated from bets.csv | As of {html.escape(as_of)}| Showing data from 2026-01-01 onward</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -707,13 +707,13 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
       <div class=\"grid\">
         <div class="card full">
           <div class="section-title">Open Bets</div>
-          <div class="note">All open bets (blank <code>R</code>).</div>
+          <div class="note">All open bets.</div>
           <div class="scroll">{bets_table(summary['open_bets'])}</div>
         </div>
 
         <div class="card full">
           <div class="section-title">Recently Settled Bets</div>
-          <div class="note">Most recent settled bets (non-blank <code>R</code>), latest 25.</div>
+          <div class="note">Most recent settled bets, latest 25.</div>
           <div class="scroll">{bets_table(summary['recently_settled'][:25])}</div>
         </div>
 
@@ -848,7 +848,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 
         <div class="card full">
           <div class="section-title">NCAAB Recently Settled Bets</div>
-          <div class="note">Most recent settled bets (non-blank <code>R</code>), latest 25.</div>
+          <div class="note">Most recent settled bets, latest 25.</div>
           <div class="scroll">{bets_table(ncaab_summary['recently_settled'][:25])}</div>
         </div>
 
