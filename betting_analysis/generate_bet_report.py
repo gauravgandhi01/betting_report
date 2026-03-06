@@ -825,7 +825,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         <div class="card kpi">
           <div class="label">Total Bets</div>
           <div class="value">{counts['total']}</div>
-          <div class="note">Resolved: {counts['resolved']} | Open: {counts['open']} | Push/Void: {counts['pushes']} | Other: {counts['other']}</div>
+          <div class="note">Resolved: {counts['resolved']} | Open: {counts['open']} | Push/Void: {counts['pushes']}</div>
         </div>
         <div class=\"card kpi\">
           <div class=\"label\">Net Profit</div>
@@ -928,7 +928,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         <div class="card kpi">
           <div class="label">NCAAB Total Bets</div>
           <div class="value">{ncaab_counts['total']}</div>
-          <div class="note">Resolved: {ncaab_counts['resolved']} | Open: {ncaab_counts['open']} | Push/Void: {ncaab_counts['pushes']} | Other: {ncaab_counts['other']}</div>
+          <div class="note">Resolved: {ncaab_counts['resolved']} | Open: {ncaab_counts['open']} | Push/Void: {ncaab_counts['pushes']}</div>
         </div>
         <div class="card kpi">
           <div class="label">NCAAB Net Profit</div>
