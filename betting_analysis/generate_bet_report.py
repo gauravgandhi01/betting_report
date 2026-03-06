@@ -840,7 +840,6 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         <div class=\"card kpi\">
           <div class=\"label\">Open Risk Exposure</div>
           <div class=\"value\">{_fmt_money(summary['open_exposure'])}</div>
-          <div class=\"note\">All bets where <code>R</code> is blank</div>
         </div>
 
         <div class="card full">
