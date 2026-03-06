@@ -583,6 +583,17 @@ def _fmt_num(x: Optional[float]) -> str:
     return f"{x:.2f}"
 
 
+def _fmt_date_short(value: str) -> str:
+    s = (value or "").strip()
+    if not s:
+        return ""
+    try:
+        d = dt.date.fromisoformat(s)
+        return f"{d:%b} {d.day}"
+    except ValueError:
+        return s
+
+
 def _render_table(headers: List[str], rows: List[List]) -> str:
     ths = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
     trs = []
@@ -653,7 +664,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             net_cls = "positive" if r["net"] >= 0 else "negative"
             rows.append(
                 [
-                    html.escape(r["date"]),
+                    html.escape(_fmt_date_short(r["date"])),
                     _league_badge(r["league"]),
                     _book_badge(r["book"]),
                     html.escape(r["type"]),
