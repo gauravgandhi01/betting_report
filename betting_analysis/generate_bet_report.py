@@ -694,6 +694,12 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
 
     <section id="tab-home" class="tab-panel active">
       <div class=\"grid\">
+        <div class="card full">
+          <div class="section-title">Open Bets</div>
+          <div class="note">All open bets (blank <code>R</code>).</div>
+          <div class="scroll">{bets_table(summary['open_bets'])}</div>
+        </div>
+
         <div class="card kpi">
           <div class="label">Total Bets</div>
           <div class="value">{counts['total']}</div>
@@ -747,12 +753,6 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
           <div class="section-title">Last 30 Days Net (daily)</div>
           <div id="chart-recent" style="height: 320px;"></div>
           <div class="note">Includes zero values on days with no bets.</div>
-        </div>
-
-        <div class="card full">
-          <div class="section-title">Open Bets</div>
-          <div class="note">All open bets (blank <code>R</code>).</div>
-          <div class="scroll">{bets_table(summary['open_bets'])}</div>
         </div>
       </div>
     </section>
