@@ -6,5 +6,5 @@
   >> /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/cron_log.txt 2>&1 && \
 cd /Users/ggandhi001/nhl_tools/betting_report && \
 /usr/bin/git add -A && \
-/usr/bin/git commit -m "Auto-update: betting report $(date '+%Y-%m-%d %H:%M')" >> /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/cron_log.txt 2>&1 && \
+/usr/bin/git commit -m "Manual Push $(date '+%Y-%m-%d %H:%M')" >> /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/cron_log.txt 2>&1 && \
 /usr/bin/git push >> /Users/ggandhi001/nhl_tools/betting_report/betting_analysis/cron_log.txt 2>&1
