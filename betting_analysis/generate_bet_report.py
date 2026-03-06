@@ -920,6 +920,8 @@ def main() -> int:
         _atomic_write_bytes(args.input, data)
 
     bets = read_bets(args.input, start_year=args.start_year)
+    # Temporary reporting scope: only include bets from 2026 onward.
+    bets = [b for b in bets if b.date >= dt.date(2026, 1, 1)]
     summary = summarize(bets)
 
     title = "Betting Report"
