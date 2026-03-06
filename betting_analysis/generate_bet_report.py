@@ -332,12 +332,18 @@ def _fmt_num(x: Optional[float]) -> str:
     return f"{x:.2f}"
 
 
-def _render_table(headers: List[str], rows: List[List[str]]) -> str:
+def _render_table(headers: List[str], rows: List[List]) -> str:
     ths = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
     trs = []
     for r in rows:
-        tds = "".join(f"<td>{c}</td>" for c in r)
-        trs.append(f"<tr>{tds}</tr>")
+        tds = []
+        for c in r:
+            if isinstance(c, tuple):
+                formatted, cls = c
+                tds.append(f'<td class="{cls}">{formatted}</td>')
+            else:
+                tds.append(f"<td>{c}</td>")
+        trs.append(f"<tr>{''.join(tds)}</tr>")
     return f"<table><thead><tr>{ths}</tr></thead><tbody>{''.join(trs)}</tbody></table>"
 
 
@@ -352,6 +358,12 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
         headers = ["Group", "Bets", "Resolved", "W", "L", "Risk", "Net", "ROI", "Win%"]
         rows = []
         for r in group_rows[:limit]:
+            net_fmt = _fmt_money(r["net"])
+            net_cls = "positive" if r["net"] >= 0 else "negative"
+            roi_fmt = _fmt_pct(r["roi"])
+            roi_cls = "positive" if r["roi"] >= 0 else "negative"
+            win_fmt = _fmt_pct(r["win_rate"])
+            win_cls = "above50" if r["win_rate"] > 0.5 else "below50"
             rows.append(
                 [
                     html.escape(str(r["key"])),
@@ -360,9 +372,9 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
                     str(r["wins"]),
                     str(r["losses"]),
                     _fmt_money(r["risk"]),
-                    _fmt_money(r["net"]),
-                    _fmt_pct(r["roi"]),
-                    _fmt_pct(r["win_rate"]),
+                    (net_fmt, net_cls),
+                    (roi_fmt, roi_cls),
+                    (win_fmt, win_cls),
                 ]
             )
         return _render_table(headers, rows)
@@ -371,6 +383,8 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
         headers = ["Date", "League", "Book", "Type", "Pick", "Odds", "Risk", "Result", "Net"]
         rows = []
         for r in bet_rows:
+            net_fmt = _fmt_money(r["net"])
+            net_cls = "positive" if r["net"] >= 0 else "negative"
             rows.append(
                 [
                     html.escape(r["date"]),
@@ -381,7 +395,7 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
                     html.escape(_fmt_num(r["odds"])),
                     _fmt_money(r["risk"]),
                     html.escape(r["result"]),
-                    _fmt_money(r["net"]),
+                    (net_fmt, net_cls),
                 ]
             )
         return _render_table(headers, rows)
@@ -427,6 +441,11 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
     .scroll {{ overflow-x: auto; }}
     .section-title {{ margin: 6px 0 10px; font-size: 16px; }}
     .note {{ color: var(--muted); font-size: 12px; line-height: 1.4; }}
+
+    .positive {{ color: var(--good); }}
+    .negative {{ color: var(--bad); }}
+    .above50 {{ color: var(--good); }}
+    .below50 {{ color: var(--bad); }}
 
     @media (max-width: 1000px) {{
       .kpi {{ grid-column: span 6; }}
