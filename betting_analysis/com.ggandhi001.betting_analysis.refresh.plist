@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ggandhi001.betting_analysis.refresh</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>/Users/ggandhi001/betting_analysis/generate_bet_report.py</string>
+    <string>--input</string>
+    <string>/Users/ggandhi001/betting_analysis/bets.csv</string>
+    <string>--output</string>
+    <string>/Users/ggandhi001/betting_analysis/bets_report.html</string>
+    <string>--start-year</string>
+    <string>2025</string>
+    <string>--sync-url</string>
+    <string>https://docs.google.com/spreadsheets/d/e/2PACX-1vRWq2b3UQWrMAyMVpvt2ZIfzbIcvF42SOAvx1Q7FtkT3i105w46_K_VoSy_OyBJ1bqs-Ow7n71xlIsa/pub?gid=383914663&amp;single=true&amp;output=csv</string>
+  </array>
+
+  <key>StartInterval</key>
+  <integer>900</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/ggandhi001/betting_analysis/refresh.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/ggandhi001/betting_analysis/refresh.err.log</string>
+</dict>
+</plist>
