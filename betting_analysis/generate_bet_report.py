@@ -686,7 +686,7 @@ def build_html_report(summary: Dict[str, Any], title: str) -> str:
 <body>
   <div class=\"container\">
     <h1>{html.escape(title)}</h1>
-    <div class=\"subtitle\">Generated from bets.csv | As of {html.escape(as_of)} (assumed first-row year anchor: 2025)</div>
+    <div class=\"subtitle\">Generated from bets.csv | As of {html.escape(as_of)} (assumed first-row year anchor: 2025) | Showing data from 2026-01-01 onward</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>

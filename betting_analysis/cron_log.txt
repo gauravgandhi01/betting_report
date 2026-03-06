@@ -21,3 +21,8 @@ Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
 To https://github.com/gauravgandhi01/betting_report.git
    c655918..5af7977  main -> main
 Wrote: /Users/ggandhi001/nhl_tools/betting_report/index.html
+[main da28e3b] Auto-update: betting report 2026-03-06 16:15
+ 4 files changed, 43 insertions(+), 25 deletions(-)
+ create mode 100755 update.sh
+To https://github.com/gauravgandhi01/betting_report.git
+   5af7977..da28e3b  main -> main
