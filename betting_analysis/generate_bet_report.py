@@ -611,6 +611,12 @@ def _fmt_odds(x: Optional[float]) -> str:
     return f"{x:+.2f}"
 
 
+def _round_half_away_from_zero(value: float) -> int:
+    if value >= 0:
+        return int(math.floor(value + 0.5))
+    return int(math.ceil(value - 0.5))
+
+
 def _fmt_date_short(value: str) -> str:
     s = (value or "").strip()
     if not s:
@@ -707,6 +713,8 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         risk_values = g["risk_values"]
         net_values = g["net_values"]
         avg_odds = (sum(odds_values) / len(odds_values)) if odds_values else None
+        if avg_odds is not None:
+            avg_odds = float(_round_half_away_from_zero(avg_odds))
 
         collapsed.append(
             {
