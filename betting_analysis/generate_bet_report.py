@@ -706,19 +706,13 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         odds_values = g["odds_values"]
         risk_values = g["risk_values"]
         net_values = g["net_values"]
-
-        odds_summary = ""
-        if odds_values:
-            best = max(odds_values)
-            worst = min(odds_values)
-            odds_summary = _fmt_odds(best) if best == worst else f"{_fmt_odds(best)} to {_fmt_odds(worst)}"
+        avg_odds = (sum(odds_values) / len(odds_values)) if odds_values else None
 
         collapsed.append(
             {
                 "date": g["date"],
                 "pick": g["pick"],
-                "odds": (max(odds_values) if odds_values else None),
-                "odds_summary": odds_summary,
+                "odds": avg_odds,
                 "risk": (sum(risk_values) if risk_values else float("nan")),
                 "to_win": float("nan"),
                 "result": g["result"],
@@ -810,7 +804,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             if row_count > 1:
                 pick_cell += f'<div class="note-inline">{row_count} wagers combined</div>'
 
-            odds_text = str(r.get("odds_summary") or _fmt_odds(r.get("odds"))).strip()
+            odds_text = _fmt_odds(r.get("odds"))
             row = [
                 html.escape(_fmt_date_short(r["date"])),
                 league_cell,
