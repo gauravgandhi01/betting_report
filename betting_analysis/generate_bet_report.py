@@ -925,31 +925,27 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
           <div class=\"note\">W: {counts['wins']} | L: {counts['losses']}</div>
         </div>
         <div class=\"card kpi\">
-          <div class=\"label\">Open Risk Exposure</div>
+          <div class=\"label\">Open Risk</div>
           <div class=\"value\">{_fmt_money(summary['open_exposure'])}</div>
         </div>
 
         <div class="card full">
           <div class="section-title">Open Bets</div>
-          <div class="note">All open bets.</div>
           <div class="scroll">{bets_table(summary['open_bets'])}</div>
         </div>
 
         <div class="card full">
           <div class="section-title">Daily Net / Risk (Last 7 Days)</div>
-          <div class="note">Calendar-style daily view ending on {html.escape(as_of)}.</div>
           {daily_net_risk_calendar(summary['recent_7_day_calendar'])}
         </div>
 
         <div class="card full">
           <div class="section-title">Recent Performance</div>
-          <div class="note">Calendar-day windows ending on {html.escape(as_of)}.</div>
           <div class="scroll">{period_table(summary['recent_periods'])}</div>
         </div>
 
         <div class="card full">
           <div class="section-title">Recently Settled Bets</div>
-          <div class="note">Most recent settled bets, latest 25.</div>
           <div class="scroll">{bets_table(summary['recently_settled'][:25])}</div>
         </div>
 
