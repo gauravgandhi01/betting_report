@@ -483,6 +483,10 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         [b for b in bets if not math.isnan(b.net) and b.net < 0],
         key=lambda b: b.net,
     )[:10]
+    longest_shots = sorted(
+        [b for b in bets if b.result == "W" and b.odds_american is not None],
+        key=lambda b: (_american_to_implied_prob(b.odds_american) if _american_to_implied_prob(b.odds_american) is not None else 1.0),
+    )[:10]
 
     settled_bets_sorted = sorted(settled_bets, key=lambda b: b.date, reverse=True)[:50]
     open_bets_sorted = sorted(open_bets, key=lambda b: b.date, reverse=True)
@@ -526,6 +530,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         "series": series,
         "top_wins": [bet_to_row(b) for b in top_wins],
         "top_losses": [bet_to_row(b) for b in top_losses],
+        "longest_shots": [bet_to_row(b) for b in longest_shots],
         "recently_settled": [bet_to_row(b) for b in settled_bets_sorted],
         "open_bets": [bet_to_row(b) for b in open_bets_sorted],
     }
@@ -670,25 +675,28 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             )
         return _render_table(headers, rows)
 
-    def bets_table(bet_rows: List[Dict[str, Any]]) -> str:
-        headers = ["Date", "League", "Book", "Type", "Pick", "Odds", "Risk", "Result", "Net"]
+    def bets_table(bet_rows: List[Dict[str, Any]], include_result: bool = True) -> str:
+        headers = ["Date", "League", "Book", "Type", "Pick", "Odds", "Risk"]
+        if include_result:
+            headers.append("Result")
+        headers.append("Net")
         rows = []
         for r in bet_rows:
             net_fmt = _fmt_money(r["net"])
             net_cls = "positive" if r["net"] >= 0 else "negative"
-            rows.append(
-                [
-                    html.escape(_fmt_date_short(r["date"])),
-                    _league_badge(r["league"]),
-                    _book_badge(r["book"]),
-                    html.escape(r["type"]),
-                    html.escape(r["pick"]),
-                    html.escape(_fmt_num(r["odds"])),
-                    _fmt_money(r["risk"]),
-                    html.escape(r["result"]),
-                    (net_fmt, net_cls),
-                ]
-            )
+            row = [
+                html.escape(_fmt_date_short(r["date"])),
+                _league_badge(r["league"]),
+                _book_badge(r["book"]),
+                html.escape(r["type"]),
+                html.escape(r["pick"]),
+                html.escape(_fmt_num(r["odds"])),
+                _fmt_money(r["risk"]),
+            ]
+            if include_result:
+                row.append(html.escape(r["result"]))
+            row.append((net_fmt, net_cls))
+            rows.append(row)
         return _render_table(headers, rows)
 
     def period_table(period_rows: List[Dict[str, Any]]) -> str:
@@ -1000,12 +1008,18 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         </div>
         <div class=\"card half\">
           <div class=\"section-title\">Biggest Wins (top 10)</div>
-          <div class=\"scroll\">{bets_table(summary['top_wins'])}</div>
+          <div class=\"scroll\">{bets_table(summary['top_wins'], include_result=False)}</div>
+        </div>
+
+        <div class=\"card half\">
+          <div class=\"section-title\">Biggest Losses (top 10)</div>
+          <div class=\"scroll\">{bets_table(summary['top_losses'], include_result=False)}</div>
         </div>
 
         <div class=\"card full\">
-          <div class=\"section-title\">Biggest Losses (top 10)</div>
-          <div class=\"scroll\">{bets_table(summary['top_losses'])}</div>
+          <div class=\"section-title\">Longest Shots (top 10 winning odds)</div>
+          <div class=\"note\">Winning wagers with the longest pre-game odds (lowest implied win probability).</div>
+          <div class=\"scroll\">{bets_table(summary['longest_shots'], include_result=False)}</div>
         </div>
       </div>
     </section>
@@ -1072,11 +1086,11 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 
         <div class="card half">
           <div class="section-title">NCAAB Biggest Wins (top 10)</div>
-          <div class="scroll">{bets_table(ncaab_summary['top_wins'])}</div>
+          <div class="scroll">{bets_table(ncaab_summary['top_wins'], include_result=False)}</div>
         </div>
         <div class="card half">
           <div class="section-title">NCAAB Biggest Losses (top 10)</div>
-          <div class="scroll">{bets_table(ncaab_summary['top_losses'])}</div>
+          <div class="scroll">{bets_table(ncaab_summary['top_losses'], include_result=False)}</div>
         </div>
 
         <div class="card full">
