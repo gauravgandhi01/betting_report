@@ -603,6 +603,14 @@ def _fmt_num(x: Optional[float]) -> str:
     return f"{x:.2f}"
 
 
+def _fmt_odds(x: Optional[float]) -> str:
+    if x is None or (isinstance(x, float) and math.isnan(x)):
+        return ""
+    if float(x).is_integer():
+        return f"{int(x):+d}"
+    return f"{x:+.2f}"
+
+
 def _fmt_date_short(value: str) -> str:
     s = (value or "").strip()
     if not s:
@@ -627,6 +635,103 @@ def _render_table(headers: List[str], rows: List[List]) -> str:
                 tds.append(f"<td>{c}</td>")
         trs.append(f"<tr>{''.join(tds)}</tr>")
     return f"<table><thead><tr>{ths}</tr></thead><tbody>{''.join(trs)}</tbody></table>"
+
+
+def _normalize_pick(value: str) -> str:
+    return " ".join((value or "").strip().split()).upper()
+
+
+def _unique_nonblank(values: List[str]) -> List[str]:
+    seen = set()
+    out: List[str] = []
+    for v in values:
+        label = (v or "").strip() or "(blank)"
+        key = label.upper()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(label)
+    return out
+
+
+def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    grouped: Dict[Tuple[str, str, str, str, str], Dict[str, Any]] = {}
+    order: List[Tuple[str, str, str, str, str]] = []
+
+    for r in bet_rows:
+        date = str(r.get("date", "")).strip()
+        pick = str(r.get("pick", "")).strip()
+        league = str(r.get("league", "")).strip()
+        bet_type = str(r.get("type", "")).strip()
+        result = str(r.get("result", "")).strip().upper()
+
+        key = (date, _normalize_pick(pick), league.upper(), bet_type.upper(), result)
+        if key not in grouped:
+            grouped[key] = {
+                "date": date,
+                "pick": pick,
+                "type": bet_type,
+                "result": result,
+                "books": [],
+                "leagues": [],
+                "odds_values": [],
+                "risk_values": [],
+                "net_values": [],
+                "count": 0,
+            }
+            order.append(key)
+
+        g = grouped[key]
+        g["count"] += 1
+        g["books"].append(str(r.get("book", "")).strip())
+        g["leagues"].append(league)
+
+        odds = r.get("odds")
+        if odds is not None and not (isinstance(odds, float) and math.isnan(odds)):
+            g["odds_values"].append(float(odds))
+
+        risk = r.get("risk")
+        if risk is not None and not (isinstance(risk, float) and math.isnan(risk)):
+            g["risk_values"].append(float(risk))
+
+        net = r.get("net")
+        if net is not None and not (isinstance(net, float) and math.isnan(net)):
+            g["net_values"].append(float(net))
+
+    collapsed: List[Dict[str, Any]] = []
+    for key in order:
+        g = grouped[key]
+        books = _unique_nonblank(g["books"])
+        leagues = _unique_nonblank(g["leagues"])
+        odds_values = g["odds_values"]
+        risk_values = g["risk_values"]
+        net_values = g["net_values"]
+
+        odds_summary = ""
+        if odds_values:
+            best = max(odds_values)
+            worst = min(odds_values)
+            odds_summary = _fmt_odds(best) if best == worst else f"{_fmt_odds(best)} to {_fmt_odds(worst)}"
+
+        collapsed.append(
+            {
+                "date": g["date"],
+                "pick": g["pick"],
+                "odds": (max(odds_values) if odds_values else None),
+                "odds_summary": odds_summary,
+                "risk": (sum(risk_values) if risk_values else float("nan")),
+                "to_win": float("nan"),
+                "result": g["result"],
+                "net": (sum(net_values) if net_values else float("nan")),
+                "book": books[0] if len(books) == 1 else f"{len(books)} books",
+                "books": books,
+                "league": leagues[0] if len(leagues) == 1 else "Mixed",
+                "leagues": leagues,
+                "type": g["type"],
+                "row_count": g["count"],
+            }
+        )
+    return collapsed
 
 
 def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[str, Any]) -> str:
@@ -675,22 +780,44 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             )
         return _render_table(headers, rows)
 
-    def bets_table(bet_rows: List[Dict[str, Any]], include_result: bool = True) -> str:
+    def bets_table(
+        bet_rows: List[Dict[str, Any]],
+        include_result: bool = True,
+        collapse_duplicates: bool = True,
+    ) -> str:
+        rows_in = _collapse_bet_rows(bet_rows) if collapse_duplicates else bet_rows
         headers = ["Date", "League", "Book", "Type", "Pick", "Odds", "Risk"]
         if include_result:
             headers.append("Result")
         headers.append("Net")
         rows = []
-        for r in bet_rows:
+        for r in rows_in:
             net_fmt = _fmt_money(r["net"])
             net_cls = "positive" if r["net"] >= 0 else "negative"
+            leagues = r.get("leagues") or [r.get("league", "")]
+            books = r.get("books") or [r.get("book", "")]
+            if len(leagues) == 1:
+                league_cell = _league_badge(leagues[0])
+            else:
+                league_cell = f'<div class="chip-row">{"".join(_league_badge(x) for x in leagues)}</div>'
+            if len(books) == 1:
+                book_cell = _book_badge(books[0])
+            else:
+                book_cell = f'<div class="chip-row">{"".join(_book_badge(x) for x in books)}</div>'
+
+            pick_cell = html.escape(r["pick"])
+            row_count = int(r.get("row_count", 1) or 1)
+            if row_count > 1:
+                pick_cell += f'<div class="note-inline">{row_count} wagers combined</div>'
+
+            odds_text = str(r.get("odds_summary") or _fmt_odds(r.get("odds"))).strip()
             row = [
                 html.escape(_fmt_date_short(r["date"])),
-                _league_badge(r["league"]),
-                _book_badge(r["book"]),
+                league_cell,
+                book_cell,
                 html.escape(r["type"]),
-                html.escape(r["pick"]),
-                html.escape(_fmt_num(r["odds"])),
+                pick_cell,
+                html.escape(odds_text),
                 _fmt_money(r["risk"]),
             ]
             if include_result:
@@ -855,6 +982,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
       line-height: 1.4;
       white-space: nowrap;
     }}
+    .chip-row {{ display: flex; flex-wrap: wrap; gap: 4px; }}
+    .note-inline {{ color: var(--muted); font-size: 11px; margin-top: 4px; }}
     .calendar-scroll {{ overflow-x: auto; padding-bottom: 4px; }}
     .calendar-strip {{
       display: grid;
