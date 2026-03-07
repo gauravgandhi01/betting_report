@@ -640,7 +640,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     ncaab_recent_series_json = json.dumps(ncaab_summary["recent_daily_series"])
 
     def group_table(group_rows: List[Dict[str, Any]], limit: int = 25, badge_kind: str = "") -> str:
-        headers = ["Group", "Bets", "Resolved", "W", "L", "Risk", "Net", "ROI", "Win%"]
+        headers = ["Group", "Bets", "W", "L", "Risk", "Net", "ROI", "Win%"]
         rows = []
         for r in group_rows[:limit]:
             net_fmt = _fmt_money(r["net"])
@@ -660,7 +660,6 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
                 [
                     group_cell,
                     str(r["count"]),
-                    str(r["resolved"]),
                     str(r["wins"]),
                     str(r["losses"]),
                     _fmt_money(r["risk"]),
@@ -693,7 +692,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         return _render_table(headers, rows)
 
     def period_table(period_rows: List[Dict[str, Any]]) -> str:
-        headers = ["Window", "Bets", "Resolved", "W-L", "Win%", "Risk", "Net", "ROI", "Open"]
+        headers = ["Window", "Bets", "W-L", "Win%", "Risk", "Net", "ROI", "Open"]
         rows = []
         for r in period_rows:
             net_cls = "positive" if r["net"] >= 0 else "negative"
@@ -702,7 +701,6 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
                 [
                     html.escape(r["label"]),
                     str(r["bets"]),
-                    str(r["resolved"]),
                     f"{r['wins']}-{r['losses']}",
                     _fmt_pct(r["win_rate"]),
                     _fmt_money(r["risk"]),
