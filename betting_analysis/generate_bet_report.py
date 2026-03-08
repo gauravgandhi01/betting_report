@@ -955,6 +955,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     .tab-panel {{ display: none; }}
     .tab-panel.active {{ display: block; }}
     .grid {{ display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }}
+    .history-split {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
+    .history-col {{ display: flex; flex-direction: column; gap: 12px; min-width: 0; }}
     .card {{ background: linear-gradient(180deg, var(--panel), var(--panel2)); border: 1px solid var(--border); border-radius: 14px; padding: 14px 14px; }}
     .kpi {{ grid-column: span 3; }}
     .kpi .label {{ color: var(--muted); font-size: 12px; }}
@@ -1031,6 +1033,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
       .kpi {{ grid-column: span 6; }}
       .half {{ grid-column: span 12; }}
       .third {{ grid-column: span 12; }}
+      .history-split {{ grid-template-columns: 1fr; }}
     }}
   </style>
 </head>
@@ -1123,34 +1126,37 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
           <div id="chart-cum" style="height: 360px;"></div>
           <div class="note">Uses the CSV's <code>Net</code> field for each bet; cumulative ROI = cumulative net / cumulative risk.</div>
         </div>
+      </div>
 
-        <div class=\"card half\">
-          <div class=\"section-title\">By League (top 25 by Net)</div>
-          <div class=\"scroll\">{group_table(summary['by_league'], badge_kind='league')}</div>
+      <div class="history-split">
+        <div class="history-col">
+          <div class="card">
+            <div class=\"section-title\">By League (top 25 by Net)</div>
+            <div class=\"scroll\">{group_table(summary['by_league'], badge_kind='league')}</div>
+          </div>
+          <div class="card">
+            <div class=\"section-title\">By Type (top 25 by Net)</div>
+            <div class=\"scroll\">{group_table(summary['by_type'])}</div>
+          </div>
+          <div class="card">
+            <div class=\"section-title\">Biggest Wins (top 10)</div>
+            <div class=\"scroll\">{bets_table(summary['top_wins'], include_result=False)}</div>
+          </div>
         </div>
-        <div class=\"card half\">
-          <div class=\"section-title\">By Book (top 25 by Net)</div>
-          <div class=\"scroll\">{group_table(summary['by_book'], badge_kind='book')}</div>
-        </div>
-
-        <div class=\"card half\">
-          <div class=\"section-title\">By Type (top 25 by Net)</div>
-          <div class=\"scroll\">{group_table(summary['by_type'])}</div>
-        </div>
-        <div class=\"card half\">
-          <div class=\"section-title\">Biggest Wins (top 10)</div>
-          <div class=\"scroll\">{bets_table(summary['top_wins'], include_result=False)}</div>
-        </div>
-
-        <div class=\"card half\">
-          <div class=\"section-title\">Biggest Losses (top 10)</div>
-          <div class=\"scroll\">{bets_table(summary['top_losses'], include_result=False)}</div>
-        </div>
-
-        <div class=\"card full\">
-          <div class=\"section-title\">Longest Shots (top 10 winning odds)</div>
-          <div class=\"note\">Winning wagers with the longest pre-game odds (lowest implied win probability).</div>
-          <div class=\"scroll\">{bets_table(summary['longest_shots'], include_result=False)}</div>
+        <div class="history-col">
+          <div class="card">
+            <div class=\"section-title\">By Book (top 25 by Net)</div>
+            <div class=\"scroll\">{group_table(summary['by_book'], badge_kind='book')}</div>
+          </div>
+          <div class="card">
+            <div class=\"section-title\">Biggest Losses (top 10)</div>
+            <div class=\"scroll\">{bets_table(summary['top_losses'], include_result=False)}</div>
+          </div>
+          <div class="card">
+            <div class=\"section-title\">Longest Shots (top 10 winning odds)</div>
+            <div class=\"note\">Winning wagers with the longest pre-game odds (lowest implied win probability).</div>
+            <div class=\"scroll\">{bets_table(summary['longest_shots'], include_result=False)}</div>
+          </div>
         </div>
       </div>
     </section>
