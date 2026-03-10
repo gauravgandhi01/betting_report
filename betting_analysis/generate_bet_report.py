@@ -490,6 +490,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
 
     settled_bets_sorted = sorted(settled_bets, key=lambda b: b.date, reverse=True)[:50]
     open_bets_sorted = sorted(open_bets, key=lambda b: b.date, reverse=True)
+    all_bets_sorted = sorted(bets, key=lambda b: b.date, reverse=True)
     open_exposure = sum(_nan_to_zero(b.risk) for b in open_bets)
 
     return {
@@ -533,6 +534,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         "longest_shots": [bet_to_row(b) for b in longest_shots],
         "recently_settled": [bet_to_row(b) for b in settled_bets_sorted],
         "open_bets": [bet_to_row(b) for b in open_bets_sorted],
+        "all_bets": [bet_to_row(b) for b in all_bets_sorted],
     }
 
 
@@ -828,6 +830,90 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             rows.append(row)
         return _render_table(headers, rows)
 
+    def all_bets_table(bet_rows: List[Dict[str, Any]]) -> str:
+        if not bet_rows:
+            return "<div class='note'>No bets available.</div>"
+
+        header_cols = [
+            ("date", "Date", "text"),
+            ("league", "League", "text"),
+            ("book", "Book", "text"),
+            ("type", "Type", "text"),
+            ("pick", "Pick", "text"),
+            ("odds", "Odds", "number"),
+            ("risk", "Risk", "number"),
+            ("result", "Result", "text"),
+            ("net", "Net", "number"),
+        ]
+        thead = "".join(
+            f"<th><button type='button' class='sort-btn' data-key='{key}' data-type='{kind}'>{html.escape(label)}</button></th>"
+            for key, label, kind in header_cols
+        )
+
+        trs = []
+        for r in bet_rows:
+            league = str(r.get("league", "") or "").strip()
+            book = str(r.get("book", "") or "").strip()
+            bet_type = str(r.get("type", "") or "").strip()
+            pick = str(r.get("pick", "") or "").strip()
+            result = str(r.get("result", "") or "").strip().upper()
+            date = str(r.get("date", "") or "").strip()
+            odds = r.get("odds")
+            risk = r.get("risk")
+            net = r.get("net")
+
+            odds_val = "" if odds is None or (isinstance(odds, float) and math.isnan(odds)) else f"{float(odds):.8f}"
+            risk_val = "0" if risk is None or (isinstance(risk, float) and math.isnan(risk)) else f"{float(risk):.8f}"
+            net_val = "0" if net is None or (isinstance(net, float) and math.isnan(net)) else f"{float(net):.8f}"
+
+            net_num = 0.0
+            if net is not None and not (isinstance(net, float) and math.isnan(net)):
+                net_num = float(net)
+            net_cls = "positive" if net_num >= 0 else "negative"
+
+            search_blob = " ".join([pick, league, book, bet_type, result]).lower()
+            row_attrs = (
+                f"data-date='{html.escape(date, quote=True)}' "
+                f"data-league='{html.escape(league.lower(), quote=True)}' "
+                f"data-book='{html.escape(book.lower(), quote=True)}' "
+                f"data-type='{html.escape(bet_type.lower(), quote=True)}' "
+                f"data-pick='{html.escape(pick.lower(), quote=True)}' "
+                f"data-odds='{html.escape(odds_val, quote=True)}' "
+                f"data-risk='{html.escape(risk_val, quote=True)}' "
+                f"data-result='{html.escape(result, quote=True)}' "
+                f"data-net='{html.escape(net_val, quote=True)}' "
+                f"data-search='{html.escape(search_blob, quote=True)}'"
+            )
+
+            cells = [
+                html.escape(_fmt_date_short(date)),
+                _league_badge(league),
+                _book_badge(book),
+                html.escape(bet_type),
+                html.escape(pick),
+                html.escape(_fmt_odds(odds)),
+                _fmt_money(risk),
+                html.escape(result),
+                (_fmt_money(net), net_cls),
+            ]
+            tds = []
+            for c in cells:
+                if isinstance(c, tuple):
+                    formatted, cls = c
+                    tds.append(f'<td class="{cls}">{formatted}</td>')
+                else:
+                    tds.append(f"<td>{c}</td>")
+            trs.append(f"<tr class='all-bets-row' {row_attrs}>{''.join(tds)}</tr>")
+
+        return (
+            "<div class='scroll'>"
+            "<table id='all-bets-table'>"
+            f"<thead><tr>{thead}</tr></thead>"
+            f"<tbody>{''.join(trs)}</tbody>"
+            "</table>"
+            "</div>"
+        )
+
     def period_table(period_rows: List[Dict[str, Any]]) -> str:
         headers = ["Window", "Bets", "W-L", "Win%", "Risk", "Net", "ROI", "Open"]
         rows = []
@@ -974,6 +1060,42 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     .scroll {{ overflow-x: auto; }}
     .section-title {{ margin: 6px 0 10px; font-size: 16px; }}
     .note {{ color: var(--muted); font-size: 12px; line-height: 1.4; }}
+    .row-controls {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }}
+    .search-input {{
+      flex: 1 1 260px;
+      min-width: 220px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }}
+    .all-bets-kpis {{
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }}
+    .sub-kpi {{
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.02);
+    }}
+    .sub-kpi .label {{ color: var(--muted); font-size: 11px; }}
+    .sub-kpi .value {{ margin-top: 4px; font-size: 15px; font-variant-numeric: tabular-nums; }}
+    .sort-btn {{
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+    }}
+    .sort-btn.active {{ color: var(--accent); }}
     .badge {{
       display: inline-flex;
       align-items: center;
@@ -1034,6 +1156,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
       .half {{ grid-column: span 12; }}
       .third {{ grid-column: span 12; }}
       .history-split {{ grid-template-columns: 1fr; }}
+      .all-bets-kpis {{ grid-template-columns: repeat(2, minmax(120px, 1fr)); }}
     }}
   </style>
 </head>
@@ -1044,6 +1167,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="all-bets">All Bets</button>
       <button class="tab-btn" data-tab="ncaab">NCAAB</button>
     </div>
 
@@ -1158,6 +1282,42 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             <div class=\"scroll\">{bets_table(summary['longest_shots'], include_result=False)}</div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="tab-all-bets" class="tab-panel">
+      <div class="card">
+        <div class="section-title">All Bets (2026+)</div>
+        <div class="note">Search by pick name and click a column header to sort.</div>
+
+        <div class="row-controls">
+          <input id="all-bets-search" class="search-input" type="text" placeholder="Search pick, league, book, type..." />
+        </div>
+
+        <div class="all-bets-kpis">
+          <div class="sub-kpi">
+            <div class="label">Visible Bets</div>
+            <div id="all-bets-count" class="value">0</div>
+          </div>
+          <div class="sub-kpi">
+            <div class="label">Visible Risk</div>
+            <div id="all-bets-risk" class="value">$0.00</div>
+          </div>
+          <div class="sub-kpi">
+            <div class="label">Visible Net</div>
+            <div id="all-bets-net" class="value">$0.00</div>
+          </div>
+          <div class="sub-kpi">
+            <div class="label">Visible ROI</div>
+            <div id="all-bets-roi" class="value">0.00%</div>
+          </div>
+          <div class="sub-kpi">
+            <div class="label">W-L-Open</div>
+            <div id="all-bets-wlo" class="value">0-0-0</div>
+          </div>
+        </div>
+
+        {all_bets_table(summary['all_bets'])}
       </div>
     </section>
 
