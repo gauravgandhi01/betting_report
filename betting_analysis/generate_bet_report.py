@@ -797,6 +797,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         bet_rows: List[Dict[str, Any]],
         include_result: bool = True,
         collapse_duplicates: bool = True,
+        show_totals: bool = False,
     ) -> str:
         rows_in = _collapse_bet_rows(bet_rows) if collapse_duplicates else bet_rows
         headers = ["Date", "League", "Book", "Type", "Pick", "Odds", "Risk"]
@@ -804,6 +805,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             headers.append("Result")
         headers.append("Net")
         rows = []
+        total_risk = 0.0
+        total_net = 0.0
         for r in rows_in:
             net_fmt = _fmt_money(r["net"])
             net_cls = "positive" if r["net"] >= 0 else "negative"
@@ -837,7 +840,38 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
                 row.append(html.escape(r["result"]))
             row.append((net_fmt, net_cls))
             rows.append(row)
-        return _render_table(headers, rows)
+            total_risk += float(r.get("risk") or 0.0)
+            total_net += float(r.get("net") or 0.0)
+
+        if not show_totals:
+            return _render_table(headers, rows)
+
+        ths = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
+        tbody_rows = []
+        for r in rows:
+            tds = []
+            for c in r:
+                if isinstance(c, tuple):
+                    formatted, cls = c
+                    tds.append(f'<td class="{cls}">{formatted}</td>')
+                else:
+                    tds.append(f"<td>{c}</td>")
+            tbody_rows.append(f"<tr>{''.join(tds)}</tr>")
+
+        tfoot_cells = [""] * len(headers)
+        tfoot_cells[0] = '<span class="muted">Subtotal</span>'
+        risk_idx = headers.index("Risk")
+        net_idx = headers.index("Net")
+        tfoot_cells[risk_idx] = _fmt_money(total_risk)
+        net_cls = "positive" if total_net >= 0 else "negative"
+        tfoot_cells[net_idx] = f'<span class="{net_cls}">{_fmt_money(total_net)}</span>'
+        tfoot_html = "".join(f"<td>{c}</td>" for c in tfoot_cells)
+
+        return (
+            f"<table><thead><tr>{ths}</tr></thead>"
+            f"<tbody>{''.join(tbody_rows)}</tbody>"
+            f"<tfoot><tr>{tfoot_html}</tr></tfoot></table>"
+        )
 
     def all_bets_table(bet_rows: List[Dict[str, Any]]) -> str:
         if not bet_rows:
@@ -1203,18 +1237,9 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         </div>
 
         <div class="card full">
-          <div class="section-title">Open Bets</div>
-          <div class="scroll">{bets_table(summary['open_bets'])}</div>
-        </div>
-
-        <div class="card half">
-          <div class="section-title">Today ({today_label}) — Open</div>
-          <div class="scroll">{bets_table(summary['today_open'])}</div>
-        </div>
-
-        <div class="card half">
-          <div class="section-title">Today ({today_label}) — Settled</div>
-          <div class="scroll">{bets_table(summary['today_settled'])}</div>
+          <div class="section-title">Today ({today_label})</div>
+          <div class="note">Open + settled bets from today.</div>
+          <div class="scroll">{bets_table(summary['today_open'] + summary['today_settled'], show_totals=True)}</div>
         </div>
 
         <div class="card full">
