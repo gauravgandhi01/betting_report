@@ -175,7 +175,10 @@ def read_bets(csv_path: str, start_year: int = 2026) -> List[Bet]:
         last_month_day: Optional[Tuple[int, int]] = None
 
         for row in reader:
-            month_day = _parse_month_day(row.get("D", ""))
+            date_cell = (row.get("D", "") or "").strip()
+            if not date_cell:
+                continue
+            month_day = _parse_month_day(date_cell)
             if last_month_day is not None and month_day < last_month_day:
                 current_year += 1
             last_month_day = month_day
@@ -752,6 +755,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     totals = summary["totals"]
     avgs = summary["averages"]
     today_label = f"{dt.date.today():%b} {dt.date.today().day}, {dt.date.today().year}"
+    today_rows = summary["today_open"] + summary["today_settled"]
+    today_net_total = sum(float(r.get("net") or 0.0) for r in today_rows)
     ncaab_as_of = ncaab_summary["as_of"]
     ncaab_counts = ncaab_summary["counts"]
     ncaab_totals = ncaab_summary["totals"]
@@ -796,6 +801,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     def bets_table(
         bet_rows: List[Dict[str, Any]],
         include_result: bool = True,
+        include_net: bool = True,
         collapse_duplicates: bool = True,
         show_totals: bool = False,
     ) -> str:
@@ -803,7 +809,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         headers = ["Date", "League", "Book", "Type", "Pick", "Odds", "Risk"]
         if include_result:
             headers.append("Result")
-        headers.append("Net")
+        if include_net:
+            headers.append("Net")
         rows = []
         total_risk = 0.0
         total_net = 0.0
@@ -838,10 +845,12 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             ]
             if include_result:
                 row.append(html.escape(r["result"]))
-            row.append((net_fmt, net_cls))
+            if include_net:
+                row.append((net_fmt, net_cls))
             rows.append(row)
             total_risk += float(r.get("risk") or 0.0)
-            total_net += float(r.get("net") or 0.0)
+            if include_net:
+                total_net += float(r.get("net") or 0.0)
 
         if not show_totals:
             return _render_table(headers, rows)
@@ -861,10 +870,11 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         tfoot_cells = [""] * len(headers)
         tfoot_cells[0] = '<span class="muted">Subtotal</span>'
         risk_idx = headers.index("Risk")
-        net_idx = headers.index("Net")
         tfoot_cells[risk_idx] = _fmt_money(total_risk)
-        net_cls = "positive" if total_net >= 0 else "negative"
-        tfoot_cells[net_idx] = f'<span class="{net_cls}">{_fmt_money(total_net)}</span>'
+        if include_net and "Net" in headers:
+            net_idx = headers.index("Net")
+            net_cls = "positive" if total_net >= 0 else "negative"
+            tfoot_cells[net_idx] = f'<span class="{net_cls}">{_fmt_money(total_net)}</span>'
         tfoot_html = "".join(f"<td>{c}</td>" for c in tfoot_cells)
 
         return (
@@ -1238,14 +1248,14 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 
         <div class="card full">
           <div class="section-title">Today ({today_label})</div>
-          <div class="note">Open + settled bets from today.</div>
-          <div class="scroll">{bets_table(summary['today_open'] + summary['today_settled'], show_totals=True)}</div>
+          <div class="note">Open + settled bets from today. Net today: {_fmt_money(today_net_total)}.</div>
+          <div class="scroll">{bets_table(today_rows, show_totals=True)}</div>
         </div>
 
         <div class="card full">
           <div class="section-title">Upcoming Open Bets</div>
           <div class="note">Open bets scheduled after {today_label}.</div>
-          <div class="scroll">{bets_table(summary['future_open'])}</div>
+          <div class="scroll">{bets_table(summary['future_open'], include_result=False, include_net=False)}</div>
         </div>
 
         <div class="card full">
