@@ -751,6 +751,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     counts = summary["counts"]
     totals = summary["totals"]
     avgs = summary["averages"]
+    today_label = f"{dt.date.today():%b} {dt.date.today().day}, {dt.date.today().year}"
     ncaab_as_of = ncaab_summary["as_of"]
     ncaab_counts = ncaab_summary["counts"]
     ncaab_totals = ncaab_summary["totals"]
@@ -1204,6 +1205,22 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
         <div class="card full">
           <div class="section-title">Open Bets</div>
           <div class="scroll">{bets_table(summary['open_bets'])}</div>
+        </div>
+
+        <div class="card half">
+          <div class="section-title">Today ({today_label}) — Open</div>
+          <div class="scroll">{bets_table(summary['today_open'])}</div>
+        </div>
+
+        <div class="card half">
+          <div class="section-title">Today ({today_label}) — Settled</div>
+          <div class="scroll">{bets_table(summary['today_settled'])}</div>
+        </div>
+
+        <div class="card full">
+          <div class="section-title">Upcoming Open Bets</div>
+          <div class="note">Open bets scheduled after {today_label}.</div>
+          <div class="scroll">{bets_table(summary['future_open'])}</div>
         </div>
 
         <div class="card full">
