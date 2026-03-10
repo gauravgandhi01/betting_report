@@ -1501,6 +1501,134 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
   }};
   Plotly.newPlot('chart-recent-ncaab', [ncaabRecentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
 
+  function fmtMoney(value) {{
+    const n = Number.isFinite(value) ? value : 0;
+    return '$' + n.toLocaleString(undefined, {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }});
+  }}
+  function fmtPct(value) {{
+    if (!Number.isFinite(value)) return '';
+    return (value * 100).toFixed(2) + '%';
+  }}
+  function parseNum(row, key) {{
+    const v = Number.parseFloat((row.dataset[key] || '').trim());
+    return Number.isFinite(v) ? v : NaN;
+  }}
+  function setSignedClass(el, value) {{
+    if (!el) return;
+    el.classList.remove('positive', 'negative');
+    if (value > 0) el.classList.add('positive');
+    else if (value < 0) el.classList.add('negative');
+  }}
+
+  const allBetsTable = document.getElementById('all-bets-table');
+  const allBetsSearch = document.getElementById('all-bets-search');
+  const allBetsTbody = allBetsTable ? allBetsTable.querySelector('tbody') : null;
+  const allBetsSortButtons = allBetsTable ? Array.from(allBetsTable.querySelectorAll('.sort-btn')) : [];
+  const allBetsRows = allBetsTbody ? Array.from(allBetsTbody.querySelectorAll('tr.all-bets-row')) : [];
+  const allBetsState = {{ key: 'date', dir: 'desc', type: 'text', query: '' }};
+
+  function updateAllBetsSortButtons() {{
+    allBetsSortButtons.forEach((btn) => {{
+      const active = btn.dataset.key === allBetsState.key;
+      btn.classList.toggle('active', active);
+      let label = btn.textContent.replace(' ↑', '').replace(' ↓', '');
+      if (active) {{
+        label += allBetsState.dir === 'asc' ? ' ↑' : ' ↓';
+      }}
+      btn.textContent = label;
+    }});
+  }}
+
+  function compareAllBetsRows(a, b) {{
+    const key = allBetsState.key;
+    const dirMul = allBetsState.dir === 'asc' ? 1 : -1;
+    if (allBetsState.type === 'number') {{
+      const av = parseNum(a, key);
+      const bv = parseNum(b, key);
+      const an = Number.isFinite(av) ? av : Number.NEGATIVE_INFINITY;
+      const bn = Number.isFinite(bv) ? bv : Number.NEGATIVE_INFINITY;
+      if (an < bn) return -1 * dirMul;
+      if (an > bn) return 1 * dirMul;
+      return 0;
+    }}
+    const at = (a.dataset[key] || '').toLowerCase();
+    const bt = (b.dataset[key] || '').toLowerCase();
+    return at.localeCompare(bt, undefined, {{ numeric: true, sensitivity: 'base' }}) * dirMul;
+  }}
+
+  function updateAllBetsTotals(visibleRows) {{
+    const countEl = document.getElementById('all-bets-count');
+    const riskEl = document.getElementById('all-bets-risk');
+    const netEl = document.getElementById('all-bets-net');
+    const roiEl = document.getElementById('all-bets-roi');
+    const wloEl = document.getElementById('all-bets-wlo');
+    if (!countEl || !riskEl || !netEl || !roiEl || !wloEl) return;
+
+    let risk = 0;
+    let net = 0;
+    let wins = 0;
+    let losses = 0;
+    let open = 0;
+    visibleRows.forEach((row) => {{
+      const result = (row.dataset.result || '').toUpperCase();
+      const r = parseNum(row, 'risk');
+      const n = parseNum(row, 'net');
+      if (Number.isFinite(r)) risk += r;
+      if (Number.isFinite(n)) net += n;
+      if (result === 'W') wins += 1;
+      else if (result === 'L') losses += 1;
+      else if (!result) open += 1;
+    }});
+    const roi = risk ? (net / risk) : 0;
+    countEl.textContent = String(visibleRows.length);
+    riskEl.textContent = fmtMoney(risk);
+    netEl.textContent = fmtMoney(net);
+    roiEl.textContent = fmtPct(roi);
+    wloEl.textContent = `${{wins}}-${{losses}}-${{open}}`;
+    setSignedClass(netEl, net);
+    setSignedClass(roiEl, roi);
+  }}
+
+  function applyAllBetsView() {{
+    if (!allBetsTbody) return;
+    const query = (allBetsState.query || '').trim().toLowerCase();
+    const visibleRows = [];
+    const hiddenRows = [];
+    allBetsRows.forEach((row) => {{
+      const matches = !query || (row.dataset.search || '').includes(query);
+      row.style.display = matches ? '' : 'none';
+      if (matches) visibleRows.push(row);
+      else hiddenRows.push(row);
+    }});
+
+    visibleRows.sort(compareAllBetsRows);
+    [...visibleRows, ...hiddenRows].forEach((row) => allBetsTbody.appendChild(row));
+    updateAllBetsSortButtons();
+    updateAllBetsTotals(visibleRows);
+  }}
+
+  if (allBetsSearch) {{
+    allBetsSearch.addEventListener('input', () => {{
+      allBetsState.query = allBetsSearch.value || '';
+      applyAllBetsView();
+    }});
+  }}
+  allBetsSortButtons.forEach((btn) => {{
+    btn.addEventListener('click', () => {{
+      const key = btn.dataset.key || 'date';
+      const type = btn.dataset.type || 'text';
+      if (allBetsState.key === key) {{
+        allBetsState.dir = allBetsState.dir === 'asc' ? 'desc' : 'asc';
+      }} else {{
+        allBetsState.key = key;
+        allBetsState.type = type;
+        allBetsState.dir = key === 'date' ? 'desc' : 'asc';
+      }}
+      applyAllBetsView();
+    }});
+  }});
+  applyAllBetsView();
+
   const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
   function resizeCharts() {{
@@ -1521,7 +1649,7 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
   }}
   tabButtons.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
   const savedTab = localStorage.getItem('bettingReportActiveTab');
-  if (savedTab === 'history' || savedTab === 'home' || savedTab === 'ncaab') {{
+  if (savedTab === 'history' || savedTab === 'home' || savedTab === 'ncaab' || savedTab === 'all-bets') {{
     activateTab(savedTab);
   }}
   window.addEventListener('resize', resizeCharts);
