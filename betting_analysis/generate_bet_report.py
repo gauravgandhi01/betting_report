@@ -493,6 +493,11 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
     all_bets_sorted = sorted(bets, key=lambda b: b.date, reverse=True)
     open_exposure = sum(_nan_to_zero(b.risk) for b in open_bets)
 
+    today = dt.date.today()
+    today_open = [b for b in open_bets if b.date == today]
+    today_settled = [b for b in settled_bets if b.date == today]
+    future_open = [b for b in open_bets if b.date > today]
+
     return {
         "as_of": as_of.isoformat(),
         "counts": {
@@ -535,6 +540,9 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         "recently_settled": [bet_to_row(b) for b in settled_bets_sorted],
         "open_bets": [bet_to_row(b) for b in open_bets_sorted],
         "all_bets": [bet_to_row(b) for b in all_bets_sorted],
+        "today_open": [bet_to_row(b) for b in sorted(today_open, key=lambda b: b.date, reverse=True)],
+        "today_settled": [bet_to_row(b) for b in sorted(today_settled, key=lambda b: b.date, reverse=True)],
+        "future_open": [bet_to_row(b) for b in sorted(future_open, key=lambda b: b.date)],
     }
 
 
