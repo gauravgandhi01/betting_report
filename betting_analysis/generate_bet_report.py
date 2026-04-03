@@ -61,6 +61,29 @@ BOOK_COLOR_MAP = {
     "BUCKEYE": "#DC2626",
 }
 
+LEAGUE_LOGO_MAP = {
+    "NHL": "nhl.png",
+    "NCAAB": "ncaab.png",
+    "NBA": "nba.png",
+    "NFL": "nfl.png",
+    "MLB": "mlb.png",
+    "NCAAF": "ncaaf.webp",
+}
+
+BOOK_LOGO_MAP = {
+    "FANDUEL": "fanduel.jpeg",
+    "DRAFTKINGS": "draftkings.png",
+    "CAESARS": "caesars.jpg",
+    "BETMGM": "betmgm.png",
+    "MGM": "betmgm.png",
+    "BALLYS": "bally.png",
+    "RIVERS": "rivers.png",
+    "NOVIG": "novig.jpeg",
+    "BOOKMAKER": "bookmaker.png",
+    "BOOKIE": "bookmaker.png",
+    "BM": "bookmaker.png",
+}
+
 
 BADGE_FALLBACK_PALETTE = [
     "#38BDF8",
@@ -98,22 +121,58 @@ def _text_color_for_bg(hex_color: str) -> str:
     return "#0B1220" if luminance > 0.62 else "#F8FAFC"
 
 
-def _badge_html(label: str, color: str) -> str:
+def _join_href(base: str, filename: str) -> str:
+    b = (base or "").strip().rstrip("/")
+    f = (filename or "").strip().lstrip("/")
+    if not b:
+        return f
+    return f"{b}/{f}"
+
+
+def _logo_href(
+    label: str,
+    logo_map: Dict[str, str],
+    logo_base_href: str,
+    available_logo_files: Optional[set[str]],
+) -> Optional[str]:
+    filename = logo_map.get(_normalize_key(label))
+    if not filename:
+        return None
+    if available_logo_files is not None and filename.lower() not in available_logo_files:
+        return None
+    return _join_href(logo_base_href, filename)
+
+
+def _badge_html(label: str, color: str, logo_href: Optional[str] = None) -> str:
     safe = html.escape((label or "").strip() or "(blank)")
+    if logo_href:
+        safe_logo_href = html.escape(logo_href, quote=True)
+        return (
+            '<span class="badge badge-logo-pill">'
+            f'<span class="badge-logo-wrap"><img class="badge-logo-img" src="{safe_logo_href}" alt="{safe} logo" loading="lazy" decoding="async" /></span>'
+            f"<span>{safe}</span>"
+            "</span>"
+        )
     fg = _text_color_for_bg(color)
     return f'<span class="badge" style="background:{color}; border-color:{color}; color:{fg};">{safe}</span>'
 
 
-def _league_badge(league: str) -> str:
+def _league_badge(
+    league: str, logo_base_href: str = "logos", available_logo_files: Optional[set[str]] = None
+) -> str:
     key = _normalize_key(league)
     color = LEAGUE_COLOR_MAP.get(key, _fallback_color(league))
-    return _badge_html(league, color)
+    logo_href = _logo_href(league, LEAGUE_LOGO_MAP, logo_base_href, available_logo_files)
+    return _badge_html(league, color, logo_href=logo_href)
 
 
-def _book_badge(book: str) -> str:
+def _book_badge(
+    book: str, logo_base_href: str = "logos", available_logo_files: Optional[set[str]] = None
+) -> str:
     key = _normalize_key(book)
     color = BOOK_COLOR_MAP.get(key, _fallback_color(book))
-    return _badge_html(book, color)
+    logo_href = _logo_href(book, BOOK_LOGO_MAP, logo_base_href, available_logo_files)
+    return _badge_html(book, color, logo_href=logo_href)
 
 
 def _parse_money(value: str) -> float:
@@ -749,7 +808,13 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return collapsed
 
 
-def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[str, Any]) -> str:
+def build_html_report(
+    summary: Dict[str, Any],
+    title: str,
+    ncaab_summary: Dict[str, Any],
+    logo_base_href: str = "logos",
+    available_logo_files: Optional[set[str]] = None,
+) -> str:
     as_of = summary["as_of"]
     counts = summary["counts"]
     totals = summary["totals"]
@@ -767,6 +832,20 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
     ncaab_series_json = json.dumps(ncaab_summary["series"])
     ncaab_recent_series_json = json.dumps(ncaab_summary["recent_daily_series"])
 
+    def league_badge(league: str) -> str:
+        return _league_badge(
+            league,
+            logo_base_href=logo_base_href,
+            available_logo_files=available_logo_files,
+        )
+
+    def book_badge(book: str) -> str:
+        return _book_badge(
+            book,
+            logo_base_href=logo_base_href,
+            available_logo_files=available_logo_files,
+        )
+
     def group_table(group_rows: List[Dict[str, Any]], limit: int = 25, badge_kind: str = "") -> str:
         headers = ["Group", "Bets", "W", "L", "Risk", "Net", "ROI", "Win%"]
         rows = []
@@ -779,9 +858,9 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             win_cls = "above50" if (r["win_rate"] is not None and r["win_rate"] > 0.5) else "below50"
             key_label = str(r["key"])
             if badge_kind == "league":
-                group_cell = _league_badge(key_label)
+                group_cell = league_badge(key_label)
             elif badge_kind == "book":
-                group_cell = _book_badge(key_label)
+                group_cell = book_badge(key_label)
             else:
                 group_cell = html.escape(key_label)
             rows.append(
@@ -820,13 +899,13 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
             leagues = r.get("leagues") or [r.get("league", "")]
             books = r.get("books") or [r.get("book", "")]
             if len(leagues) == 1:
-                league_cell = _league_badge(leagues[0])
+                league_cell = league_badge(leagues[0])
             else:
-                league_cell = f'<div class="chip-row">{"".join(_league_badge(x) for x in leagues)}</div>'
+                league_cell = f'<div class="chip-row">{"".join(league_badge(x) for x in leagues)}</div>'
             if len(books) == 1:
-                book_cell = _book_badge(books[0])
+                book_cell = book_badge(books[0])
             else:
-                book_cell = f'<div class="chip-row">{"".join(_book_badge(x) for x in books)}</div>'
+                book_cell = f'<div class="chip-row">{"".join(book_badge(x) for x in books)}</div>'
 
             pick_cell = html.escape(r["pick"])
             row_count = int(r.get("row_count", 1) or 1)
@@ -940,8 +1019,8 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
 
             cells = [
                 html.escape(_fmt_date_short(date)),
-                _league_badge(league),
-                _book_badge(book),
+                league_badge(league),
+                book_badge(book),
                 html.escape(bet_type),
                 html.escape(pick),
                 html.escape(_fmt_odds(odds)),
@@ -1160,6 +1239,31 @@ def build_html_report(summary: Dict[str, Any], title: str, ncaab_summary: Dict[s
       letter-spacing: 0.01em;
       line-height: 1.4;
       white-space: nowrap;
+    }}
+    .badge-logo-pill {{
+      gap: 6px;
+      padding: 3px 8px 3px 4px;
+      border-color: rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+    }}
+    .badge-logo-wrap {{
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 18px;
+      border-radius: 5px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid rgba(15,23,42,0.16);
+    }}
+    .badge-logo-img {{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
     }}
     .chip-row {{ display: flex; flex-wrap: wrap; gap: 4px; }}
     .note-inline {{ color: var(--muted); font-size: 11px; margin-top: 4px; }}
@@ -1767,9 +1871,28 @@ def main() -> int:
     ncaab_summary = summarize(ncaab_bets)
 
     title = "G's Betting Report"
-    html_report = build_html_report(summary, title=title, ncaab_summary=ncaab_summary)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    report_root = os.path.dirname(script_dir)
+    logos_dir = os.path.join(report_root, "logos")
+    available_logo_files: Optional[set[str]] = None
+    if os.path.isdir(logos_dir):
+        available_logo_files = {
+            name.lower() for name in os.listdir(logos_dir) if os.path.isfile(os.path.join(logos_dir, name))
+        }
 
     out_dir = os.path.dirname(os.path.abspath(args.output))
+    logo_base_href = "logos"
+    if os.path.isdir(logos_dir):
+        logo_base_href = os.path.relpath(logos_dir, out_dir).replace(os.sep, "/")
+
+    html_report = build_html_report(
+        summary,
+        title=title,
+        ncaab_summary=ncaab_summary,
+        logo_base_href=logo_base_href,
+        available_logo_files=available_logo_files,
+    )
+
     if out_dir and not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
 
