@@ -814,7 +814,8 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def build_html_report(
     summary: Dict[str, Any],
     title: str,
-    ncaab_summary: Dict[str, Any],
+    league_summaries: Dict[str, Dict[str, Any]],
+    default_sport: str,
     logo_base_href: str = "logos",
     available_logo_files: Optional[set[str]] = None,
 ) -> str:
@@ -825,15 +826,12 @@ def build_html_report(
     today_label = f"{dt.date.today():%b} {dt.date.today().day}, {dt.date.today().year}"
     today_rows = summary["today_open"] + summary["today_settled"]
     today_net_total = sum(float(r.get("net") or 0.0) for r in today_rows)
-    ncaab_as_of = ncaab_summary["as_of"]
-    ncaab_counts = ncaab_summary["counts"]
-    ncaab_totals = ncaab_summary["totals"]
-    ncaab_avgs = ncaab_summary["averages"]
+    if default_sport not in league_summaries and league_summaries:
+        default_sport = next(iter(league_summaries.keys()))
+    default_sport_summary = league_summaries.get(default_sport, summarize([]))
 
     series_json = json.dumps(summary["series"])
     recent_series_json = json.dumps(summary["recent_daily_series"])
-    ncaab_series_json = json.dumps(ncaab_summary["series"])
-    ncaab_recent_series_json = json.dumps(ncaab_summary["recent_daily_series"])
 
     def league_badge(league: str) -> str:
         return _league_badge(
@@ -998,26 +996,24 @@ def build_html_report(
             net = r.get("net")
 
             odds_val = "" if odds is None or (isinstance(odds, float) and math.isnan(odds)) else f"{float(odds):.8f}"
-            risk_val = "0" if risk is None or (isinstance(risk, float) and math.isnan(risk)) else f"{float(risk):.8f}"
-            net_val = "0" if net is None or (isinstance(net, float) and math.isnan(net)) else f"{float(net):.8f}"
+            risk_val = "" if risk is None or (isinstance(risk, float) and math.isnan(risk)) else f"{float(risk):.8f}"
+            net_val = "" if net is None or (isinstance(net, float) and math.isnan(net)) else f"{float(net):.8f}"
 
             net_num = 0.0
             if net is not None and not (isinstance(net, float) and math.isnan(net)):
                 net_num = float(net)
             net_cls = "positive" if net_num >= 0 else "negative"
 
-            search_blob = " ".join([pick, league, book, bet_type, result]).lower()
             row_attrs = (
                 f"data-date='{html.escape(date, quote=True)}' "
-                f"data-league='{html.escape(league.lower(), quote=True)}' "
-                f"data-book='{html.escape(book.lower(), quote=True)}' "
-                f"data-type='{html.escape(bet_type.lower(), quote=True)}' "
-                f"data-pick='{html.escape(pick.lower(), quote=True)}' "
+                f"data-league='{html.escape(league, quote=True)}' "
+                f"data-book='{html.escape(book, quote=True)}' "
+                f"data-type='{html.escape(bet_type, quote=True)}' "
+                f"data-pick='{html.escape(pick, quote=True)}' "
                 f"data-odds='{html.escape(odds_val, quote=True)}' "
                 f"data-risk='{html.escape(risk_val, quote=True)}' "
                 f"data-result='{html.escape(result, quote=True)}' "
-                f"data-net='{html.escape(net_val, quote=True)}' "
-                f"data-search='{html.escape(search_blob, quote=True)}'"
+                f"data-net='{html.escape(net_val, quote=True)}'"
             )
 
             cells = [
@@ -1115,29 +1111,83 @@ def build_html_report(
             span = f"{streak['start']} to {streak['end']}"
         return f"<div><strong>{html.escape(title_text)}:</strong> {streak['length']} ({html.escape(span)})</div>"
 
+    def current_streak_text(streak_group: Dict[str, Any], unit_kind: str) -> str:
+        current = streak_group["current"]
+        if current["length"] > 0:
+            unit = "day" if unit_kind == "daily" else "bet"
+            return (
+                f"{current['length']} {current['type']} "
+                f"{unit}(s) ({current['start']} to {current['end']})"
+            )
+        if unit_kind == "daily":
+            return "No active daily win/loss streak"
+        return "No active bet-level win/loss streak"
+
+    def sport_summary_payload(league_label: str, league_summary: Dict[str, Any]) -> Dict[str, Any]:
+        league_counts = league_summary["counts"]
+        league_totals = league_summary["totals"]
+        league_avgs = league_summary["averages"]
+        league_streaks = league_summary["streaks"]
+        league_best_day = league_summary["best_day"]
+        league_worst_day = league_summary["worst_day"]
+
+        best_day_text = "n/a"
+        if league_best_day:
+            best_day_text = f"{league_best_day['date']} ({_fmt_money(league_best_day['net'])})"
+
+        worst_day_text = "n/a"
+        if league_worst_day:
+            worst_day_text = f"{league_worst_day['date']} ({_fmt_money(league_worst_day['net'])})"
+
+        return {
+            "label": league_label,
+            "as_of": league_summary["as_of"],
+            "counts": league_counts,
+            "totals": league_totals,
+            "averages": league_avgs,
+            "open_exposure": league_summary["open_exposure"],
+            "series": league_summary["series"],
+            "recent_daily_series": league_summary["recent_daily_series"],
+            "recent_periods_html": period_table(league_summary["recent_periods"]),
+            "recent_calendar_html": daily_net_risk_calendar(league_summary["recent_7_day_calendar"]),
+            "recently_settled_html": bets_table(league_summary["recently_settled"][:25]),
+            "open_bets_html": bets_table(league_summary["open_bets"]),
+            "by_book_html": group_table(league_summary["by_book"], badge_kind="book"),
+            "by_type_html": group_table(league_summary["by_type"]),
+            "top_wins_html": bets_table(league_summary["top_wins"], include_result=False),
+            "top_losses_html": bets_table(league_summary["top_losses"], include_result=False),
+            "longest_shots_html": bets_table(league_summary["longest_shots"], include_result=False),
+            "daily_current_text": current_streak_text(league_streaks["daily"], "daily"),
+            "bet_current_text": current_streak_text(league_streaks["bets"], "bet"),
+            "streak_lines_html": "".join(
+                [
+                    streak_line("Longest daily win streak", league_streaks["daily"]["best_win"]),
+                    streak_line("Longest daily loss streak", league_streaks["daily"]["best_loss"]),
+                    streak_line("Longest bet win streak", league_streaks["bets"]["best_win"]),
+                    streak_line("Longest bet loss streak", league_streaks["bets"]["best_loss"]),
+                ]
+            ),
+            "best_day_text": best_day_text,
+            "worst_day_text": worst_day_text,
+        }
+
     daily_streaks = summary["streaks"]["daily"]
     bet_streaks = summary["streaks"]["bets"]
 
-    if daily_streaks["current"]["length"] > 0:
-        daily_current_text = (
-            f"{daily_streaks['current']['length']} {daily_streaks['current']['type']} "
-            f"day(s) ({daily_streaks['current']['start']} to {daily_streaks['current']['end']})"
-        )
-    else:
-        daily_current_text = "No active daily win/loss streak"
-
-    if bet_streaks["current"]["length"] > 0:
-        bet_current_text = (
-            f"{bet_streaks['current']['length']} {bet_streaks['current']['type']} "
-            f"bet(s) ({bet_streaks['current']['start']} to {bet_streaks['current']['end']})"
-        )
-    else:
-        bet_current_text = "No active bet-level win/loss streak"
+    daily_current_text = current_streak_text({"current": daily_streaks["current"]}, "daily")
+    bet_current_text = current_streak_text({"current": bet_streaks["current"]}, "bet")
 
     best_day = summary["best_day"]
     worst_day = summary["worst_day"]
-    ncaab_best_day = ncaab_summary["best_day"]
-    ncaab_worst_day = ncaab_summary["worst_day"]
+    sport_options = list(league_summaries.keys())
+    sport_options_html = "".join(
+        f"<option value=\"{html.escape(league)}\"{' selected' if league == default_sport else ''}>{html.escape(league)}</option>"
+        for league in sport_options
+    )
+    sport_summaries_json = json.dumps(
+        {league: sport_summary_payload(league, league_summary) for league, league_summary in league_summaries.items()}
+    )
+    default_sport_payload = sport_summary_payload(default_sport, default_sport_summary)
 
     html_doc = f"""<!doctype html>
 <html lang=\"en\">
