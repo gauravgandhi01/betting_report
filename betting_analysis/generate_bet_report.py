@@ -1245,7 +1245,7 @@ def build_html_report(
     .scroll {{ overflow-x: auto; }}
     .section-title {{ margin: 6px 0 10px; font-size: 16px; }}
     .note {{ color: var(--muted); font-size: 12px; line-height: 1.4; }}
-    .row-controls {{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }}
+    .row-controls {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }}
     .search-input {{
       flex: 1 1 260px;
       min-width: 220px;
@@ -1255,7 +1255,73 @@ def build_html_report(
       border-radius: 10px;
       padding: 8px 10px;
       font-size: 13px;
+      box-sizing: border-box;
     }}
+    .control-input {{
+      box-sizing: border-box;
+      width: 100%;
+      min-width: 0;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 7px 10px;
+      font-size: 12px;
+      line-height: 1.25;
+      min-height: 40px;
+      flex: 0 0 auto;
+    }}
+    select.control-input {{
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) calc(50% - 2px),
+        calc(100% - 12px) calc(50% - 2px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 28px;
+    }}
+    .filter-grid {{
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: end;
+    }}
+    .filter-field {{
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }}
+    .filter-label {{
+      color: var(--muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }}
+    .filter-range {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
+    .filter-actions {{
+      display: flex;
+      align-items: end;
+      gap: 8px;
+      min-width: 0;
+    }}
+    .filter-btn {{
+      box-sizing: border-box;
+      background: rgba(157, 176, 208, 0.15);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0 14px;
+      min-height: 40px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }}
+    .filter-btn:hover {{ border-color: rgba(96, 165, 250, 0.5); }}
     .all-bets-kpis {{
       display: grid;
       grid-template-columns: repeat(5, minmax(120px, 1fr));
@@ -1366,7 +1432,12 @@ def build_html_report(
       .half {{ grid-column: span 12; }}
       .third {{ grid-column: span 12; }}
       .history-split {{ grid-template-columns: 1fr; }}
+      .filter-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .all-bets-kpis {{ grid-template-columns: repeat(2, minmax(120px, 1fr)); }}
+    }}
+    @media (max-width: 640px) {{
+      .filter-grid {{ grid-template-columns: 1fr; }}
+      .filter-range {{ grid-template-columns: 1fr; }}
     }}
   </style>
 </head>
@@ -1378,7 +1449,7 @@ def build_html_report(
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
       <button class="tab-btn" data-tab="all-bets">All Bets</button>
-      <button class="tab-btn" data-tab="ncaab">NCAAB</button>
+      <button class="tab-btn" data-tab="sports">Sports</button>
     </div>
 
     <section id="tab-home" class="tab-panel active">
@@ -1505,10 +1576,68 @@ def build_html_report(
     <section id="tab-all-bets" class="tab-panel">
       <div class="card">
         <div class="section-title">All Bets (2026+)</div>
-        <div class="note">Search by pick name and click a column header to sort.</div>
+        <div class="note">Every table column now has a dedicated filter. Use date ranges or numeric min/max for greater-than / less-than filtering.</div>
 
-        <div class="row-controls">
-          <input id="all-bets-search" class="search-input" type="text" placeholder="Search pick, league, book, type..." />
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span class="filter-label">Pick Contains</span>
+            <input id="all-bets-pick-filter" class="control-input" type="text" placeholder="Exact pick text or fragment" />
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Date Range</span>
+            <div class="filter-range">
+              <input id="all-bets-date-from" class="control-input" type="date" />
+              <input id="all-bets-date-to" class="control-input" type="date" />
+            </div>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">League</span>
+            <select id="all-bets-league-filter" class="control-input">
+              <option value="">All leagues</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Book</span>
+            <select id="all-bets-book-filter" class="control-input">
+              <option value="">All books</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Type</span>
+            <select id="all-bets-type-filter" class="control-input">
+              <option value="">All types</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Result</span>
+            <select id="all-bets-result-filter" class="control-input">
+              <option value="">All results</option>
+            </select>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Odds Range</span>
+            <div class="filter-range">
+              <input id="all-bets-odds-min" class="control-input" type="number" step="0.01" placeholder="Min" />
+              <input id="all-bets-odds-max" class="control-input" type="number" step="0.01" placeholder="Max" />
+            </div>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Risk Range</span>
+            <div class="filter-range">
+              <input id="all-bets-risk-min" class="control-input" type="number" step="0.01" placeholder="Min" />
+              <input id="all-bets-risk-max" class="control-input" type="number" step="0.01" placeholder="Max" />
+            </div>
+          </label>
+          <label class="filter-field">
+            <span class="filter-label">Net Range</span>
+            <div class="filter-range">
+              <input id="all-bets-net-min" class="control-input" type="number" step="0.01" placeholder="Min" />
+              <input id="all-bets-net-max" class="control-input" type="number" step="0.01" placeholder="Max" />
+            </div>
+          </label>
+          <div class="filter-actions">
+            <button id="all-bets-clear" class="filter-btn" type="button">Clear Filters</button>
+          </div>
         </div>
 
         <div class="all-bets-kpis">
@@ -1538,83 +1667,106 @@ def build_html_report(
       </div>
     </section>
 
-    <section id="tab-ncaab" class="tab-panel">
+    <section id="tab-sports" class="tab-panel">
+      <div class="row-controls">
+        <select id="sport-select" class="control-input">
+          {sport_options_html}
+        </select>
+        <div class="note">Switch this tab to any league tag in your sheet. It starts on {html.escape(default_sport)} to preserve the current workflow.</div>
+      </div>
       <div class="grid">
         <div class="card kpi">
-          <div class="label">NCAAB Total Bets</div>
-          <div class="value">{ncaab_counts['total']}</div>
-          <div class="note">Resolved: {ncaab_counts['resolved']} | Open: {ncaab_counts['open']} | Push/Void: {ncaab_counts['pushes']}</div>
+          <div id="sport-kpi-total-label" class="label">{html.escape(default_sport_payload['label'])} Total Bets</div>
+          <div id="sport-kpi-total-value" class="value">{default_sport_payload['counts']['total']}</div>
+          <div id="sport-kpi-total-note" class="note">Resolved: {default_sport_payload['counts']['resolved']} | Open: {default_sport_payload['counts']['open']} | Push/Void: {default_sport_payload['counts']['pushes']}</div>
         </div>
         <div class="card kpi">
-          <div class="label">NCAAB Net Profit</div>
-          <div class="value {'good' if ncaab_totals['net'] >= 0 else 'bad'}">{_fmt_money(ncaab_totals['net'])}</div>
-          <div class="note">ROI: {_fmt_pct(ncaab_totals['roi'])}</div>
+          <div id="sport-kpi-net-label" class="label">{html.escape(default_sport_payload['label'])} Net Profit</div>
+          <div id="sport-kpi-net-value" class="value {'good' if default_sport_payload['totals']['net'] >= 0 else 'bad'}">{_fmt_money(default_sport_payload['totals']['net'])}</div>
+          <div id="sport-kpi-net-note" class="note">ROI: {_fmt_pct(default_sport_payload['totals']['roi'])}</div>
         </div>
         <div class="card kpi">
-          <div class="label">NCAAB Win Rate (W/L)</div>
-          <div class="value">{_fmt_pct(ncaab_avgs['win_rate'])}</div>
-          <div class="note">W: {ncaab_counts['wins']} | L: {ncaab_counts['losses']}</div>
+          <div id="sport-kpi-win-label" class="label">{html.escape(default_sport_payload['label'])} Win Rate (W/L)</div>
+          <div id="sport-kpi-win-value" class="value">{_fmt_pct(default_sport_payload['averages']['win_rate'])}</div>
+          <div id="sport-kpi-win-note" class="note">W: {default_sport_payload['counts']['wins']} | L: {default_sport_payload['counts']['losses']}</div>
         </div>
         <div class="card kpi">
-          <div class="label">NCAAB Open Exposure</div>
-          <div class="value">{_fmt_money(ncaab_summary['open_exposure'])}</div>
-          <div class="note">As of {html.escape(ncaab_as_of)} | League tag = <code>NCAAB</code></div>
+          <div id="sport-kpi-open-label" class="label">{html.escape(default_sport_payload['label'])} Open Exposure</div>
+          <div id="sport-kpi-open-value" class="value">{_fmt_money(default_sport_payload['open_exposure'])}</div>
+          <div id="sport-kpi-open-note" class="note">As of {html.escape(default_sport_payload['as_of'])} | League tag = <code>{html.escape(default_sport_payload['label'])}</code></div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAB Recent Performance</div>
-          <div class="note">Calendar-day windows ending on {html.escape(ncaab_as_of)}.</div>
-          <div class="scroll">{period_table(ncaab_summary['recent_periods'])}</div>
+          <div id="sport-periods-title" class="section-title">{html.escape(default_sport_payload['label'])} Recent Performance</div>
+          <div id="sport-periods-note" class="note">Calendar-day windows ending on {html.escape(default_sport_payload['as_of'])}.</div>
+          <div id="sport-periods-table" class="scroll">{default_sport_payload['recent_periods_html']}</div>
         </div>
 
         <div class="card full">
-          <div class="section-title">NCAAB Cumulative Profit</div>
-          <div id="chart-cum-ncaab" style="height: 320px;"></div>
-        </div>
-
-        <div class="card full">
-          <div class="section-title">NCAAB Last 30 Days Net (daily)</div>
-          <div id="chart-recent-ncaab" style="height: 320px;"></div>
-        </div>
-
-        <div class="card full">
-          <div class="section-title">NCAAB Recently Settled Bets</div>
-          <div class="note">Most recent settled bets, latest 25.</div>
-          <div class="scroll">{bets_table(ncaab_summary['recently_settled'][:25])}</div>
-        </div>
-
-        <div class="card full">
-          <div class="section-title">NCAAB Open Bets</div>
-          <div class="note">Open bets tagged with League <code>NCAAB</code>.</div>
-          <div class="scroll">{bets_table(ncaab_summary['open_bets'])}</div>
+          <div id="sport-calendar-title" class="section-title">{html.escape(default_sport_payload['label'])} Daily Net / Risk (Last 7 Days)</div>
+          <div id="sport-calendar-content">{default_sport_payload['recent_calendar_html']}</div>
         </div>
 
         <div class="card half">
-          <div class="section-title">NCAAB By Book</div>
-          <div class="scroll">{group_table(ncaab_summary['by_book'], badge_kind='book')}</div>
-        </div>
-        <div class="card half">
-          <div class="section-title">NCAAB By Type</div>
-          <div class="scroll">{group_table(ncaab_summary['by_type'])}</div>
+          <div id="sport-streaks-title" class="section-title">{html.escape(default_sport_payload['label'])} Notable Streaks</div>
+          <div id="sport-daily-streak-note" class="note">{html.escape(default_sport_payload['daily_current_text'])}</div>
+          <div id="sport-bet-streak-note" class="note">{html.escape(default_sport_payload['bet_current_text'])}</div>
+          <div id="sport-streak-lines" style="margin-top: 8px; line-height: 1.6;">{default_sport_payload['streak_lines_html']}</div>
         </div>
 
         <div class="card half">
-          <div class="section-title">NCAAB Biggest Wins (top 10)</div>
-          <div class="scroll">{bets_table(ncaab_summary['top_wins'], include_result=False)}</div>
-        </div>
-        <div class="card half">
-          <div class="section-title">NCAAB Biggest Losses (top 10)</div>
-          <div class="scroll">{bets_table(ncaab_summary['top_losses'], include_result=False)}</div>
-        </div>
-
-        <div class="card full">
-          <div class="section-title">NCAAB Highlights</div>
-          <div class="note">Avg Risk / Bet: {_fmt_money(ncaab_avgs['avg_risk'])}</div>
-          <div class="note">Avg odds: {_fmt_num(ncaab_avgs['avg_odds'])} | Avg implied: {_fmt_pct(ncaab_avgs['avg_implied_prob'])}</div>
+          <div id="sport-highlights-title" class="section-title">{html.escape(default_sport_payload['label'])} Highlights</div>
+          <div id="sport-highlights-risk" class="note">Avg Risk / Bet: {_fmt_money(default_sport_payload['averages']['avg_risk'])}</div>
+          <div id="sport-highlights-odds" class="note">Avg odds: {_fmt_num(default_sport_payload['averages']['avg_odds'])} | Avg implied: {_fmt_pct(default_sport_payload['averages']['avg_implied_prob'])}</div>
           <div style="margin-top: 8px; line-height: 1.6;">
-            <div><strong>Best settled day:</strong> {html.escape(ncaab_best_day['date']) if ncaab_best_day else 'n/a'} ({_fmt_money(ncaab_best_day['net']) if ncaab_best_day else 'n/a'})</div>
-            <div><strong>Worst settled day:</strong> {html.escape(ncaab_worst_day['date']) if ncaab_worst_day else 'n/a'} ({_fmt_money(ncaab_worst_day['net']) if ncaab_worst_day else 'n/a'})</div>
+            <div><strong>Best settled day:</strong> <span id="sport-best-day">{html.escape(default_sport_payload['best_day_text'])}</span></div>
+            <div><strong>Worst settled day:</strong> <span id="sport-worst-day">{html.escape(default_sport_payload['worst_day_text'])}</span></div>
           </div>
+        </div>
+
+        <div class="card full">
+          <div id="sport-cum-title" class="section-title">{html.escape(default_sport_payload['label'])} Cumulative Profit</div>
+          <div id="chart-cum-sport" style="height: 320px;"></div>
+        </div>
+
+        <div class="card full">
+          <div id="sport-recent-title" class="section-title">{html.escape(default_sport_payload['label'])} Last 30 Days Net (daily)</div>
+          <div id="chart-recent-sport" style="height: 320px;"></div>
+        </div>
+
+        <div class="card full">
+          <div id="sport-settled-title" class="section-title">{html.escape(default_sport_payload['label'])} Recently Settled Bets</div>
+          <div class="note">Most recent settled bets, latest 25.</div>
+          <div id="sport-settled-table" class="scroll">{default_sport_payload['recently_settled_html']}</div>
+        </div>
+
+        <div class="card full">
+          <div id="sport-open-title" class="section-title">{html.escape(default_sport_payload['label'])} Open Bets</div>
+          <div id="sport-open-note" class="note">Open bets tagged with League <code>{html.escape(default_sport_payload['label'])}</code>.</div>
+          <div id="sport-open-table" class="scroll">{default_sport_payload['open_bets_html']}</div>
+        </div>
+
+        <div class="card half">
+          <div id="sport-by-book-title" class="section-title">{html.escape(default_sport_payload['label'])} By Book</div>
+          <div id="sport-by-book-table" class="scroll">{default_sport_payload['by_book_html']}</div>
+        </div>
+        <div class="card half">
+          <div id="sport-by-type-title" class="section-title">{html.escape(default_sport_payload['label'])} By Type</div>
+          <div id="sport-by-type-table" class="scroll">{default_sport_payload['by_type_html']}</div>
+        </div>
+
+        <div class="card half">
+          <div id="sport-wins-title" class="section-title">{html.escape(default_sport_payload['label'])} Biggest Wins (top 10)</div>
+          <div id="sport-wins-table" class="scroll">{default_sport_payload['top_wins_html']}</div>
+        </div>
+        <div class="card half">
+          <div id="sport-losses-title" class="section-title">{html.escape(default_sport_payload['label'])} Biggest Losses (top 10)</div>
+          <div id="sport-losses-table" class="scroll">{default_sport_payload['top_losses_html']}</div>
+        </div>
+
+        <div class="card full">
+          <div id="sport-longest-title" class="section-title">{html.escape(default_sport_payload['label'])} Longest Shots (top 10 winning odds)</div>
+          <div id="sport-longest-table" class="scroll">{default_sport_payload['longest_shots_html']}</div>
         </div>
       </div>
     </section>
