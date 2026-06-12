@@ -1775,8 +1775,8 @@ def build_html_report(
 <script>
   const series = {series_json};
   const recentSeries = {recent_series_json};
-  const ncaabSeries = {ncaab_series_json};
-  const ncaabRecentSeries = {ncaab_recent_series_json};
+  const sportSummaries = {sport_summaries_json};
+  const defaultSport = {json.dumps(default_sport)};
 
   const x = series.map(d => d.date);
   const yCum = series.map(d => d.cum_net);
@@ -1836,40 +1836,6 @@ def build_html_report(
   }};
   Plotly.newPlot('chart-recent', [recentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
 
-  const ncaabX = ncaabSeries.map(d => d.date);
-  const ncaabYCum = ncaabSeries.map(d => d.cum_net);
-  const ncaabYDaily = ncaabSeries.map(d => d.net);
-  const ncaabYCumRoi = ncaabSeries.map(d => d.cum_roi == null ? null : d.cum_roi * 100.0);
-  const ncaabTraceCum = {{
-    x: ncaabX, y: ncaabYCum, type: 'scatter', mode: 'lines+markers', name: 'NCAAB Cumulative Net',
-    line: {{ color: '#60a5fa', width: 3 }},
-    hovertemplate: '%{{x}}<br>Cumulative Net: %{{y:$,.2f}}<extra></extra>'
-  }};
-  const ncaabTraceDaily = {{
-    x: ncaabX, y: ncaabYDaily, type: 'bar', name: 'NCAAB Daily Net',
-    marker: {{ color: ncaabYDaily.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
-    opacity: 0.55,
-    hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
-  }};
-  const ncaabTraceRoi = {{
-    x: ncaabX, y: ncaabYCumRoi, type: 'scatter', mode: 'lines', name: 'NCAAB Cumulative ROI %',
-    yaxis: 'y2',
-    line: {{ color: 'rgba(157,176,208,0.9)', width: 2, dash: 'dot' }},
-    hovertemplate: '%{{x}}<br>Cumulative ROI: %{{y:.2f}}%<extra></extra>'
-  }};
-  Plotly.newPlot('chart-cum-ncaab', [ncaabTraceDaily, ncaabTraceCum, ncaabTraceRoi], layout, {{displayModeBar: false, responsive: true}});
-
-  const ncaabRecentX = ncaabRecentSeries.map(d => d.date);
-  const ncaabRecentY = ncaabRecentSeries.map(d => d.net);
-  const ncaabRecentTrace = {{
-    x: ncaabRecentX,
-    y: ncaabRecentY,
-    type: 'bar',
-    marker: {{ color: ncaabRecentY.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
-    hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
-  }};
-  Plotly.newPlot('chart-recent-ncaab', [ncaabRecentTrace], recentLayout, {{displayModeBar: false, responsive: true}});
-
   function fmtMoney(value) {{
     const n = Number.isFinite(value) ? value : 0;
     return '$' + n.toLocaleString(undefined, {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }});
@@ -1878,23 +1844,232 @@ def build_html_report(
     if (!Number.isFinite(value)) return '';
     return (value * 100).toFixed(2) + '%';
   }}
+  function fmtNum(value) {{
+    if (!Number.isFinite(value)) return '';
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }}
+  function escapeHtml(value) {{
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }}
+  function normalizeText(value) {{
+    return String(value || '').trim().toLowerCase();
+  }}
   function parseNum(row, key) {{
     const v = Number.parseFloat((row.dataset[key] || '').trim());
     return Number.isFinite(v) ? v : NaN;
   }}
+  function parseOptionalNumberInput(input) {{
+    const raw = (input?.value || '').trim();
+    if (!raw) return null;
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : null;
+  }}
+  function matchesRange(value, minValue, maxValue) {{
+    if (minValue == null && maxValue == null) return true;
+    if (!Number.isFinite(value)) return false;
+    if (minValue != null && value < minValue) return false;
+    if (maxValue != null && value > maxValue) return false;
+    return true;
+  }}
   function setSignedClass(el, value) {{
     if (!el) return;
-    el.classList.remove('positive', 'negative');
+    el.classList.remove('positive', 'negative', 'good', 'bad');
     if (value > 0) el.classList.add('positive');
     else if (value < 0) el.classList.add('negative');
   }}
+  function setText(id, value) {{
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }}
+  function setHtml(id, value) {{
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = value;
+  }}
+  function buildSportCumulativeTraces(seriesData, label) {{
+    const sportX = seriesData.map(d => d.date);
+    const sportYCum = seriesData.map(d => d.cum_net);
+    const sportYDaily = seriesData.map(d => d.net);
+    const sportYCumRoi = seriesData.map(d => d.cum_roi == null ? null : d.cum_roi * 100.0);
+    return [
+      {{
+        x: sportX,
+        y: sportYDaily,
+        type: 'bar',
+        name: `${{label}} Daily Net`,
+        marker: {{ color: sportYDaily.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
+        opacity: 0.55,
+        hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
+      }},
+      {{
+        x: sportX,
+        y: sportYCum,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: `${{label}} Cumulative Net`,
+        line: {{ color: '#60a5fa', width: 3 }},
+        hovertemplate: '%{{x}}<br>Cumulative Net: %{{y:$,.2f}}<extra></extra>'
+      }},
+      {{
+        x: sportX,
+        y: sportYCumRoi,
+        type: 'scatter',
+        mode: 'lines',
+        name: `${{label}} Cumulative ROI %`,
+        yaxis: 'y2',
+        line: {{ color: 'rgba(157,176,208,0.9)', width: 2, dash: 'dot' }},
+        hovertemplate: '%{{x}}<br>Cumulative ROI: %{{y:.2f}}%<extra></extra>'
+      }},
+    ];
+  }}
+  function buildSportRecentTrace(seriesData) {{
+    const sportRecentX = seriesData.map(d => d.date);
+    const sportRecentY = seriesData.map(d => d.net);
+    return {{
+      x: sportRecentX,
+      y: sportRecentY,
+      type: 'bar',
+      marker: {{ color: sportRecentY.map(v => v >= 0 ? '#34d399' : '#fb7185') }},
+      hovertemplate: '%{{x}}<br>Net: %{{y:$,.2f}}<extra></extra>'
+    }};
+  }}
+  function renderSportTab(sportKey) {{
+    const sport = sportSummaries[sportKey] || sportSummaries[defaultSport];
+    if (!sport) return;
+
+    setText('sport-kpi-total-label', `${{sport.label}} Total Bets`);
+    setText('sport-kpi-total-value', String(sport.counts.total));
+    setText('sport-kpi-total-note', `Resolved: ${{sport.counts.resolved}} | Open: ${{sport.counts.open}} | Push/Void: ${{sport.counts.pushes}}`);
+
+    setText('sport-kpi-net-label', `${{sport.label}} Net Profit`);
+    setText('sport-kpi-net-value', fmtMoney(sport.totals.net));
+    setText('sport-kpi-net-note', `ROI: ${{fmtPct(sport.totals.roi)}}`);
+    setSignedClass(document.getElementById('sport-kpi-net-value'), sport.totals.net);
+
+    setText('sport-kpi-win-label', `${{sport.label}} Win Rate (W/L)`);
+    setText('sport-kpi-win-value', fmtPct(sport.averages.win_rate));
+    setText('sport-kpi-win-note', `W: ${{sport.counts.wins}} | L: ${{sport.counts.losses}}`);
+
+    setText('sport-kpi-open-label', `${{sport.label}} Open Exposure`);
+    setText('sport-kpi-open-value', fmtMoney(sport.open_exposure));
+    setHtml('sport-kpi-open-note', `As of ${{escapeHtml(sport.as_of)}} | League tag = <code>${{escapeHtml(sport.label)}}</code>`);
+
+    setText('sport-periods-title', `${{sport.label}} Recent Performance`);
+    setText('sport-periods-note', `Calendar-day windows ending on ${{sport.as_of}}.`);
+    setHtml('sport-periods-table', sport.recent_periods_html);
+
+    setText('sport-calendar-title', `${{sport.label}} Daily Net / Risk (Last 7 Days)`);
+    setHtml('sport-calendar-content', sport.recent_calendar_html);
+
+    setText('sport-streaks-title', `${{sport.label}} Notable Streaks`);
+    setText('sport-daily-streak-note', sport.daily_current_text);
+    setText('sport-bet-streak-note', sport.bet_current_text);
+    setHtml('sport-streak-lines', sport.streak_lines_html);
+
+    setText('sport-highlights-title', `${{sport.label}} Highlights`);
+    setText('sport-highlights-risk', `Avg Risk / Bet: ${{fmtMoney(sport.averages.avg_risk)}}`);
+    setText('sport-highlights-odds', `Avg odds: ${{fmtNum(sport.averages.avg_odds)}} | Avg implied: ${{fmtPct(sport.averages.avg_implied_prob)}}`);
+    setText('sport-best-day', sport.best_day_text);
+    setText('sport-worst-day', sport.worst_day_text);
+
+    setText('sport-cum-title', `${{sport.label}} Cumulative Profit`);
+    setText('sport-recent-title', `${{sport.label}} Last 30 Days Net (daily)`);
+    setText('sport-settled-title', `${{sport.label}} Recently Settled Bets`);
+    setHtml('sport-settled-table', sport.recently_settled_html);
+
+    setText('sport-open-title', `${{sport.label}} Open Bets`);
+    setHtml('sport-open-note', `Open bets tagged with League <code>${{escapeHtml(sport.label)}}</code>.`);
+    setHtml('sport-open-table', sport.open_bets_html);
+
+    setText('sport-by-book-title', `${{sport.label}} By Book`);
+    setHtml('sport-by-book-table', sport.by_book_html);
+    setText('sport-by-type-title', `${{sport.label}} By Type`);
+    setHtml('sport-by-type-table', sport.by_type_html);
+
+    setText('sport-wins-title', `${{sport.label}} Biggest Wins (top 10)`);
+    setHtml('sport-wins-table', sport.top_wins_html);
+    setText('sport-losses-title', `${{sport.label}} Biggest Losses (top 10)`);
+    setHtml('sport-losses-table', sport.top_losses_html);
+    setText('sport-longest-title', `${{sport.label}} Longest Shots (top 10 winning odds)`);
+    setHtml('sport-longest-table', sport.longest_shots_html);
+
+    const sportCumChart = document.getElementById('chart-cum-sport');
+    const sportRecentChart = document.getElementById('chart-recent-sport');
+    if (sportCumChart) {{
+      Plotly.react(sportCumChart, buildSportCumulativeTraces(sport.series, sport.label), layout, {{displayModeBar: false, responsive: true}});
+    }}
+    if (sportRecentChart) {{
+      Plotly.react(sportRecentChart, [buildSportRecentTrace(sport.recent_daily_series)], recentLayout, {{displayModeBar: false, responsive: true}});
+    }}
+
+    const sportSelect = document.getElementById('sport-select');
+    if (sportSelect && sportSelect.value !== sportKey) {{
+      sportSelect.value = sportKey;
+    }}
+    localStorage.setItem('bettingReportSelectedSport', sportKey);
+  }}
 
   const allBetsTable = document.getElementById('all-bets-table');
-  const allBetsSearch = document.getElementById('all-bets-search');
   const allBetsTbody = allBetsTable ? allBetsTable.querySelector('tbody') : null;
   const allBetsSortButtons = allBetsTable ? Array.from(allBetsTable.querySelectorAll('.sort-btn')) : [];
   const allBetsRows = allBetsTbody ? Array.from(allBetsTbody.querySelectorAll('tr.all-bets-row')) : [];
-  const allBetsState = {{ key: 'date', dir: 'desc', type: 'text', query: '' }};
+  const allBetsFilterInputs = {{
+    pick: document.getElementById('all-bets-pick-filter'),
+    dateFrom: document.getElementById('all-bets-date-from'),
+    dateTo: document.getElementById('all-bets-date-to'),
+    league: document.getElementById('all-bets-league-filter'),
+    book: document.getElementById('all-bets-book-filter'),
+    type: document.getElementById('all-bets-type-filter'),
+    result: document.getElementById('all-bets-result-filter'),
+    oddsMin: document.getElementById('all-bets-odds-min'),
+    oddsMax: document.getElementById('all-bets-odds-max'),
+    riskMin: document.getElementById('all-bets-risk-min'),
+    riskMax: document.getElementById('all-bets-risk-max'),
+    netMin: document.getElementById('all-bets-net-min'),
+    netMax: document.getElementById('all-bets-net-max'),
+  }};
+  const allBetsClear = document.getElementById('all-bets-clear');
+  const allBetsState = {{ key: 'date', dir: 'desc', type: 'text' }};
+
+  function uniqueValuesFor(key) {{
+    const values = new Set();
+    allBetsRows.forEach((row) => {{
+      const value = (row.dataset[key] || '').trim();
+      if (key === 'result' && !value) {{
+        values.add('__OPEN__');
+      }} else if (value) {{
+        values.add(value);
+      }}
+    }});
+    const sorted = Array.from(values);
+    sorted.sort((a, b) => {{
+      if (a === '__OPEN__') return 1;
+      if (b === '__OPEN__') return -1;
+      return a.localeCompare(b, undefined, {{ numeric: true, sensitivity: 'base' }});
+    }});
+    return sorted;
+  }}
+  function populateSelectOptions(selectEl, values, placeholder) {{
+    if (!selectEl) return;
+    const currentValue = selectEl.value;
+    const options = [`<option value="">${{escapeHtml(placeholder)}}</option>`];
+    values.forEach((value) => {{
+      const label = value === '__OPEN__' ? 'Open' : value;
+      const selected = value === currentValue ? ' selected' : '';
+      options.push(`<option value="${{escapeHtml(value)}}"${{selected}}>${{escapeHtml(label)}}</option>`);
+    }});
+    selectEl.innerHTML = options.join('');
+  }}
+  function initAllBetsFilters() {{
+    populateSelectOptions(allBetsFilterInputs.league, uniqueValuesFor('league'), 'All leagues');
+    populateSelectOptions(allBetsFilterInputs.book, uniqueValuesFor('book'), 'All books');
+    populateSelectOptions(allBetsFilterInputs.type, uniqueValuesFor('type'), 'All types');
+    populateSelectOptions(allBetsFilterInputs.result, uniqueValuesFor('result'), 'All results');
+  }}
 
   function updateAllBetsSortButtons() {{
     allBetsSortButtons.forEach((btn) => {{
@@ -1958,13 +2133,52 @@ def build_html_report(
     setSignedClass(roiEl, roi);
   }}
 
+  function rowMatchesAllBetsFilters(row) {{
+    const pickQuery = normalizeText(allBetsFilterInputs.pick?.value);
+    const dateFrom = (allBetsFilterInputs.dateFrom?.value || '').trim();
+    const dateTo = (allBetsFilterInputs.dateTo?.value || '').trim();
+    const leagueFilter = normalizeText(allBetsFilterInputs.league?.value);
+    const bookFilter = normalizeText(allBetsFilterInputs.book?.value);
+    const typeFilter = normalizeText(allBetsFilterInputs.type?.value);
+    const resultFilter = (allBetsFilterInputs.result?.value || '').trim();
+    const oddsMin = parseOptionalNumberInput(allBetsFilterInputs.oddsMin);
+    const oddsMax = parseOptionalNumberInput(allBetsFilterInputs.oddsMax);
+    const riskMin = parseOptionalNumberInput(allBetsFilterInputs.riskMin);
+    const riskMax = parseOptionalNumberInput(allBetsFilterInputs.riskMax);
+    const netMin = parseOptionalNumberInput(allBetsFilterInputs.netMin);
+    const netMax = parseOptionalNumberInput(allBetsFilterInputs.netMax);
+
+    if (pickQuery && !normalizeText(row.dataset.pick).includes(pickQuery)) return false;
+
+    const rowDate = (row.dataset.date || '').trim();
+    if (dateFrom && (!rowDate || rowDate < dateFrom)) return false;
+    if (dateTo && (!rowDate || rowDate > dateTo)) return false;
+
+    if (leagueFilter && normalizeText(row.dataset.league) !== leagueFilter) return false;
+    if (bookFilter && normalizeText(row.dataset.book) !== bookFilter) return false;
+    if (typeFilter && normalizeText(row.dataset.type) !== typeFilter) return false;
+
+    const rowResult = (row.dataset.result || '').trim();
+    if (resultFilter) {{
+      if (resultFilter === '__OPEN__') {{
+        if (rowResult) return false;
+      }} else if (rowResult !== resultFilter) {{
+        return false;
+      }}
+    }}
+
+    if (!matchesRange(parseNum(row, 'odds'), oddsMin, oddsMax)) return false;
+    if (!matchesRange(parseNum(row, 'risk'), riskMin, riskMax)) return false;
+    if (!matchesRange(parseNum(row, 'net'), netMin, netMax)) return false;
+    return true;
+  }}
+
   function applyAllBetsView() {{
     if (!allBetsTbody) return;
-    const query = (allBetsState.query || '').trim().toLowerCase();
     const visibleRows = [];
     const hiddenRows = [];
     allBetsRows.forEach((row) => {{
-      const matches = !query || (row.dataset.search || '').includes(query);
+      const matches = rowMatchesAllBetsFilters(row);
       row.style.display = matches ? '' : 'none';
       if (matches) visibleRows.push(row);
       else hiddenRows.push(row);
@@ -1976,9 +2190,16 @@ def build_html_report(
     updateAllBetsTotals(visibleRows);
   }}
 
-  if (allBetsSearch) {{
-    allBetsSearch.addEventListener('input', () => {{
-      allBetsState.query = allBetsSearch.value || '';
+  Object.values(allBetsFilterInputs).forEach((input) => {{
+    if (!input) return;
+    const eventName = input.tagName === 'SELECT' ? 'change' : 'input';
+    input.addEventListener(eventName, applyAllBetsView);
+  }});
+  if (allBetsClear) {{
+    allBetsClear.addEventListener('click', () => {{
+      Object.values(allBetsFilterInputs).forEach((input) => {{
+        if (input) input.value = '';
+      }});
       applyAllBetsView();
     }});
   }}
@@ -1996,19 +2217,27 @@ def build_html_report(
       applyAllBetsView();
     }});
   }});
+  initAllBetsFilters();
   applyAllBetsView();
+
+  const sportSelect = document.getElementById('sport-select');
+  if (sportSelect) {{
+    sportSelect.addEventListener('change', () => renderSportTab(sportSelect.value || defaultSport));
+  }}
+  const savedSport = localStorage.getItem('bettingReportSelectedSport');
+  renderSportTab(savedSport && sportSummaries[savedSport] ? savedSport : defaultSport);
 
   const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
   const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
   function resizeCharts() {{
     const recentChart = document.getElementById('chart-recent');
     const cumulativeChart = document.getElementById('chart-cum');
-    const ncaabRecentChart = document.getElementById('chart-recent-ncaab');
-    const ncaabCumulativeChart = document.getElementById('chart-cum-ncaab');
+    const sportRecentChart = document.getElementById('chart-recent-sport');
+    const sportCumulativeChart = document.getElementById('chart-cum-sport');
     if (recentChart) Plotly.Plots.resize(recentChart);
     if (cumulativeChart) Plotly.Plots.resize(cumulativeChart);
-    if (ncaabRecentChart) Plotly.Plots.resize(ncaabRecentChart);
-    if (ncaabCumulativeChart) Plotly.Plots.resize(ncaabCumulativeChart);
+    if (sportRecentChart) Plotly.Plots.resize(sportRecentChart);
+    if (sportCumulativeChart) Plotly.Plots.resize(sportCumulativeChart);
   }}
   function activateTab(tabName) {{
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tabName));
@@ -2018,8 +2247,10 @@ def build_html_report(
   }}
   tabButtons.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
   const savedTab = localStorage.getItem('bettingReportActiveTab');
-  if (savedTab === 'history' || savedTab === 'home' || savedTab === 'ncaab' || savedTab === 'all-bets') {{
+  if (savedTab === 'history' || savedTab === 'home' || savedTab === 'sports' || savedTab === 'all-bets') {{
     activateTab(savedTab);
+  }} else if (savedTab === 'ncaab') {{
+    activateTab('sports');
   }}
   window.addEventListener('resize', resizeCharts);
 </script>
@@ -2072,8 +2303,14 @@ def main() -> int:
     # Temporary reporting scope: only include bets from 2026 onward.
     bets = [b for b in bets if b.date >= dt.date(2026, 1, 1)]
     summary = summarize(bets)
-    ncaab_bets = [b for b in bets if b.league.strip().upper() == "NCAAB"]
-    ncaab_summary = summarize(ncaab_bets)
+    league_groups: Dict[str, List[BetRow]] = {}
+    for bet in bets:
+        league_key = bet.league.strip().upper()
+        if not league_key:
+            continue
+        league_groups.setdefault(league_key, []).append(bet)
+    league_summaries = {league: summarize(rows) for league, rows in sorted(league_groups.items())}
+    default_sport = "NCAAB" if "NCAAB" in league_summaries else (next(iter(league_summaries.keys()), "NCAAB"))
 
     title = "G's Betting Report"
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -2093,7 +2330,8 @@ def main() -> int:
     html_report = build_html_report(
         summary,
         title=title,
-        ncaab_summary=ncaab_summary,
+        league_summaries=league_summaries,
+        default_sport=default_sport,
         logo_base_href=logo_base_href,
         available_logo_files=available_logo_files,
     )
