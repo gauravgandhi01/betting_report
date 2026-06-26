@@ -101,5 +101,53 @@ class CollapseBetRowsTests(unittest.TestCase):
         self.assertEqual(collapsed[0]["odds"], 100.0)
 
 
+class SummaryStreakTests(unittest.TestCase):
+    def test_summary_only_tracks_daily_streaks(self) -> None:
+        bets = [
+            report.Bet(
+                date=report.dt.date(2026, 6, 24),
+                pick="A",
+                odds_american=-110.0,
+                risk=55.0,
+                to_win=50.0,
+                result="W",
+                net=50.0,
+                book="Book",
+                league="MLB",
+                bet_type="ML",
+            ),
+            report.Bet(
+                date=report.dt.date(2026, 6, 24),
+                pick="B",
+                odds_american=-110.0,
+                risk=55.0,
+                to_win=50.0,
+                result="L",
+                net=-55.0,
+                book="Book",
+                league="MLB",
+                bet_type="ML",
+            ),
+            report.Bet(
+                date=report.dt.date(2026, 6, 25),
+                pick="C",
+                odds_american=-110.0,
+                risk=55.0,
+                to_win=50.0,
+                result="L",
+                net=-55.0,
+                book="Book",
+                league="MLB",
+                bet_type="ML",
+            ),
+        ]
+
+        summary = report.summarize(bets)
+
+        self.assertEqual(set(summary["streaks"].keys()), {"daily"})
+        self.assertEqual(summary["streaks"]["daily"]["current"]["type"], "loss")
+        self.assertEqual(summary["streaks"]["daily"]["current"]["length"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()

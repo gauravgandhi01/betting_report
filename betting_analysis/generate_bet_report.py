@@ -501,13 +501,6 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         daily_entries.append((d.isoformat(), sign))
     daily_streaks = _longest_sign_streak(daily_entries)
 
-    resolved_sorted = sorted(
-        ((idx, b) for idx, b in enumerate(bets) if b.result in {"W", "L"}),
-        key=lambda pair: (pair[1].date, pair[0]),
-    )
-    bet_entries = [(f"{b.date.isoformat()} #{idx + 1}", 1 if b.result == "W" else -1) for idx, b in resolved_sorted]
-    bet_streaks = _longest_sign_streak(bet_entries)
-
     all_dates = [b.date for b in bets]
     today = dt.date.today()
     non_future_dates = [d for d in all_dates if d <= today]
@@ -601,7 +594,6 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         "open_exposure": open_exposure,
         "streaks": {
             "daily": daily_streaks,
-            "bets": bet_streaks,
         },
         "best_day": best_day,
         "worst_day": worst_day,
@@ -1136,17 +1128,14 @@ def build_html_report(
             span = f"{streak['start']} to {streak['end']}"
         return f"<div><strong>{html.escape(title_text)}:</strong> {streak['length']} ({html.escape(span)})</div>"
 
-    def current_streak_text(streak_group: Dict[str, Any], unit_kind: str) -> str:
+    def current_streak_text(streak_group: Dict[str, Any]) -> str:
         current = streak_group["current"]
         if current["length"] > 0:
-            unit = "day" if unit_kind == "daily" else "bet"
             return (
                 f"{current['length']} {current['type']} "
-                f"{unit}(s) ({current['start']} to {current['end']})"
+                f"day(s) ({current['start']} to {current['end']})"
             )
-        if unit_kind == "daily":
-            return "No active daily win/loss streak"
-        return "No active bet-level win/loss streak"
+        return "No active daily win/loss streak"
 
     def sport_summary_payload(league_label: str, league_summary: Dict[str, Any]) -> Dict[str, Any]:
         league_counts = league_summary["counts"]
@@ -1182,14 +1171,11 @@ def build_html_report(
             "top_wins_html": bets_table(league_summary["top_wins"], include_result=False),
             "top_losses_html": bets_table(league_summary["top_losses"], include_result=False),
             "longest_shots_html": bets_table(league_summary["longest_shots"], include_result=False),
-            "daily_current_text": current_streak_text(league_streaks["daily"], "daily"),
-            "bet_current_text": current_streak_text(league_streaks["bets"], "bet"),
+            "daily_current_text": current_streak_text(league_streaks["daily"]),
             "streak_lines_html": "".join(
                 [
                     streak_line("Longest daily win streak", league_streaks["daily"]["best_win"]),
                     streak_line("Longest daily loss streak", league_streaks["daily"]["best_loss"]),
-                    streak_line("Longest bet win streak", league_streaks["bets"]["best_win"]),
-                    streak_line("Longest bet loss streak", league_streaks["bets"]["best_loss"]),
                 ]
             ),
             "best_day_text": best_day_text,
@@ -1197,10 +1183,8 @@ def build_html_report(
         }
 
     daily_streaks = summary["streaks"]["daily"]
-    bet_streaks = summary["streaks"]["bets"]
 
-    daily_current_text = current_streak_text({"current": daily_streaks["current"]}, "daily")
-    bet_current_text = current_streak_text({"current": bet_streaks["current"]}, "bet")
+    daily_current_text = current_streak_text({"current": daily_streaks["current"]})
 
     best_day = summary["best_day"]
     worst_day = summary["worst_day"]
@@ -1529,12 +1513,9 @@ def build_html_report(
         <div class="card half">
           <div class="section-title">Notable Streaks</div>
           <div class="note">{html.escape(daily_current_text)}</div>
-          <div class="note">{html.escape(bet_current_text)}</div>
           <div style="margin-top: 8px; line-height: 1.6;">
             {streak_line("Longest daily win streak", daily_streaks["best_win"])}
             {streak_line("Longest daily loss streak", daily_streaks["best_loss"])}
-            {streak_line("Longest bet win streak", bet_streaks["best_win"])}
-            {streak_line("Longest bet loss streak", bet_streaks["best_loss"])}
           </div>
         </div>
 
@@ -1735,7 +1716,6 @@ def build_html_report(
         <div class="card half">
           <div id="sport-streaks-title" class="section-title">{html.escape(default_sport_payload['label'])} Notable Streaks</div>
           <div id="sport-daily-streak-note" class="note">{html.escape(default_sport_payload['daily_current_text'])}</div>
-          <div id="sport-bet-streak-note" class="note">{html.escape(default_sport_payload['bet_current_text'])}</div>
           <div id="sport-streak-lines" style="margin-top: 8px; line-height: 1.6;">{default_sport_payload['streak_lines_html']}</div>
         </div>
 
@@ -1992,7 +1972,6 @@ def build_html_report(
 
     setText('sport-streaks-title', `${{sport.label}} Notable Streaks`);
     setText('sport-daily-streak-note', sport.daily_current_text);
-    setText('sport-bet-streak-note', sport.bet_current_text);
     setHtml('sport-streak-lines', sport.streak_lines_html);
 
     setText('sport-highlights-title', `${{sport.label}} Highlights`);
