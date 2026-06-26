@@ -224,6 +224,16 @@ def _american_to_implied_prob(odds: Optional[float]) -> Optional[float]:
     return (-odds) / ((-odds) + 100.0)
 
 
+def _risk_to_win_to_american_odds(risk: Optional[float], to_win: Optional[float]) -> Optional[float]:
+    if risk is None or to_win is None:
+        return None
+    if math.isnan(risk) or math.isnan(to_win) or risk <= 0 or to_win <= 0:
+        return None
+    if to_win >= risk:
+        return 100.0 * (to_win / risk)
+    return -100.0 * (risk / to_win)
+
+
 def read_bets(csv_path: str, start_year: int = 2026) -> List[Bet]:
     bets: List[Bet] = []
     with open(csv_path, "r", newline="", encoding="utf-8") as f:
@@ -757,6 +767,7 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "leagues": [],
                 "odds_values": [],
                 "risk_values": [],
+                "to_win_values": [],
                 "net_values": [],
                 "count": 0,
             }
@@ -775,6 +786,10 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if risk is not None and not (isinstance(risk, float) and math.isnan(risk)):
             g["risk_values"].append(float(risk))
 
+        to_win = r.get("to_win")
+        if to_win is not None and not (isinstance(to_win, float) and math.isnan(to_win)):
+            g["to_win_values"].append(float(to_win))
+
         net = r.get("net")
         if net is not None and not (isinstance(net, float) and math.isnan(net)):
             g["net_values"].append(float(net))
@@ -786,18 +801,28 @@ def _collapse_bet_rows(bet_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         leagues = _unique_nonblank(g["leagues"])
         odds_values = g["odds_values"]
         risk_values = g["risk_values"]
+        to_win_values = g["to_win_values"]
         net_values = g["net_values"]
-        avg_odds = (sum(odds_values) / len(odds_values)) if odds_values else None
-        if avg_odds is not None:
-            avg_odds = float(_round_half_away_from_zero(avg_odds))
+        total_risk = sum(risk_values) if risk_values else float("nan")
+        total_to_win = sum(to_win_values) if to_win_values else float("nan")
+        display_odds: Optional[float]
+        if g["count"] == 1:
+            display_odds = odds_values[0] if odds_values else None
+        else:
+            has_complete_payout_data = len(risk_values) == g["count"] and len(to_win_values) == g["count"]
+            display_odds = _risk_to_win_to_american_odds(total_risk, total_to_win) if has_complete_payout_data else None
+            if display_odds is None and odds_values:
+                display_odds = sum(odds_values) / len(odds_values)
+        if display_odds is not None:
+            display_odds = float(_round_half_away_from_zero(display_odds))
 
         collapsed.append(
             {
                 "date": g["date"],
                 "pick": g["pick"],
-                "odds": avg_odds,
-                "risk": (sum(risk_values) if risk_values else float("nan")),
-                "to_win": float("nan"),
+                "odds": display_odds,
+                "risk": total_risk,
+                "to_win": total_to_win,
                 "result": g["result"],
                 "net": (sum(net_values) if net_values else float("nan")),
                 "book": books[0] if len(books) == 1 else f"{len(books)} books",
