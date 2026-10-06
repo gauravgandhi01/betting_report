@@ -275,6 +275,98 @@ def _nan_to_zero(x: float) -> float:
     return 0.0 if (isinstance(x, float) and math.isnan(x)) else x
 
 
+def _is_nan(value: Any) -> bool:
+    return isinstance(value, float) and math.isnan(value)
+
+
+def _finite_float(value: Any) -> Optional[float]:
+    if value is None or _is_nan(value):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(number):
+        return None
+    return number
+
+
+def _sum_finite(values: Any) -> float:
+    total = 0.0
+    for value in values:
+        number = _finite_float(value)
+        if number is not None:
+            total += number
+    return total
+
+
+def _counts_in_pl(bet: Bet) -> bool:
+    # Open bets have no result and a blank net. They stay out of profit, ROI, and streaks.
+    return bool(bet.result) and _finite_float(bet.net) is not None
+
+
+RESULT_LABELS = {
+    "W": "W",
+    "L": "L",
+    "P": "P",
+    "CO": "Cash Out",
+}
+
+
+def _result_label(result: str) -> str:
+    code = (result or "").strip().upper()
+    if not code:
+        return ""
+    return RESULT_LABELS.get(code, code)
+
+
+def _net_class(value: Any) -> str:
+    number = _finite_float(value)
+    if number is None or number == 0:
+        return ""
+    return "positive" if number > 0 else "negative"
+
+
+def _edge_class(edge: Optional[float]) -> str:
+    if edge is None or _is_nan(edge):
+        return ""
+    if edge > 0:
+        return "positive"
+    if edge < 0:
+        return "negative"
+    return ""
+
+
+def _fmt_edge(edge: Optional[float]) -> str:
+    if edge is None or _is_nan(edge):
+        return "n/a"
+    return f"{edge * 100.0:+.2f} pts"
+
+
+def _record_note(counts: Dict[str, Any]) -> str:
+    return (
+        f"Resolved: {counts['resolved']} | Open: {counts['open']} | "
+        f"Push: {counts['pushes']} | Cash out: {counts['cash_outs']}"
+    )
+
+
+def _edge_note(avgs: Dict[str, Any]) -> str:
+    win_rate = _fmt_pct(avgs.get("win_rate")) or "n/a"
+    implied = _fmt_pct(avgs.get("avg_implied_prob")) or "n/a"
+    return f"Win {win_rate} vs implied {implied} (edge {_fmt_edge(avgs.get('edge'))})"
+
+
+def _money_net_cell(value: Any) -> Any:
+    number = _finite_float(value)
+    if number is None:
+        return ""
+    text = _fmt_money(number)
+    css = _net_class(number)
+    if css:
+        return (text, css)
+    return text
+
+
 def _download_bytes(url: str, timeout_seconds: int = 30) -> bytes:
     return _download_bytes_with_ssl(url, timeout_seconds=timeout_seconds, insecure=False)
 
@@ -336,9 +428,10 @@ def _period_metrics(bets: List[Bet], start_date: dt.date, end_date: dt.date, day
     losses = sum(1 for b in resolved if b.result == "L")
     pushes = sum(1 for b in window if b.result == "P")
     open_count = sum(1 for b in window if not b.result)
-    other = sum(1 for b in window if b.result not in {"", "W", "L", "P"})
-    risk = sum(_nan_to_zero(b.risk) for b in window)
-    net = sum(_nan_to_zero(b.net) for b in window)
+    other = sum(1 for b in window if b.result and b.result not in {"W", "L", "P", "CO"})
+    pl = [b for b in window if _counts_in_pl(b)]
+    risk = sum(_nan_to_zero(b.risk) for b in pl)
+    net = sum(b.net for b in pl)
     return {
         "label": f"Last {days} days",
         "days": days,
@@ -434,11 +527,13 @@ def _longest_sign_streak(entries: List[Tuple[str, int]]) -> Dict[str, Any]:
 def summarize(bets: List[Bet]) -> Dict[str, Any]:
     resolved = [b for b in bets if b.result in {"W", "L"}]
     pushes = [b for b in bets if b.result == "P"]
+    cash_outs = [b for b in bets if b.result == "CO"]
     open_bets = [b for b in bets if not b.result]
-    other = [b for b in bets if b.result not in {"W", "L", "P"}]
+    other = [b for b in bets if b.result and b.result not in {"W", "L", "P", "CO"}]
+    pl_bets = [b for b in bets if _counts_in_pl(b)]
 
-    total_risk = sum(_nan_to_zero(b.risk) for b in bets)
-    total_net = sum(_nan_to_zero(b.net) for b in bets)
+    total_risk = sum(_nan_to_zero(b.risk) for b in pl_bets)
+    total_net = sum(b.net for b in pl_bets)
     roi = _safe_div(total_net, total_risk)
 
     wins = [b for b in resolved if b.result == "W"]
@@ -452,10 +547,13 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
         sum(1 for b in bets if b.odds_american is not None),
     )
 
-    avg_implied = _safe_div(
-        sum(p for p in (_american_to_implied_prob(b.odds_american) for b in bets) if p is not None),
-        sum(1 for b in bets if _american_to_implied_prob(b.odds_american) is not None),
-    )
+    decided_implied = [
+        p
+        for b in resolved
+        if (p := _american_to_implied_prob(b.odds_american)) is not None
+    ]
+    avg_implied = _safe_div(sum(decided_implied), float(len(decided_implied))) if decided_implied else None
+    edge = None if win_rate is None or avg_implied is None else win_rate - avg_implied
 
     by_league = group_metrics(bets, key_fn=lambda b: b.league)
     by_book = group_metrics(bets, key_fn=lambda b: b.book)
@@ -464,11 +562,15 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
     # cumulative net by date
     net_by_date: Dict[dt.date, float] = defaultdict(float)
     risk_by_date: Dict[dt.date, float] = defaultdict(float)
+    stake_by_date: Dict[dt.date, float] = defaultdict(float)
     count_by_date: Dict[dt.date, int] = defaultdict(int)
     for b in bets:
-        net_by_date[b.date] += _nan_to_zero(b.net)
-        risk_by_date[b.date] += _nan_to_zero(b.risk)
         count_by_date[b.date] += 1
+        stake_by_date[b.date] += _nan_to_zero(b.risk)
+        if not _counts_in_pl(b):
+            continue
+        net_by_date[b.date] += b.net
+        risk_by_date[b.date] += _nan_to_zero(b.risk)
 
     dates_sorted = sorted(net_by_date.keys())
     cum_net = 0.0
@@ -529,7 +631,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
             {
                 "date": d.isoformat(),
                 "net": net_by_date.get(d, 0.0),
-                "risk": risk_by_date.get(d, 0.0),
+                "risk": stake_by_date.get(d, 0.0),
                 "bets": count_by_date.get(d, 0),
             }
         )
@@ -574,6 +676,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
             "wins": len(wins),
             "losses": len(losses),
             "pushes": len(pushes),
+            "cash_outs": len(cash_outs),
             "open": len(open_bets),
             "other": len(other),
         },
@@ -587,6 +690,7 @@ def summarize(bets: List[Bet]) -> Dict[str, Any]:
             "avg_odds": avg_odds,
             "avg_implied_prob": avg_implied,
             "win_rate": win_rate,
+            "edge": edge,
         },
         "recent_periods": recent_periods,
         "recent_daily_series": recent_daily_series,
@@ -636,12 +740,20 @@ def group_metrics(bets: List[Bet], key_fn) -> List[Dict[str, Any]]:
 
     rows: List[Dict[str, Any]] = []
     for k, bs in groups.items():
-        risk = sum(_nan_to_zero(b.risk) for b in bs)
-        net = sum(_nan_to_zero(b.net) for b in bs)
+        pl = [b for b in bs if _counts_in_pl(b)]
+        risk = sum(_nan_to_zero(b.risk) for b in pl)
+        net = sum(b.net for b in pl)
         resolved = [b for b in bs if b.result in {"W", "L"}]
         wins = sum(1 for b in resolved if b.result == "W")
         win_rate = (wins / len(resolved)) if resolved else None
         roi = (net / risk) if risk else None
+        implied_vals = [
+            p
+            for b in resolved
+            if (p := _american_to_implied_prob(b.odds_american)) is not None
+        ]
+        avg_implied = (sum(implied_vals) / len(implied_vals)) if implied_vals else None
+        edge = (win_rate - avg_implied) if win_rate is not None and avg_implied is not None else None
         rows.append(
             {
                 "key": k,
@@ -653,6 +765,8 @@ def group_metrics(bets: List[Bet], key_fn) -> List[Dict[str, Any]]:
                 "net": net,
                 "roi": roi,
                 "win_rate": win_rate,
+                "avg_implied_prob": avg_implied,
+                "edge": edge,
             }
         )
 
@@ -842,7 +956,7 @@ def build_html_report(
     avgs = summary["averages"]
     today_label = f"{dt.date.today():%b} {dt.date.today().day}, {dt.date.today().year}"
     today_rows = summary["today_open"] + summary["today_settled"]
-    today_net_total = sum(float(r.get("net") or 0.0) for r in today_rows)
+    today_net_total = _sum_finite(r.get("net") for r in today_rows)
     if default_sport not in league_summaries and league_summaries:
         default_sport = next(iter(league_summaries.keys()))
     default_sport_summary = league_summaries.get(default_sport, summarize([]))
@@ -871,9 +985,9 @@ def build_html_report(
             net_fmt = _fmt_money(r["net"])
             net_cls = "positive" if r["net"] >= 0 else "negative"
             roi_fmt = _fmt_pct(r["roi"])
-            roi_cls = "positive" if (r["roi"] is not None and r["roi"] >= 0) else "negative"
+            roi_cls = _net_class(r["roi"]) if r["roi"] is not None else ""
             win_fmt = _fmt_pct(r["win_rate"])
-            win_cls = "above50" if (r["win_rate"] is not None and r["win_rate"] > 0.5) else "below50"
+            win_cls = _edge_class(r.get("edge"))
             key_label = str(r["key"])
             if badge_kind == "league":
                 group_cell = league_badge(key_label)
@@ -889,8 +1003,8 @@ def build_html_report(
                     str(r["losses"]),
                     _fmt_money(r["risk"]),
                     (net_fmt, net_cls),
-                    (roi_fmt, roi_cls),
-                    (win_fmt, win_cls),
+                    (roi_fmt, roi_cls) if roi_cls else roi_fmt,
+                    (win_fmt, win_cls) if win_cls else win_fmt,
                 ]
             )
         return _render_table(headers, rows)
@@ -912,8 +1026,6 @@ def build_html_report(
         total_risk = 0.0
         total_net = 0.0
         for r in rows_in:
-            net_fmt = _fmt_money(r["net"])
-            net_cls = "positive" if r["net"] >= 0 else "negative"
             leagues = r.get("leagues") or [r.get("league", "")]
             books = r.get("books") or [r.get("book", "")]
             if len(leagues) == 1:
@@ -941,13 +1053,17 @@ def build_html_report(
                 _fmt_money(r["risk"]),
             ]
             if include_result:
-                row.append(html.escape(r["result"]))
+                row.append(html.escape(_result_label(str(r.get("result") or ""))))
             if include_net:
-                row.append((net_fmt, net_cls))
+                row.append(_money_net_cell(r.get("net")))
             rows.append(row)
-            total_risk += float(r.get("risk") or 0.0)
+            finite_risk = _finite_float(r.get("risk"))
+            if finite_risk is not None:
+                total_risk += finite_risk
             if include_net:
-                total_net += float(r.get("net") or 0.0)
+                finite_net = _finite_float(r.get("net"))
+                if finite_net is not None:
+                    total_net += finite_net
 
         if not show_totals:
             return _render_table(headers, rows)
@@ -970,8 +1086,12 @@ def build_html_report(
         tfoot_cells[risk_idx] = _fmt_money(total_risk)
         if include_net and "Net" in headers:
             net_idx = headers.index("Net")
-            net_cls = "positive" if total_net >= 0 else "negative"
-            tfoot_cells[net_idx] = f'<span class="{net_cls}">{_fmt_money(total_net)}</span>'
+            net_cls = _net_class(total_net)
+            net_text = _fmt_money(total_net)
+            if net_cls:
+                tfoot_cells[net_idx] = f'<span class="{net_cls}">{net_text}</span>'
+            else:
+                tfoot_cells[net_idx] = net_text
         tfoot_html = "".join(f"<td>{c}</td>" for c in tfoot_cells)
 
         return (
@@ -1016,10 +1136,8 @@ def build_html_report(
             risk_val = "" if risk is None or (isinstance(risk, float) and math.isnan(risk)) else f"{float(risk):.8f}"
             net_val = "" if net is None or (isinstance(net, float) and math.isnan(net)) else f"{float(net):.8f}"
 
-            net_num = 0.0
-            if net is not None and not (isinstance(net, float) and math.isnan(net)):
-                net_num = float(net)
-            net_cls = "positive" if net_num >= 0 else "negative"
+            finite_net = _finite_float(net)
+            net_cls = _net_class(finite_net)
 
             row_attrs = (
                 f"data-date='{html.escape(date, quote=True)}' "
@@ -1041,8 +1159,8 @@ def build_html_report(
                 html.escape(pick),
                 html.escape(_fmt_odds(odds)),
                 _fmt_money(risk),
-                html.escape(result),
-                (_fmt_money(net), net_cls),
+                html.escape(_result_label(result)),
+                (_fmt_money(finite_net), net_cls) if net_cls else (_fmt_money(finite_net) if finite_net is not None else ""),
             ]
             tds = []
             for c in cells:
@@ -1066,8 +1184,10 @@ def build_html_report(
         headers = ["Window", "Bets", "W-L", "Win%", "Risk", "Net", "ROI", "Open"]
         rows = []
         for r in period_rows:
-            net_cls = "positive" if r["net"] >= 0 else "negative"
-            roi_cls = "positive" if (r["roi"] is not None and r["roi"] >= 0) else "negative"
+            net_cls = _net_class(r["net"])
+            roi_cls = _net_class(r["roi"]) if r["roi"] is not None else ""
+            net_text = _fmt_money(r["net"])
+            roi_text = _fmt_pct(r["roi"])
             rows.append(
                 [
                     html.escape(r["label"]),
@@ -1075,8 +1195,8 @@ def build_html_report(
                     f"{r['wins']}-{r['losses']}",
                     _fmt_pct(r["win_rate"]),
                     _fmt_money(r["risk"]),
-                    (_fmt_money(r["net"]), net_cls),
-                    (_fmt_pct(r["roi"]), roi_cls),
+                    (net_text, net_cls) if net_cls else net_text,
+                    (roi_text, roi_cls) if roi_cls else roi_text,
                     str(r["open"]),
                 ]
             )
@@ -1433,8 +1553,6 @@ def build_html_report(
 
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
-    .above50 {{ color: var(--good); }}
-    .below50 {{ color: var(--bad); }}
 
     @media (max-width: 1000px) {{
       .kpi {{ grid-column: span 6; }}
@@ -1466,17 +1584,17 @@ def build_html_report(
         <div class="card kpi">
           <div class="label">Total Bets</div>
           <div class="value">{counts['total']}</div>
-          <div class="note">Resolved: {counts['resolved']} | Open: {counts['open']} | Push/Void: {counts['pushes']}</div>
+          <div class="note">{_record_note(counts)}</div>
         </div>
         <div class=\"card kpi\">
           <div class=\"label\">Net Profit</div>
           <div class=\"value {'good' if totals['net'] >= 0 else 'bad'}\">{_fmt_money(totals['net'])}</div>
-          <div class=\"note\">ROI: {_fmt_pct(totals['roi'])}</div>
+          <div class=\"note\">Settled ROI: {_fmt_pct(totals['roi'])}</div>
         </div>
         <div class=\"card kpi\">
           <div class=\"label\">Win Rate (W/L only)</div>
           <div class=\"value\">{_fmt_pct(avgs['win_rate'])}</div>
-          <div class=\"note\">W: {counts['wins']} | L: {counts['losses']}</div>
+          <div class=\"note\">W: {counts['wins']} | L: {counts['losses']} | Edge vs implied: {_fmt_edge(avgs['edge'])}</div>
         </div>
         <div class=\"card kpi\">
           <div class=\"label\">Open Risk</div>
@@ -1485,7 +1603,7 @@ def build_html_report(
 
         <div class="card full">
           <div class="section-title">Today ({today_label})</div>
-          <div class="note">Open + settled bets from today. Net today: {_fmt_money(today_net_total)}.</div>
+          <div class="note">Open and settled bets from today. Settled net: {_fmt_money(today_net_total)}.</div>
           <div class="scroll">{bets_table(today_rows, show_totals=True)}</div>
         </div>
 
@@ -1502,6 +1620,7 @@ def build_html_report(
 
         <div class="card full">
           <div class="section-title">Recent Performance</div>
+          <div class="note">Net and ROI use settled bets only. Open stakes stay in Open Risk.</div>
           <div class="scroll">{period_table(summary['recent_periods'])}</div>
         </div>
 
@@ -1522,7 +1641,7 @@ def build_html_report(
         <div class="card half">
           <div class="section-title">Recent Highlights</div>
           <div class="note">Avg Risk / Bet: {_fmt_money(avgs['avg_risk'])}</div>
-          <div class="note">Avg odds: {_fmt_num(avgs['avg_odds'])} | Avg implied: {_fmt_pct(avgs['avg_implied_prob'])}</div>
+          <div class="note">{_edge_note(avgs)}</div>
           <div style="margin-top: 8px; line-height: 1.6;">
             <div><strong>Best settled day:</strong> {html.escape(best_day['date']) if best_day else 'n/a'} ({_fmt_money(best_day['net']) if best_day else 'n/a'})</div>
             <div><strong>Worst settled day:</strong> {html.escape(worst_day['date']) if worst_day else 'n/a'} ({_fmt_money(worst_day['net']) if worst_day else 'n/a'})</div>
@@ -1542,7 +1661,7 @@ def build_html_report(
         <div class="card full">
           <div class="section-title">Cumulative Profit</div>
           <div id="chart-cum" style="height: 360px;"></div>
-          <div class="note">Uses the CSV's <code>Net</code> field for each bet; cumulative ROI = cumulative net / cumulative risk.</div>
+          <div class="note">Cumulative ROI = settled net / settled risk. Open bets are excluded.</div>
         </div>
       </div>
 
@@ -1660,7 +1779,7 @@ def build_html_report(
             <div id="all-bets-net" class="value">$0.00</div>
           </div>
           <div class="sub-kpi">
-            <div class="label">Visible ROI</div>
+            <div class="label">Settled ROI</div>
             <div id="all-bets-roi" class="value">0.00%</div>
           </div>
           <div class="sub-kpi">
@@ -1684,17 +1803,17 @@ def build_html_report(
         <div class="card kpi">
           <div id="sport-kpi-total-label" class="label">{html.escape(default_sport_payload['label'])} Total Bets</div>
           <div id="sport-kpi-total-value" class="value">{default_sport_payload['counts']['total']}</div>
-          <div id="sport-kpi-total-note" class="note">Resolved: {default_sport_payload['counts']['resolved']} | Open: {default_sport_payload['counts']['open']} | Push/Void: {default_sport_payload['counts']['pushes']}</div>
+          <div id="sport-kpi-total-note" class="note">{_record_note(default_sport_payload['counts'])}</div>
         </div>
         <div class="card kpi">
           <div id="sport-kpi-net-label" class="label">{html.escape(default_sport_payload['label'])} Net Profit</div>
           <div id="sport-kpi-net-value" class="value {'good' if default_sport_payload['totals']['net'] >= 0 else 'bad'}">{_fmt_money(default_sport_payload['totals']['net'])}</div>
-          <div id="sport-kpi-net-note" class="note">ROI: {_fmt_pct(default_sport_payload['totals']['roi'])}</div>
+          <div id="sport-kpi-net-note" class="note">Settled ROI: {_fmt_pct(default_sport_payload['totals']['roi'])}</div>
         </div>
         <div class="card kpi">
           <div id="sport-kpi-win-label" class="label">{html.escape(default_sport_payload['label'])} Win Rate (W/L)</div>
           <div id="sport-kpi-win-value" class="value">{_fmt_pct(default_sport_payload['averages']['win_rate'])}</div>
-          <div id="sport-kpi-win-note" class="note">W: {default_sport_payload['counts']['wins']} | L: {default_sport_payload['counts']['losses']}</div>
+          <div id="sport-kpi-win-note" class="note">W: {default_sport_payload['counts']['wins']} | L: {default_sport_payload['counts']['losses']} | Edge vs implied: {_fmt_edge(default_sport_payload['averages']['edge'])}</div>
         </div>
         <div class="card kpi">
           <div id="sport-kpi-open-label" class="label">{html.escape(default_sport_payload['label'])} Open Exposure</div>
@@ -1704,7 +1823,7 @@ def build_html_report(
 
         <div class="card full">
           <div id="sport-periods-title" class="section-title">{html.escape(default_sport_payload['label'])} Recent Performance</div>
-          <div id="sport-periods-note" class="note">Calendar-day windows ending on {html.escape(default_sport_payload['as_of'])}.</div>
+          <div id="sport-periods-note" class="note">Calendar-day windows ending on {html.escape(default_sport_payload['as_of'])}. Net and ROI use settled bets only.</div>
           <div id="sport-periods-table" class="scroll">{default_sport_payload['recent_periods_html']}</div>
         </div>
 
@@ -1722,7 +1841,7 @@ def build_html_report(
         <div class="card half">
           <div id="sport-highlights-title" class="section-title">{html.escape(default_sport_payload['label'])} Highlights</div>
           <div id="sport-highlights-risk" class="note">Avg Risk / Bet: {_fmt_money(default_sport_payload['averages']['avg_risk'])}</div>
-          <div id="sport-highlights-odds" class="note">Avg odds: {_fmt_num(default_sport_payload['averages']['avg_odds'])} | Avg implied: {_fmt_pct(default_sport_payload['averages']['avg_implied_prob'])}</div>
+          <div id="sport-highlights-odds" class="note">{_edge_note(default_sport_payload['averages'])}</div>
           <div style="margin-top: 8px; line-height: 1.6;">
             <div><strong>Best settled day:</strong> <span id="sport-best-day">{html.escape(default_sport_payload['best_day_text'])}</span></div>
             <div><strong>Worst settled day:</strong> <span id="sport-worst-day">{html.escape(default_sport_payload['worst_day_text'])}</span></div>
@@ -1849,6 +1968,16 @@ def build_html_report(
     if (!Number.isFinite(value)) return '';
     return (value * 100).toFixed(2) + '%';
   }}
+  function fmtEdge(value) {{
+    if (!Number.isFinite(value)) return 'n/a';
+    const pts = value * 100;
+    return (pts > 0 ? '+' : '') + pts.toFixed(2) + ' pts';
+  }}
+  function resultFilterLabel(value) {{
+    if (value === '__OPEN__') return 'Open';
+    if (value === 'CO') return 'Cash Out';
+    return value;
+  }}
   function fmtNum(value) {{
     if (!Number.isFinite(value)) return '';
     return Number.isInteger(value) ? String(value) : value.toFixed(2);
@@ -1948,23 +2077,23 @@ def build_html_report(
 
     setText('sport-kpi-total-label', `${{sport.label}} Total Bets`);
     setText('sport-kpi-total-value', String(sport.counts.total));
-    setText('sport-kpi-total-note', `Resolved: ${{sport.counts.resolved}} | Open: ${{sport.counts.open}} | Push/Void: ${{sport.counts.pushes}}`);
+    setText('sport-kpi-total-note', `Resolved: ${{sport.counts.resolved}} | Open: ${{sport.counts.open}} | Push: ${{sport.counts.pushes}} | Cash out: ${{sport.counts.cash_outs}}`);
 
     setText('sport-kpi-net-label', `${{sport.label}} Net Profit`);
     setText('sport-kpi-net-value', fmtMoney(sport.totals.net));
-    setText('sport-kpi-net-note', `ROI: ${{fmtPct(sport.totals.roi)}}`);
+    setText('sport-kpi-net-note', `Settled ROI: ${{fmtPct(sport.totals.roi)}}`);
     setSignedClass(document.getElementById('sport-kpi-net-value'), sport.totals.net);
 
     setText('sport-kpi-win-label', `${{sport.label}} Win Rate (W/L)`);
     setText('sport-kpi-win-value', fmtPct(sport.averages.win_rate));
-    setText('sport-kpi-win-note', `W: ${{sport.counts.wins}} | L: ${{sport.counts.losses}}`);
+    setText('sport-kpi-win-note', `W: ${{sport.counts.wins}} | L: ${{sport.counts.losses}} | Edge vs implied: ${{fmtEdge(sport.averages.edge)}}`);
 
     setText('sport-kpi-open-label', `${{sport.label}} Open Exposure`);
     setText('sport-kpi-open-value', fmtMoney(sport.open_exposure));
     setHtml('sport-kpi-open-note', `As of ${{escapeHtml(sport.as_of)}} | League tag = <code>${{escapeHtml(sport.label)}}</code>`);
 
     setText('sport-periods-title', `${{sport.label}} Recent Performance`);
-    setText('sport-periods-note', `Calendar-day windows ending on ${{sport.as_of}}.`);
+    setText('sport-periods-note', `Calendar-day windows ending on ${{sport.as_of}}. Net and ROI use settled bets only.`);
     setHtml('sport-periods-table', sport.recent_periods_html);
 
     setText('sport-calendar-title', `${{sport.label}} Daily Net / Risk (Last 7 Days)`);
@@ -1976,7 +2105,7 @@ def build_html_report(
 
     setText('sport-highlights-title', `${{sport.label}} Highlights`);
     setText('sport-highlights-risk', `Avg Risk / Bet: ${{fmtMoney(sport.averages.avg_risk)}}`);
-    setText('sport-highlights-odds', `Avg odds: ${{fmtNum(sport.averages.avg_odds)}} | Avg implied: ${{fmtPct(sport.averages.avg_implied_prob)}}`);
+    setText('sport-highlights-odds', `Win ${{fmtPct(sport.averages.win_rate) || 'n/a'}} vs implied ${{fmtPct(sport.averages.avg_implied_prob) || 'n/a'}} (edge ${{fmtEdge(sport.averages.edge)}})`);
     setText('sport-best-day', sport.best_day_text);
     setText('sport-worst-day', sport.worst_day_text);
 
@@ -2062,7 +2191,7 @@ def build_html_report(
     const currentValue = selectEl.value;
     const options = [`<option value="">${{escapeHtml(placeholder)}}</option>`];
     values.forEach((value) => {{
-      const label = value === '__OPEN__' ? 'Open' : value;
+      const label = resultFilterLabel(value);
       const selected = value === currentValue ? ' selected' : '';
       options.push(`<option value="${{escapeHtml(value)}}"${{selected}}>${{escapeHtml(label)}}</option>`);
     }});
@@ -2113,6 +2242,7 @@ def build_html_report(
     if (!countEl || !riskEl || !netEl || !roiEl || !wloEl) return;
 
     let risk = 0;
+    let settledRisk = 0;
     let net = 0;
     let wins = 0;
     let losses = 0;
@@ -2122,16 +2252,19 @@ def build_html_report(
       const r = parseNum(row, 'risk');
       const n = parseNum(row, 'net');
       if (Number.isFinite(r)) risk += r;
-      if (Number.isFinite(n)) net += n;
+      if (Number.isFinite(n)) {{
+        net += n;
+        if (Number.isFinite(r)) settledRisk += r;
+      }}
       if (result === 'W') wins += 1;
       else if (result === 'L') losses += 1;
       else if (!result) open += 1;
     }});
-    const roi = risk ? (net / risk) : 0;
+    const roi = settledRisk ? (net / settledRisk) : NaN;
     countEl.textContent = String(visibleRows.length);
     riskEl.textContent = fmtMoney(risk);
     netEl.textContent = fmtMoney(net);
-    roiEl.textContent = fmtPct(roi);
+    roiEl.textContent = Number.isFinite(roi) ? fmtPct(roi) : 'n/a';
     wloEl.textContent = `${{wins}}-${{losses}}-${{open}}`;
     setSignedClass(netEl, net);
     setSignedClass(roiEl, roi);
