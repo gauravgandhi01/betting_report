@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="/Users/ggandhi001/nhl_tools/betting_report"
+ROOT_DIR="/Users/ggandhi001/betting_report"
 ANALYSIS_DIR="$ROOT_DIR/betting_analysis"
 LOG_FILE="$ANALYSIS_DIR/cron_log.txt"
 LOCK_DIR="/tmp/betting_report_cron.lock"
