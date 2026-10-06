@@ -151,13 +151,15 @@ def _badge_html(label: str, color: str, logo_href: Optional[str] = None) -> str:
     if logo_href:
         safe_logo_href = html.escape(logo_href, quote=True)
         return (
-            '<span class="badge badge-logo-pill">'
-            f'<span class="badge-logo-wrap"><img class="badge-logo-img" src="{safe_logo_href}" alt="{safe} logo" loading="lazy" decoding="async" /></span>'
-            f"<span>{safe}</span>"
+            '<span class="badge badge-logo" title="'
+            f'{safe}">'
+            f'<img class="badge-logo-img" src="{safe_logo_href}" alt="{safe}" loading="lazy" decoding="async" />'
             "</span>"
         )
     fg = _text_color_for_bg(color)
-    return f'<span class="badge" style="background:{color}; border-color:{color}; color:{fg};">{safe}</span>'
+    return (
+        f'<span class="badge badge-sticker" style="background:{color}; border-color:{color}; color:{fg};">{safe}</span>'
+    )
 
 
 def _league_badge(
@@ -1488,30 +1490,25 @@ def build_html_report(
       line-height: 1.4;
       white-space: nowrap;
     }}
-    .badge-logo-pill {{
-      gap: 6px;
-      padding: 3px 8px 3px 4px;
-      border-color: rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
-    }}
-    .badge-logo-wrap {{
-      width: 18px;
-      height: 18px;
-      display: inline-flex;
-      align-items: center;
+    .badge-logo {{
+      width: 26px;
+      height: 26px;
+      padding: 2px;
+      border-radius: 7px;
       justify-content: center;
-      flex: 0 0 18px;
-      border-radius: 5px;
-      overflow: hidden;
       background: rgba(255,255,255,0.96);
-      border: 1px solid rgba(15,23,42,0.16);
+      border-color: rgba(15,23,42,0.16);
+      overflow: hidden;
+      vertical-align: middle;
     }}
     .badge-logo-img {{
       width: 100%;
       height: 100%;
       object-fit: contain;
       object-position: center;
+    }}
+    .badge-sticker {{
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
     }}
     .chip-row {{ display: flex; flex-wrap: wrap; gap: 4px; }}
     .note-inline {{ color: var(--muted); font-size: 11px; margin-top: 4px; }}

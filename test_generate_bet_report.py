@@ -9,6 +9,24 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "betting_analysis"))
 import generate_bet_report as report
 
 
+class BadgeTests(unittest.TestCase):
+    def test_logo_badge_shows_only_the_logo(self) -> None:
+        markup = report._league_badge("NHL", logo_base_href="logos", available_logo_files={"nhl.png"})
+
+        self.assertIn('src="logos/nhl.png"', markup)
+        self.assertIn('alt="NHL"', markup)
+        self.assertIn('title="NHL"', markup)
+        self.assertNotIn(">NHL<", markup)
+        self.assertNotIn("badge-sticker", markup)
+
+    def test_missing_logo_uses_text_sticker(self) -> None:
+        markup = report._book_badge("Bet365", logo_base_href="logos", available_logo_files={"fanduel.jpeg"})
+
+        self.assertIn("badge-sticker", markup)
+        self.assertIn(">Bet365<", markup)
+        self.assertNotIn("<img", markup)
+
+
 class CollapseBetRowsTests(unittest.TestCase):
     def test_collapse_uses_effective_odds_when_books_cross_plus_minus_boundary(self) -> None:
         rows = [
