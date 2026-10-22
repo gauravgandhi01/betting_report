@@ -953,6 +953,8 @@ def build_html_report(
     available_logo_files: Optional[set[str]] = None,
 ) -> str:
     as_of = summary["as_of"]
+    synced_at = dt.datetime.now().astimezone()
+    last_synced = synced_at.strftime("%I:%M %p %Z").lstrip("0")
     counts = summary["counts"]
     totals = summary["totals"]
     avgs = summary["averages"]
@@ -1568,7 +1570,7 @@ def build_html_report(
 <body>
   <div class=\"container\">
     <h1>{html.escape(title)}</h1>
-    <div class=\"subtitle\">As of {html.escape(as_of)} | Showing data from 2026-01-01 onward</div>
+    <div class=\"subtitle\">As of {html.escape(as_of)} | Last synced {html.escape(last_synced)}</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>

@@ -275,6 +275,8 @@ class SettledPerformanceTests(unittest.TestCase):
         )
 
         self.assertIn("Settled net: $114.00", html_doc)
+        self.assertIn("| Last synced ", html_doc)
+        self.assertNotIn("Showing data from", html_doc)
         self.assertIn("Cash Out", html_doc)
         self.assertIn("Cash out: 1", html_doc)
         self.assertIn("Settled ROI:", html_doc)
