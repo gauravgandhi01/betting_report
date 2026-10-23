@@ -58,6 +58,7 @@ BOOK_COLOR_MAP = {
     "BOOKIE": "#7C3AED",
     "BM": "#64748B",
     "BOL": "#F97316",
+    "BETONLINE": "#F97316",
     "BUCKEYE": "#DC2626",
 }
 
@@ -85,6 +86,8 @@ BOOK_LOGO_MAP = {
     "BOOKMAKER": "bookmaker.png",
     "BOOKIE": "bookmaker.png",
     "BM": "bookmaker.png",
+    "BOL": "betonline.png",
+    "BETONLINE": "betonline.png",
 }
 
 

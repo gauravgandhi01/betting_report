@@ -26,6 +26,13 @@ class BadgeTests(unittest.TestCase):
         self.assertIn(">Bet365<", markup)
         self.assertNotIn("<img", markup)
 
+    def test_betonline_abbreviation_uses_logo(self) -> None:
+        markup = report._book_badge("BOL", logo_base_href="logos", available_logo_files={"betonline.png"})
+
+        self.assertIn('src="logos/betonline.png"', markup)
+        self.assertIn('alt="BOL"', markup)
+        self.assertNotIn("badge-sticker", markup)
+
 
 class CollapseBetRowsTests(unittest.TestCase):
     def test_collapse_uses_effective_odds_when_books_cross_plus_minus_boundary(self) -> None:
