@@ -317,7 +317,7 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertEqual(today_html.count('<li class="today-bet '), 2)
         self.assertIn('2 wagers combined', today_html)
         self.assertIn('&lt;Win &amp; &quot;total&quot;&gt;', today_html)
-        self.assertIn('<dt>Risk</dt><dd>$60.00</dd>', today_html)
+        self.assertIn('<dt>Risk</dt><dd>$60.00<span class="today-units" title="1u = $100">0.6u</span></dd>', today_html)
         self.assertIn('<dt>To win</dt><dd class="">$90.00</dd>', today_html)
         self.assertIn('today-bet--push', today_html)
         self.assertIn('<dt>Net result</dt><dd class="">$0.00</dd>', today_html)

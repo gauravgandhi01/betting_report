@@ -1021,6 +1021,11 @@ def build_html_report(
             if result and amount_value is not None:
                 amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money(abs(amount_value))
             amount_class = _net_class(amount_value) if result and amount_value is not None else ""
+            risk_value = _finite_float(r.get("risk"))
+            units = ""
+            if risk_value is not None:
+                unit_text = f"{risk_value / 100:.2f}".rstrip("0").rstrip(".")
+                units = f'<span class="today-units" title="1u = $100">{unit_text}u</span>'
             league = str(r.get("league") or "").strip().upper() or "OTHER"
             items.append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-top">
@@ -1032,7 +1037,7 @@ def build_html_report(
                 <div class="today-meta"><span class="today-odds">Odds <strong>{html.escape(_fmt_odds(r.get("odds"))) or "—"}</strong></span><span class="chip-row">{books}</span>{combined}</div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money(r.get("risk")) or "—"}</dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money(r.get("risk")) or "—"}{units}</dd></div>
                 <div class="today-return"><dt>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
             </li>''')
@@ -1661,6 +1666,8 @@ def build_html_report(
     .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 7px; border-top: 1px solid var(--border); }}
     .today-stake {{ background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.18); border-radius: 5px; padding: 5px 7px; }}
     .today-stake dt {{ color: #fbbf24; font-weight: 600; }}
+    .today-stake dd {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 6px; }}
+    .today-units {{ color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; white-space: nowrap; }}
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
     .today-empty {{ margin: 0; padding: 24px 12px; text-align: center; color: var(--muted); font-size: 13px; }}
