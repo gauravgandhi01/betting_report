@@ -963,7 +963,9 @@ def build_html_report(
     avgs = summary["averages"]
     today_label = f"{dt.date.today():%b} {dt.date.today().day}, {dt.date.today().year}"
     today_rows = summary["today_open"] + summary["today_settled"]
-    today_net_total = _sum_finite(r.get("net") for r in today_rows)
+    today_net_total = _sum_finite(r.get("net") for r in summary["today_settled"])
+    today_risk_total = _sum_finite(r.get("risk") for r in today_rows)
+    today_open_risk = _sum_finite(r.get("risk") for r in summary["today_open"])
     if default_sport not in league_summaries and league_summaries:
         default_sport = next(iter(league_summaries.keys()))
     default_sport_summary = league_summaries.get(default_sport, summarize([]))
@@ -983,6 +985,62 @@ def build_html_report(
             book,
             logo_base_href=logo_base_href,
             available_logo_files=available_logo_files,
+        )
+
+    def today_bets() -> str:
+        if not today_rows:
+            return '<p class="today-empty">No bets today. Today’s wagers will appear here after the next sync.</p>'
+
+        def league_style(league: str) -> str:
+            color = LEAGUE_COLOR_MAP.get(league, LEAGUE_COLOR_MAP["OTHER"])
+            rgb = ",".join(str(int(color[i:i + 2], 16)) for i in (1, 3, 5))
+            return f"--league-color:{color};--league-rgb:{rgb}"
+
+        rows = _collapse_bet_rows(today_rows)
+        league_names = sorted({str(r.get("league") or "").strip().upper() or "OTHER" for r in rows})
+        filters = ['<button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button>']
+        for league in league_names:
+            filters.append(f'<button type="button" data-today-league="{html.escape(league, quote=True)}" style="{league_style(league)}" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>{html.escape(league)}</button>')
+        items = []
+        statuses = {
+            "": ("open", "Open", "◷"),
+            "W": ("won", "Won", "✓"),
+            "L": ("lost", "Lost", "×"),
+            "P": ("push", "Push", "—"),
+            "CO": ("cash-out", "Cash Out", "↗"),
+        }
+        for r in rows:
+            result = str(r.get("result") or "").strip().upper()
+            state, label, icon = statuses.get(result, ("other", _result_label(result), "—"))
+            leagues = "".join(league_badge(x) for x in r["leagues"])
+            books = "".join(book_badge(x) for x in r["books"])
+            combined = f'<span class="today-combined">{r["row_count"]} wagers combined</span>' if r["row_count"] > 1 else ""
+            amount = r.get("net") if result else r.get("to_win")
+            amount_value = _finite_float(amount)
+            amount_text = _fmt_money(amount_value) or "—"
+            if result and amount_value is not None:
+                amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money(abs(amount_value))
+            amount_class = _net_class(amount_value) if result and amount_value is not None else ""
+            league = str(r.get("league") or "").strip().upper() or "OTHER"
+            items.append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+              <div class="today-bet-top">
+                <div class="today-league">{leagues}<span>{html.escape(r["type"] or "Bet")}</span></div>
+                <span class="today-result"><span aria-hidden="true">{icon}</span> {html.escape(label)}</span>
+              </div>
+              <div class="today-bet-body">
+                <h3 class="today-pick">{html.escape(r["pick"])}</h3>
+                <div class="today-meta"><span class="today-odds">Odds <strong>{html.escape(_fmt_odds(r.get("odds"))) or "—"}</strong></span><span class="chip-row">{books}</span>{combined}</div>
+              </div>
+              <dl class="today-bet-money">
+                <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money(r.get("risk")) or "—"}</dd></div>
+                <div class="today-return"><dt>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
+              </dl>
+            </li>''')
+        return (
+            '<div class="today-filter-bar" hidden><div class="today-filters" role="group" aria-label="Filter today’s bets by league">'
+            + "".join(filters)
+            + f'</div><span id="today-filter-count" class="note" role="status">{len(rows)} bets</span></div>'
+            + '<ul id="today-bets" class="today-bets" aria-label="Today’s bets">' + "".join(items) + '</ul>'
         )
 
     def group_table(group_rows: List[Dict[str, Any]], limit: int = 25, badge_kind: str = "") -> str:
@@ -1556,6 +1614,81 @@ def build_html_report(
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
 
+    .today-panel {{ min-width: 0; }}
+    .today-header {{ display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }}
+    .today-heading {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }}
+    .today-heading h2 {{ margin: 0; font-size: 18px; }}
+    .today-date {{ font-size: 12px; color: var(--muted); }}
+    .today-header .note {{ margin-top: 6px; }}
+    .today-view {{ display: flex; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }}
+    .today-view[hidden] {{ display: none; }}
+    .today-filter-bar {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 9px; }}
+    .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden] {{ display: none; }}
+    .today-filters {{ display: flex; flex-wrap: wrap; gap: 4px; }}
+    .today-filters button {{ display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }}
+    .today-filters button:hover {{ background: rgba(255,255,255,0.04); color: var(--text); }}
+    .today-filters button[aria-pressed="true"] {{ border-color: var(--border); background: rgba(255,255,255,0.06); color: var(--text); }}
+    .today-filters button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+    .today-league-dot {{ width: 6px; height: 6px; border-radius: 50%; background: var(--league-color); box-shadow: 0 0 0 1px rgba(255,255,255,0.18); }}
+    #today-filter-count {{ font-size: 11px; }}
+    .today-view button {{ display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); padding: 5px 8px; font: inherit; font-size: 11px; cursor: pointer; }}
+    .today-view button[aria-pressed="true"] {{ color: var(--text); background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.35); }}
+    .today-view button:hover {{ color: var(--text); }}
+    .today-view button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+    .today-view svg {{ width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }}
+    .today-summary {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.02); }}
+    .today-summary > div {{ padding: 8px 12px; }}
+    .today-summary > div + div {{ border-left: 1px solid var(--border); }}
+    .today-panel dt {{ color: var(--muted); font-size: 11px; line-height: 1.4; }}
+    .today-panel dd {{ margin: 3px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }}
+    .today-summary .today-risk-value {{ color: #fbbf24; }}
+    .today-bets {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }}
+    .today-bet {{ --result-color: var(--muted); --result-bg: rgba(157,176,208,0.1); display: flex; flex-direction: column; min-width: 0; padding: 10px; border: 1px solid rgba(var(--league-rgb),0.25); border-left: 2px solid rgba(var(--league-rgb),0.65); border-radius: 8px; background: linear-gradient(135deg, rgba(var(--league-rgb),0.10), rgba(var(--league-rgb),0.025)); }}
+    .today-bet--open {{ --result-color: var(--accent); --result-bg: rgba(96,165,250,0.12); }}
+    .today-bet--won {{ --result-color: var(--good); --result-bg: rgba(52,211,153,0.12); }}
+    .today-bet--lost {{ --result-color: var(--bad); --result-bg: rgba(251,113,133,0.12); }}
+    .today-bet-top {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
+    .today-league {{ display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 11px; min-width: 0; overflow-wrap: anywhere; }}
+    .today-result {{ display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; border: 1px solid var(--result-color); background: var(--result-bg); color: var(--result-color); border-radius: 5px; padding: 2px 5px; font-size: 10px; font-weight: 700; }}
+    .today-result > span {{ font-size: 12px; line-height: 1; }}
+    .today-bet-body {{ flex: 1; min-width: 0; padding: 8px 0; }}
+    .today-pick {{ margin: 0 0 6px; font-size: 16px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }}
+    .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
+    .today-odds {{ white-space: nowrap; }}
+    .today-odds strong {{ color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; margin-left: 4px; }}
+    .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
+    .today-combined {{ font-size: 10px; }}
+    .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 7px; border-top: 1px solid var(--border); }}
+    .today-stake {{ background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.18); border-radius: 5px; padding: 5px 7px; }}
+    .today-stake dt {{ color: #fbbf24; font-weight: 600; }}
+    .today-return {{ padding: 5px 0; text-align: right; }}
+    .today-return dd {{ font-size: 16px; }}
+    .today-empty {{ margin: 0; padding: 24px 12px; text-align: center; color: var(--muted); font-size: 13px; }}
+    .today-panel[data-view="list"] .today-bets {{ grid-template-columns: 1fr; gap: 8px; }}
+    .today-panel[data-view="list"] .today-bet {{ display: grid; grid-template-columns: 155px minmax(0, 1fr) 260px; align-items: center; gap: 14px; padding: 8px 10px; }}
+    .today-panel[data-view="list"] .today-bet-top {{ flex-direction: column; align-items: flex-start; gap: 5px; }}
+    .today-panel[data-view="list"] .today-bet-body {{ padding: 0; }}
+    .today-panel[data-view="list"] .today-pick {{ font-size: 16px; margin-bottom: 6px; }}
+    .today-panel[data-view="list"] .today-bet-money {{ border: 0; padding: 0; }}
+    @media (max-width: 1100px) {{
+      .today-bets {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
+      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: 120px minmax(0, 1fr) 220px; gap: 12px; }}
+    }}
+    @media (max-width: 850px) {{
+      .today-bets {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+    }}
+    @media (max-width: 540px) {{
+      .today-bets {{ grid-template-columns: 1fr; }}
+    }}
+    @media (max-width: 720px) {{
+      .today-summary > div {{ padding: 8px; }}
+      .today-summary dd {{ font-size: 17px; }}
+      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: minmax(0, 1fr); gap: 10px; }}
+      .today-panel[data-view="list"] .today-bet-top {{ flex-direction: row; align-items: center; }}
+      .today-panel[data-view="list"] .today-bet-money dd {{ font-size: 16px; }}
+      .today-panel[data-view="list"] .today-stake {{ padding: 5px 7px; }}
+    }}
+
     @media (max-width: 1000px) {{
       .kpi {{ grid-column: span 6; }}
       .half {{ grid-column: span 12; }}
@@ -1603,11 +1736,24 @@ def build_html_report(
           <div class=\"value\">{_fmt_money(summary['open_exposure'])}</div>
         </div>
 
-        <div class="card full">
-          <div class="section-title">Today ({today_label})</div>
-          <div class="note">Open and settled bets from today. Settled net: {_fmt_money(today_net_total)}.</div>
-          <div class="scroll">{bets_table(today_rows, show_totals=True)}</div>
-        </div>
+        <section id="today-panel" class="card full today-panel" data-view="cards" aria-labelledby="today-title">
+          <div class="today-header">
+            <div>
+              <div class="today-heading"><h2 id="today-title">Today</h2><span class="today-date">{today_label}</span></div>
+              <div id="today-wager-count" class="note">{len(today_rows)} wagers · {len(summary['today_open'])} open · {len(summary['today_settled'])} settled</div>
+            </div>
+            <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
+              <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
+              <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
+            </div>
+          </div>
+          <dl class="today-summary">
+            <div data-today-total="risk"><dt>Total risk</dt><dd>{_fmt_money(today_risk_total)}</dd></div>
+            <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">{_fmt_money(today_open_risk)}</dd></div>
+            <div data-today-total="net"><dt>Settled net</dt><dd class="{_net_class(today_net_total)}">{_fmt_money(today_net_total)}</dd></div>
+          </dl>
+          {today_bets()}
+        </section>
 
         <div class="card full">
           <div class="section-title">Upcoming Open Bets</div>
@@ -1899,6 +2045,54 @@ def build_html_report(
   </div>
 
 <script>
+  // Keep the layout control independent of chart loading and browser storage access.
+  (() => {{
+    const panel = document.getElementById('today-panel');
+    const controls = panel.querySelector('.today-view');
+    const buttons = panel.querySelectorAll('[data-today-view]');
+    const setView = view => {{
+      const selected = view === 'list' ? 'list' : 'cards';
+      panel.dataset.view = selected;
+      buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayView === selected)));
+    }};
+    try {{ setView(localStorage.getItem('bettingReportTodayView')); }} catch {{ setView('cards'); }}
+    if (document.getElementById('today-bets')) controls.hidden = false;
+    buttons.forEach(button => button.addEventListener('click', () => {{
+      setView(button.dataset.todayView);
+      try {{ localStorage.setItem('bettingReportTodayView', panel.dataset.view); }} catch {{ /* Layout still works without storage. */ }}
+    }}));
+    const filterBar = panel.querySelector('.today-filter-bar');
+    if (!filterBar) return;
+    const leagueButtons = panel.querySelectorAll('[data-today-league]');
+    const bets = Array.from(panel.querySelectorAll('.today-bet'));
+    const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 2, maximumFractionDigits: 2}});
+    const filterLeague = league => {{
+      let risk = 0, openRisk = 0, net = 0, wagers = 0, open = 0, visible = 0;
+      bets.forEach(bet => {{
+        bet.hidden = Boolean(league && bet.dataset.league !== league);
+        if (bet.hidden) return;
+        visible++;
+        const stake = Number(bet.dataset.risk);
+        const count = Number(bet.dataset.count);
+        risk += stake;
+        net += Number(bet.dataset.net);
+        wagers += count;
+        if (bet.dataset.open === 'true') {{ openRisk += stake; open += count; }}
+      }});
+      leagueButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayLeague === league)));
+      panel.querySelector('[data-today-total="risk"] dd').textContent = money(risk);
+      panel.querySelector('[data-today-total="open"] dd').textContent = money(openRisk);
+      const netValue = panel.querySelector('[data-today-total="net"] dd');
+      netValue.textContent = money(net);
+      netValue.className = net > 0 ? 'positive' : net < 0 ? 'negative' : '';
+      panel.querySelector('#today-wager-count').textContent = `${{wagers}} wagers · ${{open}} open · ${{wagers - open}} settled`;
+      panel.querySelector('#today-filter-count').textContent = `${{league || 'All leagues'}} · ${{visible}} of ${{bets.length}} bets`;
+    }};
+    leagueButtons.forEach(button => button.addEventListener('click', () => filterLeague(button.dataset.todayLeague)));
+    filterLeague('');
+    filterBar.hidden = false;
+  }})();
+
   const series = {series_json};
   const recentSeries = {recent_series_json};
   const sportSummaries = {sport_summaries_json};

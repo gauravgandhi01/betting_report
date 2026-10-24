@@ -281,7 +281,17 @@ class SettledPerformanceTests(unittest.TestCase):
             available_logo_files=set(),
         )
 
-        self.assertIn("Settled net: $114.00", html_doc)
+        today_html = html_doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
+        self.assertIn('<dt>Settled net</dt><dd class="positive">$114.00</dd>', today_html)
+        self.assertIn('<dt>Total risk</dt><dd>$250.00</dd>', today_html)
+        self.assertIn('<dt>Open risk</dt><dd class="today-risk-value">$100.00</dd>', today_html)
+        self.assertIn('today-bet--open', today_html)
+        self.assertIn('today-bet--won', today_html)
+        self.assertIn('today-bet--lost', today_html)
+        self.assertIn('today-bet--cash-out', today_html)
+        self.assertIn('<dd class="positive">+$100.00</dd>', today_html)
+        self.assertIn('<dd class="negative">−$10.00</dd>', today_html)
+        self.assertEqual(today_html.count('<li class="today-bet '), 6)
         self.assertIn("| Last synced ", html_doc)
         self.assertNotIn("Showing data from", html_doc)
         self.assertIn("Cash Out", html_doc)
@@ -293,6 +303,31 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertNotIn('class="negative"></span>', html_doc)
         self.assertNotIn('class="below50"', html_doc)
         self.assertIn('class="positive">33.33%</td>', html_doc)
+
+    def test_today_combines_wagers_and_escapes_titles(self) -> None:
+        today = report.dt.date.today()
+        bets = [
+            _bet(date=today, pick='<Win & "total">', result='', risk=20.0, to_win=30.0, net=float('nan')),
+            _bet(date=today, pick='<Win & "total">', result='', risk=40.0, to_win=60.0, net=float('nan'), book='DraftKings'),
+            _bet(date=today, pick='Pushed wager', result='P', risk=10.0, net=0.0),
+        ]
+        summary = report.summarize(bets)
+        doc = report.build_html_report(summary, 'Test', {}, 'NFL', available_logo_files=set())
+        today_html = doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
+        self.assertEqual(today_html.count('<li class="today-bet '), 2)
+        self.assertIn('2 wagers combined', today_html)
+        self.assertIn('&lt;Win &amp; &quot;total&quot;&gt;', today_html)
+        self.assertIn('<dt>Risk</dt><dd>$60.00</dd>', today_html)
+        self.assertIn('<dt>To win</dt><dd class="">$90.00</dd>', today_html)
+        self.assertIn('today-bet--push', today_html)
+        self.assertIn('<dt>Net result</dt><dd class="">$0.00</dd>', today_html)
+
+    def test_today_empty_state(self) -> None:
+        doc = report.build_html_report(report.summarize([]), 'Test', {}, 'NFL')
+        today_html = doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
+        self.assertIn('No bets today.', today_html)
+        self.assertNotIn('<li class="today-bet ', today_html)
+        self.assertIn('<dt>Total risk</dt><dd>$0.00</dd>', today_html)
 
 
 if __name__ == "__main__":
