@@ -229,18 +229,26 @@
     .positive { color: var(--good); }
     .negative { color: var(--bad); }
 
-    .today-panel { min-width: 0; }
-    .today-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .today-panel { min-width: 0; padding: 10px 12px; }
+    .today-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 7px; }
     .today-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
-    .today-heading h2 { margin: 0; font-size: 18px; }
+    .today-heading h2 { margin: 0; font-size: 16px; }
     .today-date { font-size: 12px; color: var(--muted); }
-    .today-header .note { margin-top: 6px; }
+    .today-header .note { margin-top: 3px; font-size: 11px; }
     .today-view { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }
     .today-view[hidden] { display: none; }
-    .today-filter-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 9px; }
-    .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden] { display: none; }
+    .today-filter-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
+    .today-filter-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+    .today-status-filters { padding-right: 8px; border-right: 1px solid var(--border); }
+    .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden], .today-group[hidden], #today-filter-empty[hidden] { display: none; }
+    .today-group + .today-group { margin-top: 9px; }
+    .today-group[hidden] + .today-group { margin-top: 0; }
+    .today-group-title { display: flex; align-items: center; gap: 6px; margin: 0 0 5px; font-size: 11px; font-weight: 600; color: var(--muted); }
+    .today-group-title::after { content: ''; height: 1px; flex: 1; background: var(--border); }
+    [data-today-group="open"] .today-group-title { color: var(--accent); }
+    .today-group-count { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
     .today-filters { display: flex; flex-wrap: wrap; gap: 4px; }
-    .today-filters button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
+    .today-filters button { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 2px 7px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
     .today-filters button:hover { background: rgba(255,255,255,0.04); color: var(--text); }
     .today-filters button[aria-pressed="true"] { border-color: var(--border); background: rgba(255,255,255,0.06); color: var(--text); }
     .today-filters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -251,11 +259,11 @@
     .today-view button:hover { color: var(--text); }
     .today-view button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .today-view svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
-    .today-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.02); }
-    .today-summary > div { padding: 8px 12px; }
-    .today-summary > div + div { border-left: 1px solid var(--border); }
+    .today-summary { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 0 0 0 auto; }
+    .today-summary > div { display: flex; align-items: baseline; gap: 6px; }
     .today-panel dt { color: var(--muted); font-size: 11px; line-height: 1.4; }
     .today-panel dd { margin: 3px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+    .today-summary dd { margin: 0; font-size: 14px; }
     .today-summary .today-risk-value { color: #fbbf24; }
     .today-bets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }
     .today-bet { --result-color: var(--muted); --result-bg: rgba(157,176,208,0.1); display: flex; flex-direction: column; min-width: 0; padding: 8px 10px; border: 1px solid rgba(var(--league-rgb),0.25); border-left: 2px solid rgba(var(--league-rgb),0.65); border-radius: 8px; background: linear-gradient(135deg, rgba(var(--league-rgb),0.10), rgba(var(--league-rgb),0.025)); }
@@ -284,7 +292,7 @@
     .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; padding: 3px 6px; }
     .today-panel[data-view="cards"] .today-return { margin-left: auto; padding-right: 0; }
     .today-panel[data-view="cards"] .today-bet-money dd { margin: 0; font-size: 16px; }
-    .today-empty { margin: 0; padding: 24px 12px; text-align: center; color: var(--muted); font-size: 13px; }
+    .today-empty { margin: 0; padding: 12px; text-align: center; color: var(--muted); font-size: 12px; }
     .today-panel[data-view="list"] .today-bets { grid-template-columns: 1fr; gap: 8px; }
     .today-panel[data-view="list"] .today-bet { display: grid; grid-template-columns: 155px minmax(0, 1fr) 260px; align-items: center; gap: 14px; padding: 8px 10px; }
     .today-panel[data-view="list"] .today-bet-top { flex-direction: column; align-items: flex-start; gap: 5px; }
@@ -299,8 +307,7 @@
       .today-bets { grid-template-columns: 1fr; }
     }
     @media (max-width: 720px) {
-      .today-summary > div { padding: 8px; }
-      .today-summary dd { font-size: 17px; }
+      .today-summary { order: 1; flex-basis: 100%; margin-left: 0; }
       .today-panel[data-view="list"] .today-bet { grid-template-columns: minmax(0, 1fr); gap: 10px; }
       .today-panel[data-view="list"] .today-bet-top { flex-direction: row; align-items: center; }
       .today-panel[data-view="list"] .today-bet-money dd { font-size: 16px; }
@@ -360,23 +367,23 @@
               <div class="today-heading"><h2 id="today-title">Today</h2><span class="today-date">Oct 24, 2026</span></div>
               <div id="today-wager-count" class="note">14 wagers · 10 open · 4 settled</div>
             </div>
-            <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
-              <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
-              <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
-            </div>
-          </div>
           <dl class="today-summary">
             <div data-today-total="risk"><dt>Total risk</dt><dd>$2,532.85</dd></div>
             <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">$1,430.60</dd></div>
             <div data-today-total="net"><dt>Settled net</dt><dd class="negative">$-853.25</dd></div>
           </dl>
-          <div class="today-filter-bar" hidden><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NCAAF</button><button type="button" data-today-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button><button type="button" data-today-league="OTHER" style="--league-color:#6B7280;--league-rgb:107,114,128" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>OTHER</button></div><span id="today-filter-count" class="note" role="status">14 bets</span></div><ul id="today-bets" class="today-bets" aria-label="Today’s bets"><li class="today-bet today-bet--open" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="236.0" data-net="0" data-count="1" data-open="true">
+            <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
+              <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
+              <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
+            </div>
+          </div>
+          <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters today-status-filters" role="group" aria-label="Filter today’s bets by status"><button type="button" data-today-status="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-status="open" aria-pressed="false" aria-controls="today-bets">Open</button><button type="button" data-today-status="closed" aria-pressed="false" aria-controls="today-bets">Closed</button></div><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NCAAF</button><button type="button" data-today-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button><button type="button" data-today-league="OTHER" style="--league-color:#6B7280;--league-rgb:107,114,128" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>OTHER</button></div></div><span id="today-filter-count" class="note" role="status">14 bets</span></div><div id="today-bets"><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title"><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">10</span></h3><ul class="today-bets" aria-label="Open bets"><li class="today-bet today-bet--open" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="236.0" data-net="0" data-count="1" data-open="true">
               <div class="today-bet-top">
                 <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>Side</span></div>
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">CP -13.5</h3>
+                <h4 class="today-pick">CP -13.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-118</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -389,7 +396,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">NYR o2.5</h3>
+                <h4 class="today-pick">NYR o2.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-130</strong></span><span class="chip-row"><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -402,7 +409,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">BUF/WSH o6.5</h3>
+                <h4 class="today-pick">BUF/WSH o6.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-103</strong></span><span class="chip-row"><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -415,7 +422,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">TENN +2.5</h3>
+                <h4 class="today-pick">TENN +2.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>+100</strong></span><span class="chip-row"><span class="badge badge-logo" title="BOL"><img class="badge-logo-img" src="logos/betonline.png" alt="BOL" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -428,7 +435,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">Marner &amp; Draisaitl o0.5 Pts</h3>
+                <h4 class="today-pick">Marner &amp; Draisaitl o0.5 Pts</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-104</strong></span><span class="chip-row"><span class="badge badge-logo" title="BOL"><img class="badge-logo-img" src="logos/betonline.png" alt="BOL" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -441,7 +448,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">McDavid o1.5 Ast</h3>
+                <h4 class="today-pick">McDavid o1.5 Ast</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>+238</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -454,7 +461,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">EDM/TOR 1P o2.5</h3>
+                <h4 class="today-pick">EDM/TOR 1P o2.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>+188</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -467,7 +474,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">NYR o3.5</h3>
+                <h4 class="today-pick">NYR o3.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>+158</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -480,7 +487,7 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">EDM/TOR o8</h3>
+                <h4 class="today-pick">EDM/TOR o8</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>+210</strong></span><span class="chip-row"><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -493,20 +500,20 @@
                 <span class="today-result"><span aria-hidden="true">◷</span> Open</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">TOR ML</h3>
+                <h4 class="today-pick">TOR ML</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>+140</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$59.96<span class="today-units" title="1u = $100">0.6u</span></dd></div>
                 <div class="today-return"><dt>To win</dt><dd class="">$83.94</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--lost" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="445.0" data-net="-445.0" data-count="1" data-open="false">
+            </li></ul></div><div class="today-group" data-today-group="closed" role="group" aria-labelledby="today-closed-title"><h3 id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">4</span></h3><ul class="today-bets" aria-label="Closed bets"><li class="today-bet today-bet--lost" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="445.0" data-net="-445.0" data-count="1" data-open="false">
               <div class="today-bet-top">
                 <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">MERC/RMU o49.5</h3>
+                <h4 class="today-pick">MERC/RMU o49.5</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-110</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -519,7 +526,7 @@
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">Evolev ML</h3>
+                <h4 class="today-pick">Evolev ML</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-104</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -532,7 +539,7 @@
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">BAY/KAN o53</h3>
+                <h4 class="today-pick">BAY/KAN o53</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-108</strong></span><span class="chip-row"><span class="badge badge-logo" title="Bally&#x27;s"><img class="badge-logo-img" src="logos/bally.png" alt="Bally&#x27;s" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
@@ -545,14 +552,14 @@
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">BUFF ML</h3>
+                <h4 class="today-pick">BUFF ML</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>-140</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$145.25<span class="today-units" title="1u = $100">1.45u</span></dd></div>
                 <div class="today-return"><dt>Net result</dt><dd class="positive">+$103.75</dd></div>
               </dl>
-            </li></ul>
+            </li></ul></div><p id="today-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>
         </section>
 
         <div class="card full">
@@ -1004,12 +1011,16 @@
     const filterBar = panel.querySelector('.today-filter-bar');
     if (!filterBar) return;
     const leagueButtons = panel.querySelectorAll('[data-today-league]');
+    const statusButtons = panel.querySelectorAll('[data-today-status]');
+    const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
+    let league = '', status = '';
     const money = value => '$' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    const filterLeague = league => {
+    const applyFilters = () => {
       let risk = 0, openRisk = 0, net = 0, wagers = 0, open = 0, visible = 0;
       bets.forEach(bet => {
-        bet.hidden = Boolean(league && bet.dataset.league !== league);
+        const betStatus = bet.dataset.open === 'true' ? 'open' : 'closed';
+        bet.hidden = Boolean((league && bet.dataset.league !== league) || (status && status !== betStatus));
         if (bet.hidden) return;
         visible++;
         const stake = Number(bet.dataset.risk);
@@ -1020,16 +1031,24 @@
         if (bet.dataset.open === 'true') { openRisk += stake; open += count; }
       });
       leagueButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayLeague === league)));
+      statusButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayStatus === status)));
+      groups.forEach(group => {
+        const count = Array.from(group.querySelectorAll('.today-bet')).filter(bet => !bet.hidden).length;
+        group.hidden = count === 0;
+        group.querySelector('.today-group-count').textContent = count;
+      });
+      panel.querySelector('#today-filter-empty').hidden = visible > 0;
       panel.querySelector('[data-today-total="risk"] dd').textContent = money(risk);
       panel.querySelector('[data-today-total="open"] dd').textContent = money(openRisk);
       const netValue = panel.querySelector('[data-today-total="net"] dd');
       netValue.textContent = money(net);
       netValue.className = net > 0 ? 'positive' : net < 0 ? 'negative' : '';
       panel.querySelector('#today-wager-count').textContent = `${wagers} wagers · ${open} open · ${wagers - open} settled`;
-      panel.querySelector('#today-filter-count').textContent = `${league || 'All leagues'} · ${visible} of ${bets.length} bets`;
+      panel.querySelector('#today-filter-count').textContent = `${league || 'All leagues'} · ${status || 'all statuses'} · ${visible} of ${bets.length} bets`;
     };
-    leagueButtons.forEach(button => button.addEventListener('click', () => filterLeague(button.dataset.todayLeague)));
-    filterLeague('');
+    leagueButtons.forEach(button => button.addEventListener('click', () => { league = button.dataset.todayLeague; applyFilters(); }));
+    statusButtons.forEach(button => button.addEventListener('click', () => { status = button.dataset.todayStatus; applyFilters(); }));
+    applyFilters();
     filterBar.hidden = false;
   })();
 

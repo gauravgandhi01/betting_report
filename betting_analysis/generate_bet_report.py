@@ -1001,7 +1001,7 @@ def build_html_report(
         filters = ['<button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button>']
         for league in league_names:
             filters.append(f'<button type="button" data-today-league="{html.escape(league, quote=True)}" style="{league_style(league)}" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>{html.escape(league)}</button>')
-        items = []
+        items = {"open": [], "closed": []}
         statuses = {
             "": ("open", "Open", "◷"),
             "W": ("won", "Won", "✓"),
@@ -1027,13 +1027,13 @@ def build_html_report(
                 unit_text = f"{risk_value / 100:.2f}".rstrip("0").rstrip(".")
                 units = f'<span class="today-units" title="1u = $100">{unit_text}u</span>'
             league = str(r.get("league") or "").strip().upper() or "OTHER"
-            items.append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+            items["closed" if result else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-top">
                 <div class="today-league">{leagues}<span>{html.escape(r["type"] or "Bet")}</span></div>
                 <span class="today-result"><span aria-hidden="true">{icon}</span> {html.escape(label)}</span>
               </div>
               <div class="today-bet-body">
-                <h3 class="today-pick">{html.escape(r["pick"])}</h3>
+                <h4 class="today-pick">{html.escape(r["pick"])}</h4>
                 <div class="today-meta"><span class="today-odds">Odds <strong>{html.escape(_fmt_odds(r.get("odds"))) or "—"}</strong></span><span class="chip-row">{books}</span>{combined}</div>
               </div>
               <dl class="today-bet-money">
@@ -1041,11 +1041,23 @@ def build_html_report(
                 <div class="today-return"><dt>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
             </li>''')
+        groups = "".join(
+            f'<div class="today-group" data-today-group="{status}" role="group" aria-labelledby="today-{status}-title"{(" hidden" if not bets else "")}>'
+            f'<h3 id="today-{status}-title" class="today-group-title">{status.title()} <span class="today-group-count">{len(bets)}</span></h3>'
+            f'<ul class="today-bets" aria-label="{status.title()} bets">{"".join(bets)}</ul></div>'
+            for status, bets in items.items()
+        )
         return (
-            '<div class="today-filter-bar" hidden><div class="today-filters" role="group" aria-label="Filter today’s bets by league">'
+            '<div class="today-filter-bar" hidden><div class="today-filter-controls">'
+            '<div class="today-filters today-status-filters" role="group" aria-label="Filter today’s bets by status">'
+            '<button type="button" data-today-status="" aria-pressed="true" aria-controls="today-bets">All</button>'
+            '<button type="button" data-today-status="open" aria-pressed="false" aria-controls="today-bets">Open</button>'
+            '<button type="button" data-today-status="closed" aria-pressed="false" aria-controls="today-bets">Closed</button>'
+            '</div><div class="today-filters" role="group" aria-label="Filter today’s bets by league">'
             + "".join(filters)
-            + f'</div><span id="today-filter-count" class="note" role="status">{len(rows)} bets</span></div>'
-            + '<ul id="today-bets" class="today-bets" aria-label="Today’s bets">' + "".join(items) + '</ul>'
+            + f'</div></div><span id="today-filter-count" class="note" role="status">{len(rows)} bets</span></div>'
+            + '<div id="today-bets">' + groups
+            + '<p id="today-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>'
         )
 
     def group_table(group_rows: List[Dict[str, Any]], limit: int = 25, badge_kind: str = "") -> str:
@@ -1619,18 +1631,26 @@ def build_html_report(
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
 
-    .today-panel {{ min-width: 0; }}
-    .today-header {{ display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }}
+    .today-panel {{ min-width: 0; padding: 10px 12px; }}
+    .today-header {{ display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 7px; }}
     .today-heading {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }}
-    .today-heading h2 {{ margin: 0; font-size: 18px; }}
+    .today-heading h2 {{ margin: 0; font-size: 16px; }}
     .today-date {{ font-size: 12px; color: var(--muted); }}
-    .today-header .note {{ margin-top: 6px; }}
+    .today-header .note {{ margin-top: 3px; font-size: 11px; }}
     .today-view {{ display: flex; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }}
     .today-view[hidden] {{ display: none; }}
-    .today-filter-bar {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 9px; }}
-    .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden] {{ display: none; }}
+    .today-filter-bar {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border); }}
+    .today-filter-controls {{ display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }}
+    .today-status-filters {{ padding-right: 8px; border-right: 1px solid var(--border); }}
+    .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden], .today-group[hidden], #today-filter-empty[hidden] {{ display: none; }}
+    .today-group + .today-group {{ margin-top: 9px; }}
+    .today-group[hidden] + .today-group {{ margin-top: 0; }}
+    .today-group-title {{ display: flex; align-items: center; gap: 6px; margin: 0 0 5px; font-size: 11px; font-weight: 600; color: var(--muted); }}
+    .today-group-title::after {{ content: ''; height: 1px; flex: 1; background: var(--border); }}
+    [data-today-group="open"] .today-group-title {{ color: var(--accent); }}
+    .today-group-count {{ font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }}
     .today-filters {{ display: flex; flex-wrap: wrap; gap: 4px; }}
-    .today-filters button {{ display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }}
+    .today-filters button {{ display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 2px 7px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }}
     .today-filters button:hover {{ background: rgba(255,255,255,0.04); color: var(--text); }}
     .today-filters button[aria-pressed="true"] {{ border-color: var(--border); background: rgba(255,255,255,0.06); color: var(--text); }}
     .today-filters button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
@@ -1641,11 +1661,11 @@ def build_html_report(
     .today-view button:hover {{ color: var(--text); }}
     .today-view button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
     .today-view svg {{ width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }}
-    .today-summary {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,0.02); }}
-    .today-summary > div {{ padding: 8px 12px; }}
-    .today-summary > div + div {{ border-left: 1px solid var(--border); }}
+    .today-summary {{ display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 0 0 0 auto; }}
+    .today-summary > div {{ display: flex; align-items: baseline; gap: 6px; }}
     .today-panel dt {{ color: var(--muted); font-size: 11px; line-height: 1.4; }}
     .today-panel dd {{ margin: 3px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }}
+    .today-summary dd {{ margin: 0; font-size: 14px; }}
     .today-summary .today-risk-value {{ color: #fbbf24; }}
     .today-bets {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }}
     .today-bet {{ --result-color: var(--muted); --result-bg: rgba(157,176,208,0.1); display: flex; flex-direction: column; min-width: 0; padding: 8px 10px; border: 1px solid rgba(var(--league-rgb),0.25); border-left: 2px solid rgba(var(--league-rgb),0.65); border-radius: 8px; background: linear-gradient(135deg, rgba(var(--league-rgb),0.10), rgba(var(--league-rgb),0.025)); }}
@@ -1674,7 +1694,7 @@ def build_html_report(
     .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; padding: 3px 6px; }}
     .today-panel[data-view="cards"] .today-return {{ margin-left: auto; padding-right: 0; }}
     .today-panel[data-view="cards"] .today-bet-money dd {{ margin: 0; font-size: 16px; }}
-    .today-empty {{ margin: 0; padding: 24px 12px; text-align: center; color: var(--muted); font-size: 13px; }}
+    .today-empty {{ margin: 0; padding: 12px; text-align: center; color: var(--muted); font-size: 12px; }}
     .today-panel[data-view="list"] .today-bets {{ grid-template-columns: 1fr; gap: 8px; }}
     .today-panel[data-view="list"] .today-bet {{ display: grid; grid-template-columns: 155px minmax(0, 1fr) 260px; align-items: center; gap: 14px; padding: 8px 10px; }}
     .today-panel[data-view="list"] .today-bet-top {{ flex-direction: column; align-items: flex-start; gap: 5px; }}
@@ -1689,8 +1709,7 @@ def build_html_report(
       .today-bets {{ grid-template-columns: 1fr; }}
     }}
     @media (max-width: 720px) {{
-      .today-summary > div {{ padding: 8px; }}
-      .today-summary dd {{ font-size: 17px; }}
+      .today-summary {{ order: 1; flex-basis: 100%; margin-left: 0; }}
       .today-panel[data-view="list"] .today-bet {{ grid-template-columns: minmax(0, 1fr); gap: 10px; }}
       .today-panel[data-view="list"] .today-bet-top {{ flex-direction: row; align-items: center; }}
       .today-panel[data-view="list"] .today-bet-money dd {{ font-size: 16px; }}
@@ -1750,16 +1769,16 @@ def build_html_report(
               <div class="today-heading"><h2 id="today-title">Today</h2><span class="today-date">{today_label}</span></div>
               <div id="today-wager-count" class="note">{len(today_rows)} wagers · {len(summary['today_open'])} open · {len(summary['today_settled'])} settled</div>
             </div>
-            <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
-              <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
-              <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
-            </div>
-          </div>
           <dl class="today-summary">
             <div data-today-total="risk"><dt>Total risk</dt><dd>{_fmt_money(today_risk_total)}</dd></div>
             <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">{_fmt_money(today_open_risk)}</dd></div>
             <div data-today-total="net"><dt>Settled net</dt><dd class="{_net_class(today_net_total)}">{_fmt_money(today_net_total)}</dd></div>
           </dl>
+            <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
+              <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
+              <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
+            </div>
+          </div>
           {today_bets()}
         </section>
 
@@ -2072,12 +2091,16 @@ def build_html_report(
     const filterBar = panel.querySelector('.today-filter-bar');
     if (!filterBar) return;
     const leagueButtons = panel.querySelectorAll('[data-today-league]');
+    const statusButtons = panel.querySelectorAll('[data-today-status]');
+    const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
+    let league = '', status = '';
     const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 2, maximumFractionDigits: 2}});
-    const filterLeague = league => {{
+    const applyFilters = () => {{
       let risk = 0, openRisk = 0, net = 0, wagers = 0, open = 0, visible = 0;
       bets.forEach(bet => {{
-        bet.hidden = Boolean(league && bet.dataset.league !== league);
+        const betStatus = bet.dataset.open === 'true' ? 'open' : 'closed';
+        bet.hidden = Boolean((league && bet.dataset.league !== league) || (status && status !== betStatus));
         if (bet.hidden) return;
         visible++;
         const stake = Number(bet.dataset.risk);
@@ -2088,16 +2111,24 @@ def build_html_report(
         if (bet.dataset.open === 'true') {{ openRisk += stake; open += count; }}
       }});
       leagueButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayLeague === league)));
+      statusButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayStatus === status)));
+      groups.forEach(group => {{
+        const count = Array.from(group.querySelectorAll('.today-bet')).filter(bet => !bet.hidden).length;
+        group.hidden = count === 0;
+        group.querySelector('.today-group-count').textContent = count;
+      }});
+      panel.querySelector('#today-filter-empty').hidden = visible > 0;
       panel.querySelector('[data-today-total="risk"] dd').textContent = money(risk);
       panel.querySelector('[data-today-total="open"] dd').textContent = money(openRisk);
       const netValue = panel.querySelector('[data-today-total="net"] dd');
       netValue.textContent = money(net);
       netValue.className = net > 0 ? 'positive' : net < 0 ? 'negative' : '';
       panel.querySelector('#today-wager-count').textContent = `${{wagers}} wagers · ${{open}} open · ${{wagers - open}} settled`;
-      panel.querySelector('#today-filter-count').textContent = `${{league || 'All leagues'}} · ${{visible}} of ${{bets.length}} bets`;
+      panel.querySelector('#today-filter-count').textContent = `${{league || 'All leagues'}} · ${{status || 'all statuses'}} · ${{visible}} of ${{bets.length}} bets`;
     }};
-    leagueButtons.forEach(button => button.addEventListener('click', () => filterLeague(button.dataset.todayLeague)));
-    filterLeague('');
+    leagueButtons.forEach(button => button.addEventListener('click', () => {{ league = button.dataset.todayLeague; applyFilters(); }}));
+    statusButtons.forEach(button => button.addEventListener('click', () => {{ status = button.dataset.todayStatus; applyFilters(); }}));
+    applyFilters();
     filterBar.hidden = false;
   }})();
 
