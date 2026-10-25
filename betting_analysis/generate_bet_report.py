@@ -1027,6 +1027,10 @@ def build_html_report(
         for r in rows:
             result = str(r.get("result") or "").strip().upper()
             state, label, icon = statuses.get(result, ("other", _result_label(result), "—"))
+            result_badge = (
+                f'<span class="today-result"><span aria-hidden="true">{icon}</span> {html.escape(label)}</span>'
+                if result else ""
+            )
             leagues = "".join(league_badge(x) for x in r["leagues"])
             books = "".join(book_badge(x) for x in r["books"])
             combined = f'<span class="today-combined">{r["row_count"]} wagers combined</span>' if r["row_count"] > 1 else ""
@@ -1047,8 +1051,7 @@ def build_html_report(
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
             items["closed" if result else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-top">
-                <div class="today-league"><span class="chip-row">{leagues}{books}</span><span>{html.escape(r["type"] or "Bet")}</span></div>
-                <span class="today-result"><span aria-hidden="true">{icon}</span> {html.escape(label)}</span>
+                <div class="today-league"><span class="chip-row">{leagues}{books}</span><span>{html.escape(r["type"] or "Bet")}</span></div>{result_badge}
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">{html.escape(r["pick"])}</h4>
@@ -1591,9 +1594,10 @@ def build_html_report(
       white-space: nowrap;
     }}
     .badge-logo {{
-      width: 26px;
-      height: 26px;
-      padding: 2px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      flex-shrink: 0;
       border-radius: 7px;
       justify-content: center;
       background: rgba(255,255,255,0.96);
@@ -1602,11 +1606,18 @@ def build_html_report(
       vertical-align: middle;
     }}
     .badge-logo-img {{
+      display: block;
       width: 100%;
       height: 100%;
       object-fit: contain;
       object-position: center;
+      transform: scale(1.1);
     }}
+    /* Enlarge recognizable marks in source images with generous built-in margins. */
+    .badge-logo-img[src$="nba.png"] {{ object-fit: cover; transform: scale(1.6); }}
+    .badge-logo-img[src$="mlb.png"] {{ transform: scale(1.6); }}
+    .badge-logo-img[src$="caesars.jpg"] {{ transform: scale(1.45); }}
+    .badge-logo-img[src$="betmgm.png"] {{ transform: scale(2.1) translateY(12%); }}
     .badge-sticker {{
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
     }}
@@ -1701,7 +1712,7 @@ def build_html_report(
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
     .today-odds {{ white-space: nowrap; }}
     .today-odds strong {{ color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }}
-    .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
+    .today-bet .badge-logo {{ width: 26px; height: 26px; border-radius: 5px; }}
     .today-combined {{ font-size: 10px; }}
     .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 7px; border-top: 1px solid var(--border); }}
     .today-stake {{ background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.18); border-radius: 5px; padding: 5px 7px; }}
@@ -1727,7 +1738,7 @@ def build_html_report(
     .today-panel[data-view="list"] .today-bet-body {{ display: flex; align-items: center; flex-wrap: wrap; gap: 3px 10px; padding: 0; }}
     .today-panel[data-view="list"] .today-pick {{ flex: 1 1 160px; font-size: 14px; margin: 0; }}
     .today-panel[data-view="list"] .today-meta {{ gap: 3px 6px; }}
-    .today-panel[data-view="list"] .badge-logo {{ width: 16px; height: 16px; padding: 1px; border-radius: 4px; }}
+    .today-panel[data-view="list"] .badge-logo {{ width: 22px; height: 22px; padding: 0; border-radius: 4px; }}
     .today-panel[data-view="list"] .today-bet-money {{ display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; border: 0; padding: 0; }}
     .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 2px 5px; }}
     .today-panel[data-view="list"] .today-return {{ margin-left: auto; padding-right: 0; }}
