@@ -328,6 +328,33 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertIn('No bets today.', today_html)
         self.assertNotIn('<li class="today-bet ', today_html)
         self.assertIn('<dt>Total risk</dt><dd>$0</dd>', today_html)
+        self.assertIn('No upcoming open bets.', doc)
+
+    def test_upcoming_cards_preserve_dates_and_stay_separate_from_today(self) -> None:
+        today = report.dt.date.today()
+        tomorrow = today + report.dt.timedelta(days=1)
+        later = today + report.dt.timedelta(days=2)
+        bets = [
+            _bet(date=today, pick='Today only', result='W', net=100.0),
+            _bet(date=later, pick='Later pick', result='', net=float('nan'), risk=25.5, to_win=50.0),
+            _bet(date=tomorrow, pick='Next pick', result='', net=float('nan'), risk=60.0, to_win=90.0),
+            _bet(date=tomorrow, pick='Next pick', result='', net=float('nan'), risk=40.0, to_win=60.0, book='DraftKings'),
+        ]
+        doc = report.build_html_report(report.summarize(bets), 'Test', {}, 'MLB', available_logo_files=set())
+        upcoming = doc.split('<section id="upcoming-panel"', 1)[1].split('</section>', 1)[0]
+        today_html = doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
+        self.assertNotIn('Today only', upcoming)
+        self.assertNotIn('Next pick', today_html)
+        self.assertEqual(upcoming.count('<li class="today-bet '), 2)
+        self.assertLess(upcoming.index('Next pick'), upcoming.index('Later pick'))
+        self.assertIn(f'<time datetime="{tomorrow.isoformat()}">', upcoming)
+        self.assertIn('2 wagers combined', upcoming)
+        self.assertIn('<dt>Open risk</dt><dd class="today-risk-value">$125.5</dd>', upcoming)
+        self.assertIn('<dt>To win</dt><dd>$200</dd>', upcoming)
+        self.assertIn('title="1u = $100">1u</span>', upcoming)
+        self.assertIn('aria-controls="upcoming-bets"', upcoming)
+        self.assertNotIn('aria-controls="today-bets"', upcoming)
+        self.assertNotIn('data-today-status=', upcoming)
 
 
 if __name__ == "__main__":
