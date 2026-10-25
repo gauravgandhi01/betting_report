@@ -20,7 +20,7 @@ class BadgeTests(unittest.TestCase):
         self.assertNotIn("badge-sticker", markup)
 
     def test_missing_logo_uses_text_sticker(self) -> None:
-        markup = report._book_badge("Bet365", logo_base_href="logos", available_logo_files={"fanduel.jpeg"})
+        markup = report._book_badge("Bet365", logo_base_href="logos", available_logo_files={"fanduel.png"})
 
         self.assertIn("badge-sticker", markup)
         self.assertIn(">Bet365<", markup)
@@ -317,10 +317,10 @@ class SettledPerformanceTests(unittest.TestCase):
         doc = report.build_html_report(summary, 'Test', {}, 'NFL', available_logo_files=set())
         today_html = doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
         self.assertEqual(today_html.count('<li class="today-bet '), 2)
-        self.assertIn('2 wagers combined', today_html)
+        self.assertNotIn('wagers combined', today_html)
         self.assertIn('&lt;Win &amp; &quot;total&quot;&gt;', today_html)
         self.assertIn('<dt>Risk</dt><dd>$60<span class="today-units" title="1u = $100">0.60u</span></dd>', today_html)
-        self.assertIn('<dt>To win</dt><dd class="">$90</dd>', today_html)
+        self.assertIn('<dt>wins</dt><dd class="">$90</dd>', today_html)
         self.assertIn('today-bet--push', today_html)
         self.assertIn('<dt class="today-net-label">Net result</dt><dd class="">$0</dd>', today_html)
 
@@ -350,9 +350,9 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertEqual(upcoming.count('<li class="today-bet '), 2)
         self.assertLess(upcoming.index('Next pick'), upcoming.index('Later pick'))
         self.assertIn(f'<time datetime="{tomorrow.isoformat()}">', upcoming)
-        self.assertIn('2 wagers combined', upcoming)
+        self.assertNotIn('wagers combined', upcoming)
         self.assertIn('<dt>Open risk</dt><dd class="today-risk-value">$125.50</dd>', upcoming)
-        self.assertIn('<dt>To win</dt><dd>$200</dd>', upcoming)
+        self.assertIn('<dt>wins</dt><dd>$200</dd>', upcoming)
         self.assertIn('title="1u = $100">1u</span>', upcoming)
         self.assertIn('aria-controls="upcoming-bets"', upcoming)
         self.assertNotIn('aria-controls="today-bets"', upcoming)

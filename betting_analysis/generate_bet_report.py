@@ -72,7 +72,7 @@ LEAGUE_LOGO_MAP = {
 }
 
 BOOK_LOGO_MAP = {
-    "FANDUEL": "fanduel.jpeg",
+    "FANDUEL": "fanduel.png",
     "DRAFTKINGS": "draftkings.png",
     "CAESARS": "caesars.jpg",
     "BETMGM": "betmgm.png",
@@ -1033,7 +1033,6 @@ def build_html_report(
             )
             leagues = "".join(league_badge(x) for x in r["leagues"])
             books = "".join(book_badge(x) for x in r["books"])
-            combined = f'<span class="today-combined">{r["row_count"]} wagers combined</span>' if r["row_count"] > 1 else ""
             amount = r.get("net") if result else r.get("to_win")
             amount_value = _finite_float(amount)
             amount_text = _fmt_money_compact(amount_value) or "—"
@@ -1049,18 +1048,20 @@ def build_html_report(
             date_label = ""
             if upcoming:
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
+            odds_text = html.escape(_fmt_odds(r.get("odds"))) or "—"
+            pick_tooltip = html.escape(f'{r["pick"]} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
             items["closed" if result else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
-              <div class="today-bet-top">
-                <div class="today-league"><span>{html.escape(r["type"] or "Bet")}</span>{result_badge}</div>
-                <span class="chip-row today-logos">{leagues}{books}</span>
-              </div>
               <div class="today-bet-body">
-                <h4 class="today-pick">{html.escape(r["pick"])}</h4>
-                <div class="today-meta"><span class="today-odds" title="Odds"><strong>{html.escape(_fmt_odds(r.get("odds"))) or "—"}</strong></span>{date_label}{combined}</div>
+                <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{html.escape(r["pick"])}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
+                <div class="today-meta">{date_label}</div>
+              </div>
+              <div class="today-bet-top">
+                <div class="today-league">{result_badge}</div>
+                <span class="chip-row today-logos">{leagues}{books}</span>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money_compact(r.get("risk")) or "—"}{units}</dd></div>
-                <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
+                <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "wins"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
             </li>''')
         group_markup = []
@@ -1705,55 +1706,64 @@ def build_html_report(
     .today-summary dd {{ margin: 0; font-size: 14px; }}
     .today-summary .today-risk-value {{ color: #fbbf24; }}
     .today-bets {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; list-style: none; padding: 0; margin: 0; }}
-    .today-bet {{ --result-color: var(--muted); --result-bg: rgba(157,176,208,0.1); display: flex; flex-direction: column; min-width: 0; padding: 6px 8px; border: 1px solid rgba(var(--league-rgb),0.25); border-left: 2px solid rgba(var(--league-rgb),0.65); border-radius: 8px; background: linear-gradient(135deg, rgba(var(--league-rgb),0.10), rgba(var(--league-rgb),0.025)); }}
-    .today-bet--open {{ --result-color: var(--accent); --result-bg: rgba(96,165,250,0.12); }}
-    .today-bet--won {{ --result-color: var(--good); --result-bg: rgba(52,211,153,0.12); }}
-    .today-bet--lost {{ --result-color: var(--bad); --result-bg: rgba(251,113,133,0.12); }}
+    .today-bet {{ --result-color: var(--muted); display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid var(--border); border-left: 2px solid rgba(var(--league-rgb),0.35); border-radius: 6px; background: rgba(var(--league-rgb),0.025); }}
+    .today-bet--won {{ --result-color: var(--good); }}
+    .today-bet--lost {{ --result-color: var(--bad); }}
     .today-bet-top {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
-    .today-league {{ display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 11px; min-width: 0; overflow-wrap: anywhere; }}
+    .today-league {{ display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 10px; min-width: 0; overflow-wrap: anywhere; }}
+    .today-league:empty {{ display: none; }}
     .today-logos {{ justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; margin-left: auto; }}
-    .today-result {{ display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; border: 1px solid var(--result-color); background: var(--result-bg); color: var(--result-color); border-radius: 5px; padding: 2px 5px; font-size: 10px; font-weight: 700; }}
+    .today-result {{ display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--result-color); font-size: 10px; font-weight: 500; }}
     .today-result > span {{ font-size: 12px; line-height: 1; }}
-    .today-bet-body {{ flex: 1; min-width: 0; padding: 5px 0; }}
-    .today-pick {{ margin: 0 0 4px; font-size: 16px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }}
+    .today-bet-body {{ flex: 1; min-width: 0; padding: 0 0 7px; }}
+    .today-pick-line {{ --pick-font-size: 13px; display: flex; align-items: baseline; gap: 6px; width: 100%; min-width: 0; white-space: nowrap; line-height: 1.35; }}
+    .today-pick {{ min-width: 0; margin: 0; font-size: var(--pick-font-size); font-weight: 700; line-height: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
-    .today-odds {{ white-space: nowrap; }}
-    .today-odds strong {{ color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }}
+    .today-meta:empty {{ display: none; }}
+    .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
+    .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
-    .today-combined {{ font-size: 10px; }}
-    .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 7px; border-top: 1px solid var(--border); }}
-    .today-stake {{ background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.18); border-radius: 5px; padding: 5px 7px; }}
-    .today-stake dt {{ color: #fbbf24; font-weight: 600; }}
+    .today-logos .badge-logo {{ background: transparent; border: 0; filter: saturate(0.65); }}
+    .today-logos:hover .badge-logo {{ filter: none; }}
+    .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 5px; color: var(--muted); }}
+    .today-panel .today-bet-money dt {{ font-size: 10px; }}
+    .today-stake {{ padding: 2px 0; }}
+    .today-stake dt {{ color: var(--muted); font-weight: 400; }}
     .today-stake dd {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 6px; }}
     .today-units {{ color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; white-space: nowrap; }}
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
     .today-net-label {{ position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }}
-    .today-panel[data-view="cards"] .today-bet-body {{ display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 8px; }}
+    .today-panel[data-view="cards"] .today-bet {{ display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 4px 8px; }}
+    .today-panel[data-view="cards"] .today-bet-top {{ display: contents; }}
+    .today-panel[data-view="cards"] .today-bet-body {{ grid-column: 1; grid-row: 1; padding: 0; }}
+    .today-panel[data-view="cards"] .today-logos {{ grid-column: 2; grid-row: 1; align-self: start; max-width: 60px; margin-top: 1px; }}
+    .today-panel[data-view="cards"] .today-league {{ grid-column: 1 / -1; }}
     .today-panel[data-view="cards"] .today-pick {{ margin: 0; min-width: 0; }}
     .today-panel[data-view="cards"] .today-meta {{ gap: 4px 6px; }}
-    .today-panel[data-view="cards"] .today-bet-money {{ display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; padding-top: 5px; }}
-    .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; padding: 3px 6px; }}
+    .today-panel[data-view="cards"] .today-bet-money {{ grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; margin-top: 6px; padding-top: 2px; border-top: 1px solid rgba(255,255,255,0.055); }}
+    .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
     .today-panel[data-view="cards"] .today-return {{ margin-left: auto; padding-right: 0; }}
-    .today-panel[data-view="cards"] .today-bet-money dd {{ margin: 0; font-size: 16px; }}
+    .today-panel[data-view="cards"] .today-bet-money dd {{ margin: 0; font-size: 11px; font-weight: 400; }}
+    .today-bet-money .today-return dd:not(.positive):not(.negative) {{ color: var(--muted); }}
     .today-empty {{ margin: 0; padding: 12px; text-align: center; color: var(--muted); font-size: 12px; }}
     .today-panel[data-view="list"] .today-bets {{ grid-template-columns: 1fr; gap: 4px; }}
-    .today-panel[data-view="list"] .today-bet {{ display: grid; grid-template-columns: 110px minmax(0, 1fr) 230px minmax(40px, 70px); align-items: center; gap: 8px; padding: 4px 7px; border-radius: 6px; }}
+    .today-panel[data-view="list"] .today-bet {{ display: grid; grid-template-columns: max-content minmax(0, 1fr) 230px minmax(40px, 70px); align-items: center; gap: 8px; padding: 4px 7px; border-radius: 6px; }}
     .today-panel[data-view="list"] .today-bet-top {{ display: contents; }}
     .today-panel[data-view="list"] .today-league {{ grid-column: 1; grid-row: 1; gap: 5px; }}
     .today-panel[data-view="list"] .today-logos {{ grid-column: 4; grid-row: 1; }}
-    .today-panel[data-view="list"] .today-result {{ gap: 3px; padding: 1px 4px; }}
-    .today-panel[data-view="list"] .today-bet-body {{ grid-column: 2; grid-row: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px; padding: 0; }}
-    .today-panel[data-view="list"] .today-pick {{ flex: 1 1 160px; font-size: 14px; margin: 0; }}
+    .today-panel[data-view="list"] .today-result {{ gap: 3px; }}
+    .today-panel[data-view="list"] .today-bet-body {{ grid-column: 2; grid-row: 1; padding: 0; }}
+    .today-panel[data-view="list"] .today-bet--open .today-bet-body {{ grid-column: 1 / 3; }}
     .today-panel[data-view="list"] .today-meta {{ gap: 3px 6px; }}
     .today-panel[data-view="list"] .badge-logo {{ width: 16px; height: 16px; padding: 0; border-radius: 4px; }}
-    .today-panel[data-view="list"] .today-bet-money {{ grid-column: 3; grid-row: 1; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; border: 0; padding: 0; }}
-    .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 2px 5px; }}
+    .today-panel[data-view="list"] .today-bet-money {{ grid-column: 3; grid-row: 1; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; border-left: 1px solid rgba(255,255,255,0.055); padding: 0 0 0 8px; }}
+    .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
     .today-panel[data-view="list"] .today-return {{ margin-left: auto; padding-right: 0; }}
-    .today-panel[data-view="list"] .today-bet-money dd {{ margin: 0; font-size: 14px; }}
+    .today-panel[data-view="list"] .today-bet-money dd {{ margin: 0; font-size: 11px; font-weight: 400; }}
     @media (max-width: 1100px) {{
       .today-bets {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
-      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: 90px minmax(0, 1fr) 210px minmax(40px, 60px); gap: 6px; }}
+      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: max-content minmax(0, 1fr) 210px minmax(40px, 60px); gap: 6px; }}
     }}
     @media (max-width: 850px) {{
       .today-bets {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
@@ -1764,9 +1774,10 @@ def build_html_report(
     @media (max-width: 720px) {{
       .today-summary {{ order: 1; flex-basis: 100%; margin-left: 0; }}
       .today-panel[data-view="list"] .today-bet {{ grid-template-columns: minmax(0, 1fr) auto; gap: 4px; }}
-      .today-panel[data-view="list"] .today-logos {{ grid-column: 2; }}
-      .today-panel[data-view="list"] .today-bet-body {{ grid-column: 1 / -1; grid-row: 2; }}
-      .today-panel[data-view="list"] .today-bet-money {{ grid-column: 1 / -1; grid-row: 3; }}
+      .today-panel[data-view="list"] .today-logos {{ grid-column: 2; align-self: start; max-width: 60px; }}
+      .today-panel[data-view="list"] .today-bet .today-bet-body {{ grid-column: 1; grid-row: 1; }}
+      .today-panel[data-view="list"] .today-league {{ grid-column: 1 / -1; grid-row: auto; }}
+      .today-panel[data-view="list"] .today-bet-money {{ grid-column: 1 / -1; grid-row: auto; margin-top: 6px; padding: 2px 0 0; border-left: 0; border-top: 1px solid rgba(255,255,255,0.055); }}
     }}
 
     @media (max-width: 1000px) {{
@@ -1840,7 +1851,7 @@ def build_html_report(
             </div>
             <dl class="today-summary">
               <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">{_fmt_money_compact(_sum_finite(r.get('risk') for r in summary['future_open']))}</dd></div>
-              <div data-today-total="potential"><dt>To win</dt><dd>{_fmt_money_compact(_sum_finite(r.get('to_win') for r in summary['future_open']))}</dd></div>
+              <div data-today-total="potential"><dt>wins</dt><dd>{_fmt_money_compact(_sum_finite(r.get('to_win') for r in summary['future_open']))}</dd></div>
             </dl>
             {bet_view_controls("upcoming", "Upcoming bet layout")}
           </div>
@@ -2131,6 +2142,32 @@ def build_html_report(
   </div>
 
 <script>
+  // Fit each pick and its odds on one line without increasing the card height.
+  // Keep a readable minimum; exceptionally long names retain their full hover text.
+  function fitPickLine(line, width) {{
+    const maxSize = 13, minSize = 10, gap = 6;
+    line.style.setProperty('--pick-font-size', `${{maxSize}}px`);
+    const pick = line.querySelector('.today-pick');
+    const odds = line.querySelector('.today-odds');
+    const textWidth = pick.scrollWidth + odds.getBoundingClientRect().width;
+    if (textWidth > width - gap) {{
+      const size = Math.max(minSize, Math.floor(maxSize * Math.max(0, width - gap) / textWidth * 4) / 4);
+      line.style.setProperty('--pick-font-size', `${{size}}px`);
+    }}
+  }}
+  if (typeof ResizeObserver !== 'undefined') {{
+    const fittedWidths = new WeakMap();
+    const pickObserver = new ResizeObserver(entries => {{
+      entries.forEach(entry => {{
+        const width = entry.contentRect.width;
+        if (width <= 0 || fittedWidths.get(entry.target) === width) return;
+        fittedWidths.set(entry.target, width);
+        fitPickLine(entry.target, width);
+      }});
+    }});
+    document.querySelectorAll('.today-pick-line').forEach(line => pickObserver.observe(line));
+  }}
+
   // Keep the layout control independent of chart loading and browser storage access.
   document.querySelectorAll('.today-panel').forEach(panel => {{
     const panelKey = panel.id.replace('-panel', '');
