@@ -282,15 +282,15 @@ class SettledPerformanceTests(unittest.TestCase):
         )
 
         today_html = html_doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
-        self.assertIn('<dt>Settled net</dt><dd class="positive">$114.00</dd>', today_html)
-        self.assertIn('<dt>Total risk</dt><dd>$250.00</dd>', today_html)
-        self.assertIn('<dt>Open risk</dt><dd class="today-risk-value">$100.00</dd>', today_html)
+        self.assertIn('<dt>Settled net</dt><dd class="positive">$114</dd>', today_html)
+        self.assertIn('<dt>Total risk</dt><dd>$250</dd>', today_html)
+        self.assertIn('<dt>Open risk</dt><dd class="today-risk-value">$100</dd>', today_html)
         self.assertIn('today-bet--open', today_html)
         self.assertIn('today-bet--won', today_html)
         self.assertIn('today-bet--lost', today_html)
         self.assertIn('today-bet--cash-out', today_html)
-        self.assertIn('<dd class="positive">+$100.00</dd>', today_html)
-        self.assertIn('<dd class="negative">−$10.00</dd>', today_html)
+        self.assertIn('<dd class="positive">+$100</dd>', today_html)
+        self.assertIn('<dd class="negative">−$10</dd>', today_html)
         self.assertEqual(today_html.count('<li class="today-bet '), 6)
         self.assertIn("| Last synced ", html_doc)
         self.assertNotIn("Showing data from", html_doc)
@@ -317,17 +317,17 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertEqual(today_html.count('<li class="today-bet '), 2)
         self.assertIn('2 wagers combined', today_html)
         self.assertIn('&lt;Win &amp; &quot;total&quot;&gt;', today_html)
-        self.assertIn('<dt>Risk</dt><dd>$60.00<span class="today-units" title="1u = $100">0.6u</span></dd>', today_html)
-        self.assertIn('<dt>To win</dt><dd class="">$90.00</dd>', today_html)
+        self.assertIn('<dt>Risk</dt><dd>$60<span class="today-units" title="1u = $100">0.6u</span></dd>', today_html)
+        self.assertIn('<dt>To win</dt><dd class="">$90</dd>', today_html)
         self.assertIn('today-bet--push', today_html)
-        self.assertIn('<dt>Net result</dt><dd class="">$0.00</dd>', today_html)
+        self.assertIn('<dt class="today-net-label">Net result</dt><dd class="">$0</dd>', today_html)
 
     def test_today_empty_state(self) -> None:
         doc = report.build_html_report(report.summarize([]), 'Test', {}, 'NFL')
         today_html = doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
         self.assertIn('No bets today.', today_html)
         self.assertNotIn('<li class="today-bet ', today_html)
-        self.assertIn('<dt>Total risk</dt><dd>$0.00</dd>', today_html)
+        self.assertIn('<dt>Total risk</dt><dd>$0</dd>', today_html)
 
 
 if __name__ == "__main__":

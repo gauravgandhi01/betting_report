@@ -785,6 +785,10 @@ def _fmt_money(x: Optional[float]) -> str:
     return f"${x:,.2f}"
 
 
+def _fmt_money_compact(x: Optional[float]) -> str:
+    return _fmt_money(x).rstrip("0").rstrip(".")
+
+
 def _fmt_pct(x: Optional[float]) -> str:
     if x is None or (isinstance(x, float) and math.isnan(x)):
         return ""
@@ -1017,9 +1021,9 @@ def build_html_report(
             combined = f'<span class="today-combined">{r["row_count"]} wagers combined</span>' if r["row_count"] > 1 else ""
             amount = r.get("net") if result else r.get("to_win")
             amount_value = _finite_float(amount)
-            amount_text = _fmt_money(amount_value) or "—"
+            amount_text = _fmt_money_compact(amount_value) or "—"
             if result and amount_value is not None:
-                amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money(abs(amount_value))
+                amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money_compact(abs(amount_value))
             amount_class = _net_class(amount_value) if result and amount_value is not None else ""
             risk_value = _finite_float(r.get("risk"))
             units = ""
@@ -1037,8 +1041,8 @@ def build_html_report(
                 <div class="today-meta"><span class="today-odds">Odds <strong>{html.escape(_fmt_odds(r.get("odds"))) or "—"}</strong></span><span class="chip-row">{books}</span>{combined}</div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money(r.get("risk")) or "—"}{units}</dd></div>
-                <div class="today-return"><dt>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money_compact(r.get("risk")) or "—"}{units}</dd></div>
+                <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
             </li>''')
         groups = "".join(
@@ -1690,6 +1694,7 @@ def build_html_report(
     .today-units {{ color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; white-space: nowrap; }}
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
+    .today-net-label {{ position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }}
     .today-panel[data-view="cards"] .today-bet-money {{ display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; padding-top: 5px; }}
     .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; padding: 3px 6px; }}
     .today-panel[data-view="cards"] .today-return {{ margin-left: auto; padding-right: 0; }}
@@ -1770,9 +1775,9 @@ def build_html_report(
               <div id="today-wager-count" class="note">{len(today_rows)} wagers · {len(summary['today_open'])} open · {len(summary['today_settled'])} settled</div>
             </div>
           <dl class="today-summary">
-            <div data-today-total="risk"><dt>Total risk</dt><dd>{_fmt_money(today_risk_total)}</dd></div>
-            <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">{_fmt_money(today_open_risk)}</dd></div>
-            <div data-today-total="net"><dt>Settled net</dt><dd class="{_net_class(today_net_total)}">{_fmt_money(today_net_total)}</dd></div>
+            <div data-today-total="risk"><dt>Total risk</dt><dd>{_fmt_money_compact(today_risk_total)}</dd></div>
+            <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">{_fmt_money_compact(today_open_risk)}</dd></div>
+            <div data-today-total="net"><dt>Settled net</dt><dd class="{_net_class(today_net_total)}">{_fmt_money_compact(today_net_total)}</dd></div>
           </dl>
             <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
               <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
@@ -2095,7 +2100,7 @@ def build_html_report(
     const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
     let league = '', status = '';
-    const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 2, maximumFractionDigits: 2}});
+    const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 0, maximumFractionDigits: 2}});
     const applyFilters = () => {{
       let risk = 0, openRisk = 0, net = 0, wagers = 0, open = 0, visible = 0;
       bets.forEach(bet => {{
