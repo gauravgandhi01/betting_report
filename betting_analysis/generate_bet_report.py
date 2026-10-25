@@ -786,7 +786,7 @@ def _fmt_money(x: Optional[float]) -> str:
 
 
 def _fmt_money_compact(x: Optional[float]) -> str:
-    return _fmt_money(x).rstrip("0").rstrip(".")
+    return _fmt_money(x).removesuffix(".00")
 
 
 def _fmt_pct(x: Optional[float]) -> str:
@@ -1043,7 +1043,7 @@ def build_html_report(
             risk_value = _finite_float(r.get("risk"))
             units = ""
             if risk_value is not None:
-                unit_text = f"{risk_value / 100:.2f}".rstrip("0").rstrip(".")
+                unit_text = f"{risk_value / 100:.2f}".removesuffix(".00")
                 units = f'<span class="today-units" title="1u = $100">{unit_text}u</span>'
             league = str(r.get("league") or "").strip().upper() or "OTHER"
             date_label = ""
@@ -1063,20 +1063,19 @@ def build_html_report(
                 <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "To win"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
             </li>''')
-        groups = "".join(
-            f'<div class="today-group" data-today-group="{status}" role="group" aria-labelledby="{panel_key}-{status}-title"{(" hidden" if not bets else "")}>'
-            f'<h3 id="{panel_key}-{status}-title" class="today-group-title">{status.title()} <span class="today-group-count">{len(bets)}</span></h3>'
-            f'<ul class="today-bets" aria-label="{status.title()} bets">{"".join(bets)}</ul></div>'
-            for status, bets in items.items()
-        )
-        status_filters = "" if upcoming else (
-            f'<div class="today-filters today-status-filters" role="group" aria-label="Filter {context} by status">'
-            f'<button type="button" data-today-status="" aria-pressed="true" aria-controls="{panel_key}-bets">All</button>'
-            f'<button type="button" data-today-status="open" aria-pressed="false" aria-controls="{panel_key}-bets">Open</button>'
-            f'<button type="button" data-today-status="closed" aria-pressed="false" aria-controls="{panel_key}-bets">Closed</button></div>'
-        )
+        group_markup = []
+        for status, bets in items.items():
+            tag = "details" if status == "closed" else "div"
+            heading = "summary" if status == "closed" else "h3"
+            role = ' role="group"' if status == "open" else ""
+            group_markup.append(
+                f'<{tag} class="today-group" data-today-group="{status}"{role} aria-labelledby="{panel_key}-{status}-title"{(" hidden" if not bets else "")}>'
+                f'<{heading} id="{panel_key}-{status}-title" class="today-group-title">{status.title()} <span class="today-group-count">{len(bets)}</span></{heading}>'
+                f'<ul class="today-bets" aria-label="{status.title()} bets">{"".join(bets)}</ul></{tag}>'
+            )
+        groups = "".join(group_markup)
         return (
-            '<div class="today-filter-bar" hidden><div class="today-filter-controls">' + status_filters
+            '<div class="today-filter-bar" hidden><div class="today-filter-controls">'
             + f'<div class="today-filters" role="group" aria-label="Filter {context} by league">'
             + "".join(filters)
             + f'</div></div><span id="{panel_key}-filter-count" class="note today-filter-count" role="status">{len(rows)} bets</span></div>'
@@ -1673,12 +1672,18 @@ def build_html_report(
     .today-view[hidden] {{ display: none; }}
     .today-filter-bar {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border); }}
     .today-filter-controls {{ display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }}
-    .today-status-filters {{ padding-right: 8px; border-right: 1px solid var(--border); }}
     .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden], .today-group[hidden], .today-empty[hidden] {{ display: none; }}
     .today-group + .today-group {{ margin-top: 9px; }}
     .today-group[hidden] + .today-group {{ margin-top: 0; }}
     .today-group-title {{ display: flex; align-items: center; gap: 6px; margin: 0 0 5px; font-size: 11px; font-weight: 600; color: var(--muted); }}
     .today-group-title::after {{ content: ''; height: 1px; flex: 1; background: var(--border); }}
+    details.today-group > summary {{ cursor: pointer; list-style: none; min-height: 24px; margin-bottom: 0; }}
+    details.today-group > summary::-webkit-details-marker {{ display: none; }}
+    details.today-group > summary::before {{ content: '›'; font-size: 16px; line-height: 1; }}
+    details.today-group[open] > summary {{ margin-bottom: 5px; }}
+    details.today-group[open] > summary::before {{ transform: rotate(90deg); }}
+    details.today-group > summary:hover {{ color: var(--text); }}
+    details.today-group > summary:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }}
     [data-today-group="open"] .today-group-title {{ color: var(--accent); }}
     .today-group-count {{ font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }}
     .today-filters {{ display: flex; flex-wrap: wrap; gap: 4px; }}
@@ -2147,16 +2152,14 @@ def build_html_report(
     const filterBar = panel.querySelector('.today-filter-bar');
     if (!filterBar) return;
     const leagueButtons = panel.querySelectorAll('[data-today-league]');
-    const statusButtons = panel.querySelectorAll('[data-today-status]');
     const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
-    let league = '', status = '';
-    const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 0, maximumFractionDigits: 2}});
+    let league = '';
+    const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 2, maximumFractionDigits: 2}}).replace(/[.]00$/, '');
     const applyFilters = () => {{
       let risk = 0, openRisk = 0, net = 0, potential = 0, wagers = 0, open = 0, visible = 0;
       bets.forEach(bet => {{
-        const betStatus = bet.dataset.open === 'true' ? 'open' : 'closed';
-        bet.hidden = Boolean((league && bet.dataset.league !== league) || (status && status !== betStatus));
+        bet.hidden = Boolean(league && bet.dataset.league !== league);
         if (bet.hidden) return;
         visible++;
         const stake = Number(bet.dataset.risk);
@@ -2168,7 +2171,6 @@ def build_html_report(
         if (bet.dataset.open === 'true') {{ openRisk += stake; open += count; }}
       }});
       leagueButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayLeague === league)));
-      statusButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayStatus === status)));
       groups.forEach(group => {{
         const count = Array.from(group.querySelectorAll('.today-bet')).filter(bet => !bet.hidden).length;
         group.hidden = count === 0;
@@ -2184,10 +2186,9 @@ def build_html_report(
       panel.querySelector(`#${{panelKey}}-wager-count`).textContent = upcoming
         ? `${{wagers}} open wagers · After {today_label}`
         : `${{wagers}} wagers · ${{open}} open · ${{wagers - open}} settled`;
-      panel.querySelector(`#${{panelKey}}-filter-count`).textContent = `${{league || 'All leagues'}} · ${{upcoming ? '' : (status || 'all statuses') + ' · '}}${{visible}} of ${{bets.length}} bets`;
+      panel.querySelector(`#${{panelKey}}-filter-count`).textContent = `${{league || 'All leagues'}} · ${{visible}} of ${{bets.length}} bets`;
     }};
     leagueButtons.forEach(button => button.addEventListener('click', () => {{ league = button.dataset.todayLeague; applyFilters(); }}));
-    statusButtons.forEach(button => button.addEventListener('click', () => {{ status = button.dataset.todayStatus; applyFilters(); }}));
     applyFilters();
     filterBar.hidden = false;
   }});

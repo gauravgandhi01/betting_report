@@ -247,12 +247,18 @@
     .today-view[hidden] { display: none; }
     .today-filter-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
     .today-filter-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-    .today-status-filters { padding-right: 8px; border-right: 1px solid var(--border); }
     .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden], .today-group[hidden], .today-empty[hidden] { display: none; }
     .today-group + .today-group { margin-top: 9px; }
     .today-group[hidden] + .today-group { margin-top: 0; }
     .today-group-title { display: flex; align-items: center; gap: 6px; margin: 0 0 5px; font-size: 11px; font-weight: 600; color: var(--muted); }
     .today-group-title::after { content: ''; height: 1px; flex: 1; background: var(--border); }
+    details.today-group > summary { cursor: pointer; list-style: none; min-height: 24px; margin-bottom: 0; }
+    details.today-group > summary::-webkit-details-marker { display: none; }
+    details.today-group > summary::before { content: '›'; font-size: 16px; line-height: 1; }
+    details.today-group[open] > summary { margin-bottom: 5px; }
+    details.today-group[open] > summary::before { transform: rotate(90deg); }
+    details.today-group > summary:hover { color: var(--text); }
+    details.today-group > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
     [data-today-group="open"] .today-group-title { color: var(--accent); }
     .today-group-count { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
     .today-filters { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -355,7 +361,7 @@
 <body>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-10-25 | Last synced 6:42 PM EDT</div>
+    <div class="subtitle">As of 2026-10-25 | Last synced 6:45 PM EDT</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -393,7 +399,7 @@
             </div>
           <dl class="today-summary">
             <div data-today-total="risk"><dt>Total risk</dt><dd>$3,349.28</dd></div>
-            <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">$1,104.6</dd></div>
+            <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">$1,104.60</dd></div>
             <div data-today-total="net"><dt>Settled net</dt><dd class="positive">$370.71</dd></div>
           </dl>
             <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
@@ -401,7 +407,7 @@
               <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
             </div>
           </div>
-          <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters today-status-filters" role="group" aria-label="Filter today’s bets by status"><button type="button" data-today-status="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-status="open" aria-pressed="false" aria-controls="today-bets">Open</button><button type="button" data-today-status="closed" aria-pressed="false" aria-controls="today-bets">Closed</button></div><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NFL</button><button type="button" data-today-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button></div></div><span id="today-filter-count" class="note today-filter-count" role="status">26 bets</span></div><div id="today-bets"><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title"><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">7</span></h3><ul class="today-bets" aria-label="Open bets"><li class="today-bet today-bet--open" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="200.0" data-net="0" data-potential="200.0" data-count="1" data-open="true">
+          <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NFL</button><button type="button" data-today-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button></div></div><span id="today-filter-count" class="note today-filter-count" role="status">26 bets</span></div><div id="today-bets"><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title"><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">7</span></h3><ul class="today-bets" aria-label="Open bets"><li class="today-bet today-bet--open" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="200.0" data-net="0" data-potential="200.0" data-count="1" data-open="true">
               <div class="today-bet-top">
                 <div class="today-league"><span>Side</span></div>
                 <span class="chip-row today-logos"><span class="badge badge-logo" title="NFL"><img class="badge-logo-img" src="logos/nfl.png" alt="NFL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="BOL"><img class="badge-logo-img" src="logos/betonline.png" alt="BOL" loading="lazy" decoding="async" /></span></span>
@@ -450,7 +456,7 @@
                 <div class="today-meta"><span class="today-odds" title="Odds"><strong>-109</strong></span></div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$163.5<span class="today-units" title="1u = $100">1.64u</span></dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>$163.50<span class="today-units" title="1u = $100">1.64u</span></dd></div>
                 <div class="today-return"><dt>To win</dt><dd class="">$150</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="171.69" data-net="0" data-potential="161.19" data-count="2" data-open="true">
@@ -490,9 +496,9 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$75<span class="today-units" title="1u = $100">0.75u</span></dd></div>
-                <div class="today-return"><dt>To win</dt><dd class="">$130.5</dd></div>
+                <div class="today-return"><dt>To win</dt><dd class="">$130.50</dd></div>
               </dl>
-            </li></ul></div><div class="today-group" data-today-group="closed" role="group" aria-labelledby="today-closed-title"><h3 id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">19</span></h3><ul class="today-bets" aria-label="Closed bets"><li class="today-bet today-bet--lost" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="227.52" data-net="-227.52" data-potential="0" data-count="1" data-open="false">
+            </li></ul></div><details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title"><summary id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">19</span></summary><ul class="today-bets" aria-label="Closed bets"><li class="today-bet today-bet--lost" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="227.52" data-net="-227.52" data-potential="0" data-count="1" data-open="false">
               <div class="today-bet-top">
                 <div class="today-league"><span>Player Prop</span><span class="today-result"><span aria-hidden="true">×</span> Lost</span></div>
                 <span class="chip-row today-logos"><span class="badge badge-logo" title="NFL"><img class="badge-logo-img" src="logos/nfl.png" alt="NFL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></span>
@@ -528,8 +534,8 @@
                 <div class="today-meta"><span class="today-odds" title="Odds"><strong>-125</strong></span></div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$187.5<span class="today-units" title="1u = $100">1.88u</span></dd></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$187.5</dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>$187.50<span class="today-units" title="1u = $100">1.88u</span></dd></div>
+                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$187.50</dd></div>
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="183.58" data-net="140.0" data-potential="0" data-count="1" data-open="false">
               <div class="today-bet-top">
@@ -580,7 +586,7 @@
                 <div class="today-meta"><span class="today-odds" title="Odds"><strong>-108</strong></span></div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$162.5<span class="today-units" title="1u = $100">1.62u</span></dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>$162.50<span class="today-units" title="1u = $100">1.62u</span></dd></div>
                 <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="positive">+$150</dd></div>
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="144.31" data-net="147.22" data-potential="0" data-count="1" data-open="false">
@@ -619,7 +625,7 @@
                 <div class="today-meta"><span class="today-odds" title="Odds"><strong>+118</strong></span><span class="today-combined">2 wagers combined</span></div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$114.8<span class="today-units" title="1u = $100">1.15u</span></dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>$114.80<span class="today-units" title="1u = $100">1.15u</span></dd></div>
                 <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="positive">+$134.98</dd></div>
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="100.0" data-net="208.0" data-potential="0" data-count="1" data-open="false">
@@ -710,7 +716,7 @@
                 <div class="today-meta"><span class="today-odds" title="Odds"><strong>+215051</strong></span></div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$40<span class="today-units" title="1u = $100">0.4u</span></dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>$40<span class="today-units" title="1u = $100">0.40u</span></dd></div>
                 <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$40</dd></div>
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NFL" style="--league-color:#013369;--league-rgb:1,51,105" data-risk="33.39" data-net="-33.39" data-potential="0" data-count="2" data-open="false">
@@ -736,10 +742,10 @@
                 <div class="today-meta"><span class="today-odds" title="Odds"><strong>+8450</strong></span></div>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$10<span class="today-units" title="1u = $100">0.1u</span></dd></div>
+                <div class="today-stake"><dt>Risk</dt><dd>$10<span class="today-units" title="1u = $100">0.10u</span></dd></div>
                 <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$10</dd></div>
               </dl>
-            </li></ul></div><p id="today-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>
+            </li></ul></details><p id="today-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>
         </section>
 
         <section id="upcoming-panel" class="card full today-panel" data-view="cards" aria-labelledby="upcoming-title">
@@ -1205,16 +1211,14 @@
     const filterBar = panel.querySelector('.today-filter-bar');
     if (!filterBar) return;
     const leagueButtons = panel.querySelectorAll('[data-today-league]');
-    const statusButtons = panel.querySelectorAll('[data-today-status]');
     const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
-    let league = '', status = '';
-    const money = value => '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    let league = '';
+    const money = value => '$' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/[.]00$/, '');
     const applyFilters = () => {
       let risk = 0, openRisk = 0, net = 0, potential = 0, wagers = 0, open = 0, visible = 0;
       bets.forEach(bet => {
-        const betStatus = bet.dataset.open === 'true' ? 'open' : 'closed';
-        bet.hidden = Boolean((league && bet.dataset.league !== league) || (status && status !== betStatus));
+        bet.hidden = Boolean(league && bet.dataset.league !== league);
         if (bet.hidden) return;
         visible++;
         const stake = Number(bet.dataset.risk);
@@ -1226,7 +1230,6 @@
         if (bet.dataset.open === 'true') { openRisk += stake; open += count; }
       });
       leagueButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayLeague === league)));
-      statusButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayStatus === status)));
       groups.forEach(group => {
         const count = Array.from(group.querySelectorAll('.today-bet')).filter(bet => !bet.hidden).length;
         group.hidden = count === 0;
@@ -1242,10 +1245,9 @@
       panel.querySelector(`#${panelKey}-wager-count`).textContent = upcoming
         ? `${wagers} open wagers · After Oct 25, 2026`
         : `${wagers} wagers · ${open} open · ${wagers - open} settled`;
-      panel.querySelector(`#${panelKey}-filter-count`).textContent = `${league || 'All leagues'} · ${upcoming ? '' : (status || 'all statuses') + ' · '}${visible} of ${bets.length} bets`;
+      panel.querySelector(`#${panelKey}-filter-count`).textContent = `${league || 'All leagues'} · ${visible} of ${bets.length} bets`;
     };
     leagueButtons.forEach(button => button.addEventListener('click', () => { league = button.dataset.todayLeague; applyFilters(); }));
-    statusButtons.forEach(button => button.addEventListener('click', () => { status = button.dataset.todayStatus; applyFilters(); }));
     applyFilters();
     filterBar.hidden = false;
   });
