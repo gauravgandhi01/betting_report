@@ -278,7 +278,7 @@
     .today-pick { margin: 0 0 4px; font-size: 16px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
     .today-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }
     .today-odds { white-space: nowrap; }
-    .today-odds strong { color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; margin-left: 4px; }
+    .today-odds strong { color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }
     .today-bet .badge-logo { width: 18px; height: 18px; border-radius: 5px; }
     .today-combined { font-size: 10px; }
     .today-bet-money { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 7px; border-top: 1px solid var(--border); }
@@ -289,30 +289,37 @@
     .today-return { padding: 5px 0; text-align: right; }
     .today-return dd { font-size: 16px; }
     .today-net-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .today-panel[data-view="cards"] .today-bet-body { display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 4px 8px; }
+    .today-panel[data-view="cards"] .today-pick { margin: 0; min-width: 0; }
+    .today-panel[data-view="cards"] .today-meta { gap: 4px 6px; }
     .today-panel[data-view="cards"] .today-bet-money { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; padding-top: 5px; }
     .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; padding: 3px 6px; }
     .today-panel[data-view="cards"] .today-return { margin-left: auto; padding-right: 0; }
     .today-panel[data-view="cards"] .today-bet-money dd { margin: 0; font-size: 16px; }
     .today-empty { margin: 0; padding: 12px; text-align: center; color: var(--muted); font-size: 12px; }
-    .today-panel[data-view="list"] .today-bets { grid-template-columns: 1fr; gap: 8px; }
-    .today-panel[data-view="list"] .today-bet { display: grid; grid-template-columns: 155px minmax(0, 1fr) 260px; align-items: center; gap: 14px; padding: 8px 10px; }
-    .today-panel[data-view="list"] .today-bet-top { flex-direction: column; align-items: flex-start; gap: 5px; }
-    .today-panel[data-view="list"] .today-bet-body { padding: 0; }
-    .today-panel[data-view="list"] .today-pick { font-size: 16px; margin-bottom: 6px; }
-    .today-panel[data-view="list"] .today-bet-money { border: 0; padding: 0; }
+    .today-panel[data-view="list"] .today-bets { grid-template-columns: 1fr; gap: 4px; }
+    .today-panel[data-view="list"] .today-bet { display: grid; grid-template-columns: 180px minmax(0, 1fr) 250px; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; }
+    .today-panel[data-view="list"] .today-bet-top { justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
+    .today-panel[data-view="list"] .today-league { gap: 5px; }
+    .today-panel[data-view="list"] .today-result { gap: 3px; padding: 1px 4px; }
+    .today-panel[data-view="list"] .today-bet-body { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 10px; padding: 0; }
+    .today-panel[data-view="list"] .today-pick { flex: 1 1 160px; font-size: 14px; margin: 0; }
+    .today-panel[data-view="list"] .today-meta { gap: 3px 6px; }
+    .today-panel[data-view="list"] .badge-logo { width: 16px; height: 16px; padding: 1px; border-radius: 4px; }
+    .today-panel[data-view="list"] .today-bet-money { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; border: 0; padding: 0; }
+    .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 2px 5px; }
+    .today-panel[data-view="list"] .today-return { margin-left: auto; padding-right: 0; }
+    .today-panel[data-view="list"] .today-bet-money dd { margin: 0; font-size: 14px; }
     @media (max-width: 1100px) {
       .today-bets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .today-panel[data-view="list"] .today-bet { grid-template-columns: 120px minmax(0, 1fr) 220px; gap: 12px; }
+      .today-panel[data-view="list"] .today-bet { grid-template-columns: 160px minmax(0, 1fr) 230px; gap: 8px; }
     }
     @media (max-width: 640px) {
       .today-bets { grid-template-columns: 1fr; }
     }
     @media (max-width: 720px) {
       .today-summary { order: 1; flex-basis: 100%; margin-left: 0; }
-      .today-panel[data-view="list"] .today-bet { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-      .today-panel[data-view="list"] .today-bet-top { flex-direction: row; align-items: center; }
-      .today-panel[data-view="list"] .today-bet-money dd { font-size: 16px; }
-      .today-panel[data-view="list"] .today-stake { padding: 5px 7px; }
+      .today-panel[data-view="list"] .today-bet { grid-template-columns: minmax(0, 1fr); gap: 4px; }
     }
 
     @media (max-width: 1000px) {
@@ -332,7 +339,7 @@
 <body>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-10-24 | Last synced 10:44 PM EDT</div>
+    <div class="subtitle">As of 2026-10-24 | Last synced 10:48 PM EDT</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -380,12 +387,12 @@
           </div>
           <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters today-status-filters" role="group" aria-label="Filter today’s bets by status"><button type="button" data-today-status="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-status="open" aria-pressed="false" aria-controls="today-bets">Open</button><button type="button" data-today-status="closed" aria-pressed="false" aria-controls="today-bets">Closed</button></div><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="MLB" style="--league-color:#0477BF;--league-rgb:4,119,191" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>MLB</button><button type="button" data-today-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NCAAF</button><button type="button" data-today-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button><button type="button" data-today-league="OTHER" style="--league-color:#6B7280;--league-rgb:107,114,128" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>OTHER</button></div></div><span id="today-filter-count" class="note" role="status">14 bets</span></div><div id="today-bets"><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title" hidden><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">0</span></h3><ul class="today-bets" aria-label="Open bets"></ul></div><div class="today-group" data-today-group="closed" role="group" aria-labelledby="today-closed-title"><h3 id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">14</span></h3><ul class="today-bets" aria-label="Closed bets"><li class="today-bet today-bet--lost" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="445.0" data-net="-445.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">MERC/RMU o49.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-110</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$445<span class="today-units" title="1u = $100">4.45u</span></dd></div>
@@ -393,12 +400,12 @@
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="OTHER" style="--league-color:#6B7280;--league-rgb:107,114,128" data-risk="312.0" data-net="-312.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-sticker" style="background:#6B7280; border-color:#6B7280; color:#F8FAFC;">Other</span><span>ML</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-sticker" style="background:#6B7280; border-color:#6B7280; color:#F8FAFC;">Other</span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>ML</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">Evolev ML</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-104</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-104</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$312<span class="today-units" title="1u = $100">3.12u</span></dd></div>
@@ -406,12 +413,12 @@
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="236.0" data-net="-236.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>Side</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>Side</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">CP -13.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-118</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-118</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$236<span class="today-units" title="1u = $100">2.36u</span></dd></div>
@@ -419,12 +426,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="224.0" data-net="172.46" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>Team Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></span><span>Team Total</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">NYR o2.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-130</strong></span><span class="chip-row"><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-130</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$224<span class="today-units" title="1u = $100">2.24u</span></dd></div>
@@ -432,12 +439,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="206.0" data-net="200.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">BUF/WSH o6.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-103</strong></span><span class="chip-row"><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-103</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$206<span class="today-units" title="1u = $100">2.06u</span></dd></div>
@@ -445,12 +452,12 @@
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="200.0" data-net="-200.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>Side</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="BOL"><img class="badge-logo-img" src="logos/betonline.png" alt="BOL" loading="lazy" decoding="async" /></span></span><span>Side</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">TENN +2.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+100</strong></span><span class="chip-row"><span class="badge badge-logo" title="BOL"><img class="badge-logo-img" src="logos/betonline.png" alt="BOL" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+100</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$200<span class="today-units" title="1u = $100">2u</span></dd></div>
@@ -458,12 +465,12 @@
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="200.0" data-net="-200.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="Bally&#x27;s"><img class="badge-logo-img" src="logos/bally.png" alt="Bally&#x27;s" loading="lazy" decoding="async" /></span></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">BAY/KAN o53</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-108</strong></span><span class="chip-row"><span class="badge badge-logo" title="Bally&#x27;s"><img class="badge-logo-img" src="logos/bally.png" alt="Bally&#x27;s" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-108</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$200<span class="today-units" title="1u = $100">2u</span></dd></div>
@@ -471,12 +478,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NCAAF" style="--league-color:#7C2D12;--league-rgb:124,45,18" data-risk="145.25" data-net="103.75" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span>ML</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NCAAF"><img class="badge-logo-img" src="logos/ncaaf.webp" alt="NCAAF" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>ML</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">BUFF ML</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>-140</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>-140</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$145.25<span class="today-units" title="1u = $100">1.45u</span></dd></div>
@@ -484,12 +491,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="100.0" data-net="238.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>Player Prop</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>Player Prop</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">McDavid o1.5 Ast</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+238</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+238</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$100<span class="today-units" title="1u = $100">1u</span></dd></div>
@@ -497,12 +504,12 @@
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="100.0" data-net="-100.0" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">×</span> Lost</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">EDM/TOR 1P o2.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+188</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+188</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$100<span class="today-units" title="1u = $100">1u</span></dd></div>
@@ -510,12 +517,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="MLB" style="--league-color:#0477BF;--league-rgb:4,119,191" data-risk="95.0" data-net="96.92" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="MLB"><img class="badge-logo-img" src="logos/mlb.png" alt="MLB" loading="lazy" decoding="async" /></span><span>Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="MLB"><img class="badge-logo-img" src="logos/mlb.png" alt="MLB" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">MIL/TB o6.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+102</strong></span><span class="chip-row"><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+102</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$95<span class="today-units" title="1u = $100">0.95u</span></dd></div>
@@ -523,12 +530,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="75.0" data-net="118.5" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>Team Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>Team Total</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">NYR o3.5</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+158</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+158</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$75<span class="today-units" title="1u = $100">0.75u</span></dd></div>
@@ -536,12 +543,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="75.0" data-net="157.5" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>Total</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></span><span>Total</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">EDM/TOR o8</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+210</strong></span><span class="chip-row"><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+210</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$75<span class="today-units" title="1u = $100">0.75u</span></dd></div>
@@ -549,12 +556,12 @@
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NHL" style="--league-color:#1D4ED8;--league-rgb:29,78,216" data-risk="59.96" data-net="83.94" data-count="1" data-open="false">
               <div class="today-bet-top">
-                <div class="today-league"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span>ML</span></div>
+                <div class="today-league"><span class="chip-row"><span class="badge badge-logo" title="NHL"><img class="badge-logo-img" src="logos/nhl.png" alt="NHL" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span><span>ML</span></div>
                 <span class="today-result"><span aria-hidden="true">✓</span> Won</span>
               </div>
               <div class="today-bet-body">
                 <h4 class="today-pick">TOR ML</h4>
-                <div class="today-meta"><span class="today-odds">Odds <strong>+140</strong></span><span class="chip-row"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.jpeg" alt="FanDuel" loading="lazy" decoding="async" /></span></span></div>
+                <div class="today-meta"><span class="today-odds" title="Odds"><strong>+140</strong></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>$59.96<span class="today-units" title="1u = $100">0.6u</span></dd></div>
