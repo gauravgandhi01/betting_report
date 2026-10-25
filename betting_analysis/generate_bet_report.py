@@ -32,11 +32,11 @@ class Bet:
 LEAGUE_COLOR_MAP = {
     "NHL": "#1D4ED8",
     "NCAAB": "#D97706",
-    "NBA": "#C8102E",
+    "NBA": "#6366F1",
     "NFL": "#013369",
     "MLB": "#0477BF",
-    "NCAAF": "#7C2D12",
-    "PGA": "#15803D",
+    "NCAAF": "#B89145",
+    "PGA": "#64748B",
     "OTHER": "#6B7280",
     "CROSSSPORT": "#8B5CF6",
 }
