@@ -371,7 +371,7 @@
 <body>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-10-26 | Last synced 11:56 PM EDT</div>
+    <div class="subtitle">As of 2026-10-26 | Last synced 12:14 AM EDT</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -404,40 +404,27 @@
         <section id="today-panel" class="card full today-panel" data-view="cards" aria-labelledby="today-title">
           <div class="today-header">
             <div>
-              <div class="today-heading"><h2 id="today-title">Today</h2><span class="today-date">Oct 26, 2026</span></div>
-              <div id="today-wager-count" class="note">1 wagers · 0 open · 1 settled</div>
+              <div class="today-heading"><h2 id="today-title">Today</h2><span class="today-date">Oct 27, 2026</span></div>
+              <div id="today-wager-count" class="note">0 wagers · 0 open · 0 settled</div>
             </div>
           <dl class="today-summary">
-            <div data-today-total="risk"><dt>Total risk</dt><dd>$10</dd></div>
+            <div data-today-total="risk"><dt>Total risk</dt><dd>$0</dd></div>
             <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">$0</dd></div>
-            <div data-today-total="net"><dt>Settled net</dt><dd class="negative">$-10</dd></div>
+            <div data-today-total="net"><dt>Settled net</dt><dd class="">$0</dd></div>
           </dl>
             <div class="today-view" role="group" aria-label="Today’s bet layout" hidden>
               <button type="button" data-today-view="cards" aria-pressed="true" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="10" y="1" width="5" height="5" rx="1"/><rect x="1" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/></svg>Cards</button>
               <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
             </div>
           </div>
-          <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="CROSS-SPORT" style="--league-color:#6B7280;--league-rgb:107,114,128" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>CROSS-SPORT</button></div></div><span id="today-filter-count" class="note today-filter-count" role="status">1 bets</span></div><div id="today-bets"><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title" hidden><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">0</span></h3><ul class="today-bets" aria-label="Open bets"></ul></div><details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title"><summary id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">1</span></summary><ul class="today-bets" aria-label="Closed bets"><li class="today-bet today-bet--lost" data-league="CROSS-SPORT" style="--league-color:#6B7280;--league-rgb:107,114,128" data-risk="10.0" data-net="-10.0" data-potential="0" data-count="1" data-open="false">
-              <div class="today-bet-body">
-                <div class="today-pick-line" title="Young o11.5, McDavid o1.5 Ast, Peralta o5.5 K, &amp; Pickens Long Rec o29.5 · +7740"><h4 class="today-pick">Young o11.5, McDavid o1.5 Ast, Peralta o5.5 K, &amp; Pickens Long Rec o29.5</h4><span class="today-odds" title="Odds"><strong>+7740</strong></span></div>
-                <div class="today-meta"></div>
-              </div>
-              <div class="today-bet-top">
-                <div class="today-league"><span class="today-result"><span aria-hidden="true">×</span> Lost</span></div>
-                <span class="chip-row today-logos"><span class="badge badge-sticker" style="background:#8B5CF6; border-color:#8B5CF6; color:#F8FAFC;">Cross-Sport</span><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></span>
-              </div>
-              <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>$10<span class="today-units" title="1u = $100">0.10u</span></dd></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$10</dd></div>
-              </dl>
-            </li></ul></details><p id="today-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>
+          <p class="today-empty">No bets today. Today’s wagers will appear here after the next sync.</p>
         </section>
 
         <section id="upcoming-panel" class="card full today-panel" data-view="cards" aria-labelledby="upcoming-title">
           <div class="today-header">
             <div>
               <div class="today-heading"><h2 id="upcoming-title">Upcoming Open Bets</h2></div>
-              <div id="upcoming-wager-count" class="note">0 open wagers · After Oct 26, 2026</div>
+              <div id="upcoming-wager-count" class="note">0 open wagers · After Oct 27, 2026</div>
             </div>
             <dl class="today-summary">
               <div data-today-total="open"><dt>Open risk</dt><dd class="today-risk-value">$0</dd></div>
@@ -954,7 +941,7 @@
       const netValue = panel.querySelector('[data-today-total="net"] dd');
       if (netValue) netValue.className = net > 0 ? 'positive' : net < 0 ? 'negative' : '';
       panel.querySelector(`#${panelKey}-wager-count`).textContent = upcoming
-        ? `${wagers} open wagers · After Oct 26, 2026`
+        ? `${wagers} open wagers · After Oct 27, 2026`
         : `${wagers} wagers · ${open} open · ${wagers - open} settled`;
       panel.querySelector(`#${panelKey}-filter-count`).textContent = `${league || 'All leagues'} · ${visible} of ${bets.length} bets`;
     };
