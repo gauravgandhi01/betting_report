@@ -418,34 +418,35 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn('data-name="Oklahoma City Thunder"', report._today_pick_html("OKC to win NBA Finals", "NBA", "logos", files))
 
     def test_ncaa_abbreviations_use_clear_logos_only(self) -> None:
-        files = {
-            "teams/ncaa/duke.png",
-            "teams/ncaa/ncstate.png",
-            "teams/ncaa/miami.png",
-            "teams/ncaa/miamioh.png",
-            "teams/ncaa/michiganstate.png",
-            "teams/ncaa/usc.png",
-            "teams/ncaa/utah.png",
-            "teams/ncaa/sacredheart.png",
-            "teams/ncaa/californiabaptist.png",
-        }
-        basketball = report._today_pick_html("DUKE/NCST o52", "NCAAB", "logos", files)
-        self.assertIn('src="logos/teams/ncaa/duke.png"', basketball)
+        def espn(slug: str) -> str:
+            return report.ESPN_NCAA_LOGO.format(team_id=report.NCAA_ESPN_IDS[slug])
+
+        basketball = report._today_pick_html("DUKE/NCST o52", "NCAAB", "logos", set())
+        self.assertIn(f'src="{espn("duke")}"', basketball)
         self.assertIn('data-name="NC State"', basketball)
-        self.assertIn('src="logos/teams/ncaa/miami.png"', report._today_pick_html("MI-FL -3", "NCAAF", "logos", files))
-        self.assertIn('data-name="Miami (OH)"', report._today_pick_html("MIOH +4.5", "NCAAB", "logos", files))
-        self.assertIn('data-name="Michigan State"', report._today_pick_html("MSU/USC o148.5", "NCAAB", "logos", files))
-        self.assertNotIn("mississippistate", report._today_pick_html("MSU/USC o148.5", "NCAAB", "logos", files))
-        cb = report._today_pick_html("CB/UTAH o144.5", "NCAAB", "logos", files)
-        self.assertIn('src="logos/teams/ncaa/californiabaptist.png"', cb)
+        self.assertIn(f'src="{espn("miami")}"', report._today_pick_html("MI-FL -3", "NCAAF", "logos", set()))
+        self.assertIn('data-name="Miami (OH)"', report._today_pick_html("MIOH +4.5", "NCAAB", "logos", set()))
+        self.assertIn(f'src="{espn("michiganState")}"', report._today_pick_html("MSU/USC o148.5", "NCAAB", "logos", set()))
+        self.assertNotIn(espn("mississippiState"), report._today_pick_html("MSU/USC o148.5", "NCAAB", "logos", set()))
+        cb = report._today_pick_html("CB/UTAH o144.5", "NCAAB", "logos", set())
+        self.assertIn(f'src="{espn("californiaBaptist")}"', cb)
         self.assertIn('data-name="California Baptist"', cb)
         self.assertIn('data-name="Utah"', cb)
-        self.assertIn('data-name="California Baptist"', report._today_pick_html("UTA/CBU o131.5", "NCAAB", "logos", files))
-        ncaab_shu = report._today_pick_html("SHU/NCST u144.5", "NCAAB", "logos", files)
+        self.assertIn(f'src="{espn("californiaBaptist")}"', report._today_pick_html("UTA/CBU o131.5", "NCAAB", "logos", set()))
+        ncaab_shu = report._today_pick_html("SHU/NCST u144.5", "NCAAB", "logos", set())
         self.assertTrue(ncaab_shu.startswith("SHU/"))
-        self.assertNotIn("sacredheart", ncaab_shu)
-        self.assertIn("ncstate.png", ncaab_shu)
-        self.assertIn('data-name="Sacred Heart"', report._today_pick_html("LIU/SHU u43.5", "NCAAF", "logos", files))
+        self.assertNotIn(espn("sacredHeart"), ncaab_shu)
+        self.assertIn(espn("ncState"), ncaab_shu)
+        self.assertIn('data-name="Sacred Heart"', report._today_pick_html("LIU/SHU u43.5", "NCAAF", "logos", set()))
+        gonz = report._today_pick_html("SJU/GONZ o150", "NCAAB", "logos", set())
+        self.assertIn(espn("stJohns"), gonz)
+        self.assertIn("St. John", gonz)
+        self.assertIn(espn("gonzaga"), gonz)
+        self.assertIn('data-name="Marshall"', report._today_pick_html("BU, MAR & UNCG ML", "NCAAB", "logos", set()))
+        self.assertTrue(report._today_pick_html("TSU/UTSA u65", "NCAAF", "logos", set()).startswith("TSU/"))
+        liu = report._today_pick_html("LIU/SHU u43.5", "NCAAF", "logos", set())
+        self.assertIn(espn("longIsland"), liu)
+        self.assertIn(espn("sacredHeart"), liu)
 
     def test_non_team_tokens_and_other_leagues_stay_text(self) -> None:
         files = {"teams/nfl/no.png", "teams/nhl/car.png", "teams/ncaab/duke.png"}
@@ -461,10 +462,9 @@ class TodayTeamLogoTests(unittest.TestCase):
             report._today_pick_html("McDavid o1.5 Ast", "NHL", "logos", files),
             "McDavid o1.5 Ast",
         )
-        self.assertEqual(
-            report._today_pick_html("DUKE/NCST o52", "NCAAB", "logos", files),
-            "DUKE/NCST o52",
-        )
+        duke = report._today_pick_html("DUKE/NCST o52", "NCAAB", "logos", files)
+        self.assertIn(report.ESPN_NCAA_LOGO.format(team_id=report.NCAA_ESPN_IDS["duke"]), duke)
+        self.assertNotIn("logos/teams/ncaa/duke.png", duke)
         self.assertEqual(
             report._today_pick_html("MTL/TOR o6.5", "NHL", "logos", set()),
             "MTL/TOR o6.5",
@@ -488,11 +488,12 @@ class TodayTeamLogoTests(unittest.TestCase):
         today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
         self.assertIn('class="team-logo" src="logos/teams/nhl/mtl.png"', today_html)
         self.assertIn('class="team-logo" src="logos/teams/nhl/tor.png"', today_html)
-        self.assertIn("DUKE/NCST o52", today_html)
-        self.assertEqual(today_html.count('class="team-logo"'), 2)
+        self.assertIn(report.ESPN_NCAA_LOGO.format(team_id=report.NCAA_ESPN_IDS["duke"]), today_html)
+        self.assertIn(report.ESPN_NCAA_LOGO.format(team_id=report.NCAA_ESPN_IDS["ncState"]), today_html)
+        self.assertEqual(today_html.count('class="team-logo"'), 4)
         self.assertIn('title="Montreal Canadiens/Toronto Maple Leafs o6.5 · -110"', today_html)
         self.assertIn('data-name="Montreal Canadiens"', today_html)
-        self.assertIn('title="DUKE/NCST o52 · -110"', today_html)
+        self.assertIn('title="Duke/NC State o52 · -110"', today_html)
         table = doc.split("id='all-bets-table'", 1)[1].split("</table>", 1)[0]
         self.assertIn("MTL/TOR o6.5", table)
         self.assertNotIn("team-logo", table)
