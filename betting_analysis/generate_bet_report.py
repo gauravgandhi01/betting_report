@@ -13,7 +13,8 @@ import tempfile
 import urllib.request
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
+from zoneinfo import ZoneInfo
 
 
 @dataclass(frozen=True)
@@ -365,7 +366,7 @@ NCAA_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
     (("HAW",), "hawaii", "Hawaii"),
     (("UCD",), "ucDavis", "UC Davis"),
     (("CP", "SLO", "POLY"), "calPoly", "Cal Poly"),
-    (("SAC", "SACR", "CSUS"), "sacramentoState", "Sacramento State"),
+    (("SAC", "SACR", "CSUS", "SAST"), "sacramentoState", "Sacramento State"),
     (("WEB",), "weberState", "Weber State"),
     (("NAU",), "northernArizona", "Northern Arizona"),
     (("EWU", "EW"), "easternWashington", "Eastern Washington"),
@@ -468,7 +469,7 @@ NCAA_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
     (("WOF", "WOFF"), "wofford", "Wofford"),
     (("ETSU",), "eastTennessee", "ETSU"),
     (("FUR",), "furman", "Furman"),
-    (("SAM", "SAST"), "samford", "Samford"),
+    (("SAM",), "samford", "Samford"),
     (("WC", "WCU"), "westernCarolina", "Western Carolina"),
     (("MER", "MERC"), "mercer", "Mercer"),
     (("CIT",), "citadel", "The Citadel"),
@@ -1088,6 +1089,335 @@ def _today_pick_html(
         last = match.end()
     parts.append(html.escape(pick[last:]))
     return "".join(parts)
+
+
+# Scoreboard join. College cards already use the ESPN team id in the logo URL,
+# and that same id is on the scoreboard. Pro logos are local files, so those
+# match on ESPN's abbreviation. The overrides are the canonical file stems
+# that ESPN spells differently (LAK is LA, CWS is CHW, UTA is UTAH).
+_ESPN_ABBR_OVERRIDE = {
+    ("NHL", "LAK"): "LA",
+    ("NHL", "NJD"): "NJ",
+    ("NHL", "SJS"): "SJ",
+    ("NHL", "TBL"): "TB",
+    # The NHL scoreboard spells Utah as UTA. The teams list says UTAH, and the
+    # NBA scoreboard really does use UTAH, so only basketball is overridden.
+    ("NBA", "GSW"): "GS",
+    ("NBA", "NOP"): "NO",
+    ("NBA", "NYK"): "NY",
+    ("NBA", "SAS"): "SA",
+    ("NBA", "UTA"): "UTAH",
+    ("MLB", "CWS"): "CHW",
+}
+_ESPN_SCOREBOARDS = {
+    "NHL": ("hockey/nhl", ("",)),
+    "NFL": ("football/nfl", ("",)),
+    "NBA": ("basketball/nba", ("",)),
+    "MLB": ("baseball/mlb", ("",)),
+    # Empty group is the default board (FBS). 81 is FCS.
+    "NCAAF": ("football/college-football", ("", "81")),
+    # Group 50 is Division I. The default board is only a handful of games.
+    "NCAAB": ("basketball/mens-college-basketball", ("50",)),
+}
+_ESPN_TEAM_ID_RE = re.compile(r"/ncaa/500/(\d+)\.png$", re.IGNORECASE)
+_MATCHUP_RE = re.compile(r"\b([A-Z]{2,6}(?:-[A-Z]{2,4})?)/([A-Z]{2,6}(?:-[A-Z]{2,4})?)\b")
+_EASTERN = ZoneInfo("America/New_York")
+
+
+def _team_ref(abbr: str, league: str) -> Optional[Dict[str, str]]:
+    """Sheet abbreviation -> name, ESPN abbreviation, and ESPN team id when we have one."""
+    league = (league or "").strip().upper()
+    mapping = TEAM_LOGO_BY_LEAGUE.get(league)
+    if not mapping:
+        return None
+    entry = mapping.get(abbr)
+    if entry is None:
+        return None
+    filename, name = entry
+    id_match = _ESPN_TEAM_ID_RE.search(filename)
+    espn_id = id_match.group(1) if id_match else ""
+    if filename.startswith("teams/"):
+        canonical = os.path.splitext(os.path.basename(filename))[0].upper()
+    else:
+        canonical = abbr
+    return {
+        "abbr": abbr,
+        "name": name,
+        "espn_abbr": _ESPN_ABBR_OVERRIDE.get((league, canonical), canonical),
+        "espn_id": espn_id,
+    }
+
+
+def _recognized_teams(pick: str, league: str) -> List[Dict[str, str]]:
+    seen = set()
+    teams = []
+    for abbr in _TEAM_ABBR_RE.findall(pick or ""):
+        ref = _team_ref(abbr, league)
+        if ref is None:
+            continue
+        key = ref["espn_id"] or ref["espn_abbr"]
+        if key in seen:
+            continue
+        seen.add(key)
+        teams.append(ref)
+    return teams
+
+
+def _matchup_from_pick(
+    pick: str, league: str
+) -> Tuple[Optional[Tuple[Dict[str, str], Dict[str, str]]], Optional[str]]:
+    """Both teams, when the pick is one A/B matchup we can look up."""
+    league = (league or "").strip().upper()
+    pairs: List[Tuple[Dict[str, str], Dict[str, str]]] = []
+    seen = set()
+    partial: List[str] = []
+    missing_ids: List[str] = []
+    for left, right in _MATCHUP_RE.findall(pick or ""):
+        away = _team_ref(left, league)
+        home = _team_ref(right, league)
+        if away and home:
+            if league in {"NCAAB", "NCAAF"} and not (away["espn_id"] and home["espn_id"]):
+                missing_ids.append(away["abbr"] if not away["espn_id"] else home["abbr"])
+                continue
+            key = tuple(
+                sorted(
+                    (
+                        away["espn_id"] or away["espn_abbr"],
+                        home["espn_id"] or home["espn_abbr"],
+                    )
+                )
+            )
+            if key not in seen:
+                seen.add(key)
+                pairs.append((away, home))
+        elif away or home:
+            partial.append(left if away is None else right)
+    if len(pairs) == 1:
+        return pairs[0], None
+    if len(pairs) > 1:
+        return None, "pick names more than one matchup"
+    if missing_ids:
+        return None, f"no ESPN team id for {missing_ids[0]}"
+    if partial:
+        return None, f"unrecognized team ({partial[0]})"
+    teams = _recognized_teams(pick, league)
+    if not teams:
+        return None, "no recognized team abbreviation"
+    if len(teams) == 1:
+        return None, f"only one team named ({teams[0]['name']})"
+    names = ", ".join(team["name"] for team in teams)
+    return None, f"teams are not written as one matchup ({names})"
+
+
+def _format_game_start(raw: str) -> Optional[Tuple[str, str]]:
+    text = (raw or "").strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    if not text:
+        return None
+    try:
+        start = dt.datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=dt.timezone.utc)
+    eastern = start.astimezone(_EASTERN)
+    clock = eastern.strftime("%I:%M %p").lstrip("0")
+    return f"{clock} ET", start.isoformat()
+
+
+def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    competitions = event.get("competitions") or []
+    if not competitions:
+        return None
+    comp = competitions[0]
+    abbrs: List[str] = []
+    ids: List[str] = []
+    home = ""
+    away = ""
+    for competitor in comp.get("competitors") or []:
+        team = competitor.get("team") or {}
+        abbr = str(team.get("abbreviation") or "").upper()
+        team_id = str(team.get("id") or "")
+        if abbr:
+            abbrs.append(abbr)
+        if team_id:
+            ids.append(team_id)
+        name = str(team.get("displayName") or abbr)
+        side = competitor.get("homeAway")
+        if side == "home":
+            home = name
+        elif side == "away":
+            away = name
+    if len(abbrs) < 2 and len(ids) < 2:
+        return None
+    formatted = _format_game_start(str(event.get("date") or comp.get("date") or ""))
+    if formatted is None:
+        return None
+    display, iso = formatted
+    status = comp.get("status") or event.get("status") or {}
+    status_type = status.get("type") or {}
+    done = bool(status_type.get("completed")) or status_type.get("state") == "post"
+    if away and home:
+        matchup = f"{away} vs {home}" if comp.get("neutralSite") else f"{away} at {home}"
+    else:
+        matchup = str(event.get("shortName") or "")
+    venue = comp.get("venue") or {}
+    venue_name = str(venue.get("fullName") or "")
+    city = str((venue.get("address") or {}).get("city") or "")
+    if venue_name and city:
+        venue_name = f"{venue_name}, {city}"
+    networks: List[str] = []
+    for broadcast in comp.get("broadcasts") or []:
+        for name in broadcast.get("names") or []:
+            if name and name not in networks:
+                networks.append(str(name))
+    title = " · ".join(part for part in (matchup, venue_name, ", ".join(networks)) if part)
+    return {
+        "abbrs": frozenset(abbrs),
+        "ids": frozenset(ids),
+        "display": display,
+        "iso": iso,
+        "title": title,
+        "done": done,
+    }
+
+
+def _espn_slate(league: str, day: dt.date) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    spec = _ESPN_SCOREBOARDS.get(league)
+    if spec is None:
+        return [], f"no ESPN scoreboard for {league}"
+    path, groups = spec
+    ymd = day.strftime("%Y%m%d")
+    found: Dict[Tuple[str, ...], Dict[str, Any]] = {}
+    errors = False
+    for group in groups:
+        query = f"dates={ymd}&limit=400"
+        if group:
+            query += f"&groups={group}"
+        url = f"https://site.api.espn.com/apis/site/v2/sports/{path}/scoreboard?{query}"
+        try:
+            payload = json.loads(_download_bytes_with_ssl(url, timeout_seconds=20))
+        except Exception:
+            errors = True
+            continue
+        for event in payload.get("events") or []:
+            game = _game_from_espn_event(event)
+            if game is None:
+                continue
+            key = tuple(sorted(game["ids"])) or tuple(sorted(game["abbrs"]))
+            found[key] = game
+    if found:
+        return list(found.values()), None
+    if errors:
+        return [], f"ESPN scoreboard request failed for {league} on {day.isoformat()}"
+    return [], None
+
+
+def _clock_label(game: Dict[str, Any], now: dt.datetime) -> Dict[str, str]:
+    """Eastern start until tip, then Live. Final once ESPN marks the game done."""
+    done = bool(game.get("done"))
+    formatted = _format_game_start(str(game.get("iso") or ""))
+    scheduled = formatted[0] if formatted else str(game.get("display") or "")
+    start = dt.datetime.fromisoformat(formatted[1]) if formatted else None
+    if start is not None and start.tzinfo is None:
+        start = start.replace(tzinfo=dt.timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=dt.timezone.utc)
+    if done:
+        display = "Final"
+    elif start is not None and start <= now:
+        display = "Live"
+    else:
+        display = scheduled
+    return {
+        "display": display,
+        "iso": formatted[1] if formatted else str(game.get("iso") or ""),
+        "title": str(game.get("title") or ""),
+        "done": "1" if done else "",
+    }
+
+
+def resolve_game_times(
+    rows: List[Dict[str, Any]],
+    fetch: Optional[Callable[[str, dt.date], Tuple[List[Dict[str, Any]], Optional[str]]]] = None,
+    now: Optional[dt.datetime] = None,
+) -> Tuple[Dict[Tuple[str, str, str], Dict[str, str]], List[str]]:
+    """Start times for today/upcoming cards whose pick names both teams of one game.
+
+    Parlays and other multi-game picks are skipped quietly. The notes are matchups
+    we could not place, plus one summary line for picks with no recognized team.
+    """
+    fetch = fetch or _espn_slate
+    if now is None:
+        now = dt.datetime.now(dt.timezone.utc)
+    times: Dict[Tuple[str, str, str], Dict[str, str]] = {}
+    notes: List[str] = []
+    no_team = 0
+    slates: Dict[Tuple[str, dt.date], Tuple[List[Dict[str, Any]], Optional[str]]] = {}
+    for row in rows:
+        league = str(row.get("league") or "").strip().upper() or "OTHER"
+        pick = str(row.get("pick") or "")
+        date_text = str(row.get("date") or "").strip()
+        pair, reason = _matchup_from_pick(pick, league)
+        if pair is None:
+            if reason == "no recognized team abbreviation":
+                no_team += 1
+            elif reason and (
+                reason == "pick names more than one matchup"
+                or reason.startswith("teams are not written as one matchup")
+            ):
+                pass
+            else:
+                notes.append(f"{date_text} {league} {pick}: {reason}")
+            continue
+        try:
+            day = dt.date.fromisoformat(date_text)
+        except ValueError:
+            notes.append(f"{date_text} {league} {pick}: bet date is not a slate date")
+            continue
+        slate_key = (league, day)
+        if slate_key not in slates:
+            slates[slate_key] = fetch(league, day)
+        games, error = slates[slate_key]
+        if error:
+            notes.append(f"{date_text} {league} {pick}: {error}")
+            continue
+        away, home = pair
+        if away["espn_id"] and home["espn_id"]:
+            hits = [game for game in games if away["espn_id"] in game["ids"] and home["espn_id"] in game["ids"]]
+        else:
+            hits = [
+                game
+                for game in games
+                if away["espn_abbr"] in game["abbrs"] and home["espn_abbr"] in game["abbrs"]
+            ]
+        label = f"{away['name']} and {home['name']}"
+        if len(hits) == 1:
+            times[(date_text, league, pick)] = _clock_label(hits[0], now)
+        elif len(hits) > 1:
+            notes.append(f"{date_text} {league} {pick}: more than one game matches {label}")
+        else:
+            notes.append(f"{date_text} {league} {pick}: no game on the ESPN slate for {label}")
+    if no_team:
+        notes.append(
+            f"{no_team} cards have no recognized team abbreviation, so no start time"
+        )
+    return times, notes
+
+
+def _game_time_html(start: Optional[Dict[str, str]]) -> str:
+    if not start:
+        return ""
+    kind = ""
+    if start.get("done"):
+        kind = " is-final"
+    elif start.get("display") == "Live":
+        kind = " is-live"
+    return (
+        f'<time class="today-start{kind}" datetime="{html.escape(start["iso"], quote=True)}" '
+        f'title="{html.escape(start["title"], quote=True)}">{html.escape(start["display"])}</time>'
+    )
 
 
 def _parse_money(value: str) -> float:
@@ -1865,6 +2195,7 @@ def build_html_report(
     default_sport: str,
     logo_base_href: str = "logos",
     available_logo_files: Optional[set[str]] = None,
+    game_times: Optional[Dict[Tuple[str, str, str], Dict[str, str]]] = None,
 ) -> str:
     as_of = summary["as_of"]
     synced_at = dt.datetime.now().astimezone()
@@ -1959,10 +2290,13 @@ def build_html_report(
             pick_label = _today_pick_text(r["pick"], league, available_logo_files)
             pick_tooltip = html.escape(f'{pick_label} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
             pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files)
-            items["closed" if result else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+            start = (game_times or {}).get((r["date"], league, r["pick"]))
+            start_html = _game_time_html(start)
+            game_done = bool(start and start.get("done")) and not upcoming
+            items["closed" if result or game_done else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-body">
                 <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{pick_html}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
-                <div class="today-meta">{date_label}</div>
+                <div class="today-meta">{date_label}{start_html}</div>
               </div>
               <div class="today-bet-top">
                 <div class="today-league">{result_badge}</div>
@@ -2635,6 +2969,9 @@ def build_html_report(
     .today-pick .team-logo {{ display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
     .today-meta:empty {{ display: none; }}
+    .today-meta .today-start {{ font-variant-numeric: tabular-nums; }}
+    .today-meta .today-start.is-live {{ color: var(--accent); font-weight: 600; }}
+    .today-meta time + .today-start::before {{ content: "· "; }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
     .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
@@ -3733,6 +4070,18 @@ def main() -> int:
     if os.path.isdir(logos_dir):
         logo_base_href = os.path.relpath(logos_dir, out_dir).replace(os.sep, "/")
 
+    card_rows = _collapse_bet_rows(
+        summary["today_open"] + summary["today_settled"] + summary["future_open"]
+    )
+    game_times, game_time_notes = resolve_game_times(card_rows)
+    print(f"Game start times attached: {len(game_times)}")
+    for (slate_date, league, pick), start in game_times.items():
+        print(f"  {slate_date} {league} {pick} -> {start['display']}")
+    if game_time_notes:
+        print("No start time:")
+        for note in game_time_notes:
+            print(f"  {note}")
+
     html_report = build_html_report(
         summary,
         title=title,
@@ -3740,6 +4089,7 @@ def main() -> int:
         default_sport=default_sport,
         logo_base_href=logo_base_href,
         available_logo_files=available_logo_files,
+        game_times=game_times,
     )
 
     if out_dir and not os.path.exists(out_dir):

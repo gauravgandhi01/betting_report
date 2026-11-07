@@ -498,6 +498,177 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn("MTL/TOR o6.5", table)
         self.assertNotIn("team-logo", table)
 
+    def test_today_card_shows_fetched_start_time(self) -> None:
+        today = report.dt.date.today()
+        bets = [
+            _bet(date=today, pick="MTL/TOR o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
+        ]
+        times = {
+            (today.isoformat(), "NHL", "MTL/TOR o6.5"): {
+                "display": "7:00 PM ET",
+                "iso": "2026-11-08T00:00:00+00:00",
+                "title": "Montreal Canadiens at Toronto Maple Leafs · Scotiabank Arena, Toronto · ESPN+",
+                "done": "",
+            }
+        }
+        doc = report.build_html_report(
+            report.summarize(bets),
+            "Test",
+            {},
+            "NHL",
+            logo_base_href="logos",
+            available_logo_files={"teams/nhl/mtl.png", "teams/nhl/tor.png"},
+            game_times=times,
+        )
+        today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
+        self.assertIn('class="today-start"', today_html)
+        self.assertIn("7:00 PM ET", today_html)
+        self.assertIn("Scotiabank Arena, Toronto", today_html)
+        self.assertIn('datetime="2026-11-08T00:00:00+00:00"', today_html)
+
+    def test_finished_game_moves_to_closed(self) -> None:
+        today = report.dt.date.today()
+        bets = [
+            _bet(date=today, pick="MTL/TOR o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
+            _bet(date=today, pick="TBL/MIN o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
+        ]
+        times = {
+            (today.isoformat(), "NHL", "MTL/TOR o6.5"): {
+                "display": "Live",
+                "iso": "2026-11-07T23:00:00+00:00",
+                "title": "Montreal Canadiens at Toronto Maple Leafs",
+                "done": "",
+            },
+            (today.isoformat(), "NHL", "TBL/MIN o6.5"): {
+                "display": "Final",
+                "iso": "2026-11-07T17:00:00+00:00",
+                "title": "Tampa Bay Lightning at Minnesota Wild",
+                "done": "1",
+            },
+        }
+        doc = report.build_html_report(
+            report.summarize(bets),
+            "Test",
+            {},
+            "NHL",
+            logo_base_href="logos",
+            available_logo_files={"teams/nhl/mtl.png", "teams/nhl/tor.png", "teams/nhl/tbl.png", "teams/nhl/min.png"},
+            game_times=times,
+        )
+        today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
+        open_html, closed_html = today_html.split('data-today-group="closed"', 1)
+        self.assertIn('class="today-start is-live"', open_html)
+        self.assertIn(">Live<", open_html)
+        self.assertNotIn(">Final<", open_html)
+        self.assertIn(">Final<", closed_html)
+        self.assertIn('class="today-start is-final"', closed_html)
+        self.assertNotIn(">Live<", closed_html)
+
+
+class GameTimeTests(unittest.TestCase):
+    def test_pro_abbreviations_follow_espn_spelling(self) -> None:
+        self.assertEqual(report._team_ref("TB", "NHL")["espn_abbr"], "TB")
+        self.assertEqual(report._team_ref("TBL", "NHL")["espn_abbr"], "TB")
+        self.assertEqual(report._team_ref("LA", "NHL")["espn_abbr"], "LA")
+        self.assertEqual(report._team_ref("UTAH", "NHL")["espn_abbr"], "UTA")
+        self.assertEqual(report._team_ref("UTA", "NBA")["espn_abbr"], "UTAH")
+        self.assertEqual(report._team_ref("WAS", "NBA")["espn_abbr"], "WSH")
+        self.assertEqual(report._team_ref("NYK", "NBA")["espn_abbr"], "NY")
+        self.assertEqual(report._team_ref("CHW", "MLB")["espn_abbr"], "CHW")
+        self.assertEqual(report._team_ref("CWS", "MLB")["espn_abbr"], "CHW")
+        self.assertEqual(report._team_ref("DUKE", "NCAAB")["espn_id"], report.NCAA_ESPN_IDS["duke"])
+
+    def test_resolve_uses_espn_abbreviation_and_college_id(self) -> None:
+        day = "2026-11-07"
+        duke = report.NCAA_ESPN_IDS["duke"]
+        ncst = report.NCAA_ESPN_IDS["ncState"]
+
+        def fetch(league: str, date: report.dt.date):
+            self.assertEqual(date.isoformat(), day)
+            if league == "NHL":
+                return [
+                    {
+                        "abbrs": frozenset({"TB", "MIN"}),
+                        "ids": frozenset({"20", "30"}),
+                        "display": "8:00 PM ET",
+                        "iso": "2026-11-08T01:00:00+00:00",
+                        "title": "Tampa Bay Lightning at Minnesota Wild",
+                        "done": False,
+                    }
+                ], None
+            if league == "NCAAF":
+                return [
+                    {
+                        "abbrs": frozenset({"DUKE", "NCSU"}),
+                        "ids": frozenset({duke, ncst}),
+                        "display": "12:30 PM ET",
+                        "iso": "2026-11-07T17:30:00+00:00",
+                        "title": "Duke at NC State",
+                        "done": False,
+                    }
+                ], None
+            return [], "ESPN scoreboard request failed"
+
+        rows = [
+            {"date": day, "league": "NHL", "pick": "TBL/MIN 1P o1.5"},
+            {"date": day, "league": "NCAAF", "pick": "DUKE/NCST o52"},
+            {"date": day, "league": "NFL", "pick": "TB +6"},
+            {"date": day, "league": "NHL", "pick": "McDavid o1.5 Ast"},
+            {"date": day, "league": "NCAAF", "pick": "MSU & GT ML"},
+            {"date": day, "league": "NBA", "pick": "NYK/BOS o220"},
+        ]
+        before_tip = report.dt.datetime(2026, 11, 7, 15, 0, tzinfo=report.dt.timezone.utc)
+        times, notes = report.resolve_game_times(rows, fetch=fetch, now=before_tip)
+        self.assertEqual(times[(day, "NHL", "TBL/MIN 1P o1.5")]["display"], "8:00 PM ET")
+        self.assertEqual(times[(day, "NCAAF", "DUKE/NCST o52")]["display"], "12:30 PM ET")
+        self.assertNotIn((day, "NFL", "TB +6"), times)
+        self.assertNotIn((day, "NCAAF", "MSU & GT ML"), times)
+        joined = "\n".join(notes)
+        self.assertIn("only one team named (Tampa Bay Buccaneers)", joined)
+        self.assertIn("1 cards have no recognized team abbreviation", joined)
+        self.assertNotIn("Michigan State", joined)
+        self.assertNotIn("not written as one matchup", joined)
+        self.assertIn("ESPN scoreboard request failed", joined)
+
+    def test_live_after_tip_and_final_when_espn_is_done(self) -> None:
+        day = "2026-11-07"
+        after_tip = report.dt.datetime(2026, 11, 8, 2, 0, tzinfo=report.dt.timezone.utc)
+        rows = [{"date": day, "league": "NHL", "pick": "TBL/MIN o6.5"}]
+
+        def fetch(done: bool):
+            def _fetch(league: str, date: report.dt.date):
+                return [
+                    {
+                        "abbrs": frozenset({"TB", "MIN"}),
+                        "ids": frozenset(),
+                        "display": "8:00 PM ET",
+                        "iso": "2026-11-08T01:00:00+00:00",
+                        "title": "Tampa Bay Lightning at Minnesota Wild",
+                        "done": done,
+                    }
+                ], None
+            return _fetch
+
+        live, _ = report.resolve_game_times(rows, fetch=fetch(False), now=after_tip)
+        self.assertEqual(live[(day, "NHL", "TBL/MIN o6.5")]["display"], "Live")
+        self.assertEqual(live[(day, "NHL", "TBL/MIN o6.5")]["done"], "")
+        final, _ = report.resolve_game_times(rows, fetch=fetch(True), now=after_tip)
+        self.assertEqual(final[(day, "NHL", "TBL/MIN o6.5")]["display"], "Final")
+        self.assertEqual(final[(day, "NHL", "TBL/MIN o6.5")]["done"], "1")
+
+    def test_format_game_start_uses_eastern_time(self) -> None:
+        display, iso = report._format_game_start("2026-11-08T00:00Z")
+        self.assertEqual(display, "7:00 PM ET")
+        self.assertTrue(iso.startswith("2026-11-08T00:00:00"))
+
+    def test_sast_is_sacramento_state(self) -> None:
+        sast = report._team_ref("SAST", "NCAAB")
+        self.assertIsNotNone(sast)
+        self.assertEqual(sast["name"], "Sacramento State")
+        self.assertEqual(sast["espn_id"], report.NCAA_ESPN_IDS["sacramentoState"])
+        sam = report._team_ref("SAM", "NCAAB")
+        self.assertEqual(sam["name"], "Samford")
+
 
 if __name__ == "__main__":
     unittest.main()
