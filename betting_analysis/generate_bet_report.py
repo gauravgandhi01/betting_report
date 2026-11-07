@@ -497,6 +497,7 @@ NCAA_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
     (("WAG",), "wagner", "Wagner"),
     (("RM", "RMU"), "robertMorris", "Robert Morris"),
     (("PRES",), "presbyterianCollege", "Presbyterian"),
+    (("CB", "CBU"), "californiaBaptist", "California Baptist"),
 ]
 
 NCAAF_ONLY_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
@@ -601,35 +602,61 @@ def _book_badge(
     return _badge_html(book, color, logo_href=logo_href)
 
 
+def _team_logo_for_abbr(
+    abbr: str,
+    league: str,
+    available_logo_files: Optional[set[str]] = None,
+) -> Optional[Tuple[str, str]]:
+    """Return (filename, full name) when this abbreviation is shown as a logo."""
+    mapping = TEAM_LOGO_BY_LEAGUE.get((league or "").strip().upper())
+    if not mapping:
+        return None
+    entry = mapping.get(abbr)
+    if entry is None:
+        return None
+    filename, name = entry
+    if available_logo_files is not None and filename.lower() not in available_logo_files:
+        return None
+    return filename, name
+
+
+def _today_pick_text(
+    pick: str,
+    league: str,
+    available_logo_files: Optional[set[str]] = None,
+) -> str:
+    """Pick text with shown logos expanded to full team names."""
+    def replace(match: re.Match[str]) -> str:
+        logo = _team_logo_for_abbr(match.group(1), league, available_logo_files)
+        return logo[1] if logo else match.group(1)
+
+    return _TEAM_ABBR_RE.sub(replace, pick)
+
+
 def _today_pick_html(
     pick: str,
     league: str,
     logo_base_href: str = "logos",
     available_logo_files: Optional[set[str]] = None,
 ) -> str:
-    """Replace NHL/NFL team abbreviations on today cards with a uniform logo."""
-    mapping = TEAM_LOGO_BY_LEAGUE.get((league or "").strip().upper())
-    if not mapping:
-        return html.escape(pick)
+    """Replace team abbreviations on today cards with a uniform logo."""
     parts: List[str] = []
     last = 0
     for match in _TEAM_ABBR_RE.finditer(pick):
         parts.append(html.escape(pick[last:match.start()]))
         abbr = match.group(1)
-        entry = mapping.get(abbr)
-        if entry is None:
+        logo = _team_logo_for_abbr(abbr, league, available_logo_files)
+        if logo is None:
             parts.append(html.escape(abbr))
         else:
-            filename, name = entry
-            if available_logo_files is not None and filename.lower() not in available_logo_files:
-                parts.append(html.escape(abbr))
-            else:
-                href = html.escape(_join_href(logo_base_href, filename), quote=True)
-                parts.append(
-                    '<img class="team-logo" src="'
-                    f'{href}" alt="{html.escape(abbr)}" title="{html.escape(name, quote=True)}" '
-                    'loading="lazy" decoding="async" />'
-                )
+            filename, name = logo
+            href = html.escape(_join_href(logo_base_href, filename), quote=True)
+            label = html.escape(name, quote=True)
+            parts.append(
+                f'<span class="team-logo-tip" data-name="{label}">'
+                f'<img class="team-logo" src="{href}" alt="{label}" '
+                'loading="lazy" decoding="async" /></span>'
+            )
         last = match.end()
     parts.append(html.escape(pick[last:]))
     return "".join(parts)
@@ -1501,7 +1528,8 @@ def build_html_report(
             if upcoming:
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
             odds_text = html.escape(_fmt_odds(r.get("odds"))) or "—"
-            pick_tooltip = html.escape(f'{r["pick"]} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
+            pick_label = _today_pick_text(r["pick"], league, available_logo_files)
+            pick_tooltip = html.escape(f'{pick_label} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
             pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files)
             items["closed" if result else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-body">
@@ -2172,6 +2200,10 @@ def build_html_report(
     .today-pick-line {{ --pick-font-size: 13px; display: flex; align-items: baseline; gap: 6px; width: 100%; min-width: 0; white-space: nowrap; line-height: 1.35; }}
     .today-pick-line:has(.team-logo) {{ align-items: center; }}
     .today-pick {{ min-width: 0; margin: 0; font-size: var(--pick-font-size); font-weight: 700; line-height: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+    .today-pick:has(.team-logo-tip:hover) {{ overflow: visible; position: relative; z-index: 2; }}
+    .today-bet:has(.team-logo-tip:hover) {{ position: relative; z-index: 3; }}
+    .team-logo-tip {{ position: relative; display: inline-block; line-height: 0; vertical-align: middle; }}
+    .team-logo-tip:hover::after {{ content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); z-index: 5; padding: 2px 6px; border-radius: 4px; background: #111827; color: #f8fafc; font-size: 11px; font-weight: 600; line-height: 1.4; letter-spacing: 0; white-space: nowrap; pointer-events: none; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }}
     .today-pick .team-logo {{ display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
     .today-meta:empty {{ display: none; }}
@@ -2622,6 +2654,22 @@ def build_html_report(
     }});
     document.querySelectorAll('.today-pick-line').forEach(line => pickObserver.observe(line));
   }}
+
+  // The pick line title covers the logo and would hide its team-name label.
+  // Lift that title while the pointer is on a logo.
+  document.querySelectorAll('.team-logo').forEach(logo => {{
+    const line = logo.closest('.today-pick-line');
+    if (!line) return;
+    logo.addEventListener('mouseenter', () => {{
+      logo.dataset.lineTitle = line.getAttribute('title') || '';
+      line.removeAttribute('title');
+    }});
+    logo.addEventListener('mouseleave', () => {{
+      const saved = logo.dataset.lineTitle;
+      if (saved) line.setAttribute('title', saved);
+      else line.removeAttribute('title');
+    }});
+  }});
 
   // Keep the layout control independent of chart loading and browser storage access.
   document.querySelectorAll('.today-panel').forEach(panel => {{
