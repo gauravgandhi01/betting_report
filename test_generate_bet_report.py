@@ -359,5 +359,139 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertNotIn('data-today-status=', upcoming)
 
 
+class TodayTeamLogoTests(unittest.TestCase):
+    def test_nhl_and_nfl_abbreviations_become_logos(self) -> None:
+        # WAS is an alias of WSH; the file on disk is wsh.png.
+        files = {
+            "teams/nhl/mtl.png",
+            "teams/nhl/tor.png",
+            "teams/nhl/tbl.png",
+            "teams/nfl/wsh.png",
+            "teams/nfl/sea.png",
+            "teams/nfl/kc.png",
+            "teams/nfl/no.png",
+        }
+        nhl = report._today_pick_html("MTL/TOR 1P o1.5", "NHL", "logos", files)
+        self.assertIn('src="logos/teams/nhl/mtl.png"', nhl)
+        self.assertIn('alt="MTL"', nhl)
+        self.assertIn('title="Montreal Canadiens"', nhl)
+        self.assertIn('src="logos/teams/nhl/tor.png"', nhl)
+        self.assertIn("1P o1.5", nhl)
+        self.assertNotIn(">MTL<", nhl)
+        self.assertIn('src="logos/teams/nhl/tbl.png"', report._today_pick_html("TBI/NYI o5.5", "NHL", "logos", files | {"teams/nhl/nyi.png"}))
+
+        nfl = report._today_pick_html("WAS/SEA u48", "NFL", "logos", files)
+        self.assertIn('src="logos/teams/nfl/wsh.png"', nfl)
+        self.assertIn('title="Washington Commanders"', nfl)
+        self.assertIn('src="logos/teams/nfl/sea.png"', nfl)
+        self.assertIn('alt="KC"', report._today_pick_html("Johnson 1st KC TD", "NFL", "logos", files))
+
+    def test_mlb_and_nba_abbreviations_become_logos(self) -> None:
+        files = {
+            "teams/mlb/lad.png",
+            "teams/mlb/wsh.png",
+            "teams/mlb/chc.png",
+            "teams/mlb/cws.png",
+            "teams/mlb/ari.png",
+            "teams/mlb/ath.png",
+            "teams/nba/wsh.png",
+            "teams/nba/cle.png",
+            "teams/nba/okc.png",
+        }
+        mlb = report._today_pick_html("LAD/WSH o8.5", "MLB", "logos", files)
+        self.assertIn('src="logos/teams/mlb/lad.png"', mlb)
+        self.assertIn('title="Washington Nationals"', mlb)
+        self.assertIn("o8.5", mlb)
+        cubs = report._today_pick_html("CHI/CWS o11.5", "MLB", "logos", files)
+        self.assertIn('src="logos/teams/mlb/chc.png"', cubs)
+        self.assertIn('title="Chicago White Sox"', cubs)
+        self.assertIn('src="logos/teams/mlb/ari.png"', report._today_pick_html("COL/AZ o11", "MLB", "logos", files | {"teams/mlb/col.png"}))
+        self.assertIn('title="Athletics"', report._today_pick_html("MIN/OAK o11.5", "MLB", "logos", files | {"teams/mlb/min.png"}))
+        self.assertEqual(report._today_pick_html("NL/AL o7.5", "MLB", "logos", files), "NL/AL o7.5")
+        self.assertEqual(report._today_pick_html("NL Cy Young - Misiorowski", "MLB", "logos", files), "NL Cy Young - Misiorowski")
+
+        nba = report._today_pick_html("WAS/CLE o244.5", "NBA", "logos", files)
+        self.assertIn('src="logos/teams/nba/wsh.png"', nba)
+        self.assertIn('title="Washington Wizards"', nba)
+        self.assertIn('src="logos/teams/nba/cle.png"', nba)
+        self.assertEqual(report._today_pick_html("SGA o49.5 Pts", "NBA", "logos", files), "SGA o49.5 Pts")
+        self.assertIn('alt="OKC"', report._today_pick_html("OKC to win NBA Finals", "NBA", "logos", files))
+
+    def test_ncaa_abbreviations_use_clear_logos_only(self) -> None:
+        files = {
+            "teams/ncaa/duke.png",
+            "teams/ncaa/ncstate.png",
+            "teams/ncaa/miami.png",
+            "teams/ncaa/miamioh.png",
+            "teams/ncaa/michiganstate.png",
+            "teams/ncaa/usc.png",
+            "teams/ncaa/utah.png",
+            "teams/ncaa/sacredheart.png",
+        }
+        basketball = report._today_pick_html("DUKE/NCST o52", "NCAAB", "logos", files)
+        self.assertIn('src="logos/teams/ncaa/duke.png"', basketball)
+        self.assertIn('title="NC State"', basketball)
+        self.assertIn('src="logos/teams/ncaa/miami.png"', report._today_pick_html("MI-FL -3", "NCAAF", "logos", files))
+        self.assertIn('title="Miami (OH)"', report._today_pick_html("MIOH +4.5", "NCAAB", "logos", files))
+        self.assertIn('title="Michigan State"', report._today_pick_html("MSU/USC o148.5", "NCAAB", "logos", files))
+        self.assertNotIn("mississippistate", report._today_pick_html("MSU/USC o148.5", "NCAAB", "logos", files))
+        unclear = report._today_pick_html("CB/UTAH o144.5", "NCAAB", "logos", files)
+        self.assertTrue(unclear.startswith("CB/"))
+        self.assertIn('title="Utah"', unclear)
+        ncaab_shu = report._today_pick_html("SHU/NCST u144.5", "NCAAB", "logos", files)
+        self.assertTrue(ncaab_shu.startswith("SHU/"))
+        self.assertNotIn("sacredheart", ncaab_shu)
+        self.assertIn("ncstate.png", ncaab_shu)
+        self.assertIn('title="Sacred Heart"', report._today_pick_html("LIU/SHU u43.5", "NCAAF", "logos", files))
+
+    def test_non_team_tokens_and_other_leagues_stay_text(self) -> None:
+        files = {"teams/nfl/no.png", "teams/nhl/car.png", "teams/ncaab/duke.png"}
+        self.assertEqual(
+            report._today_pick_html("Opening Kickoff - No Touchback", "NFL", "logos", files),
+            "Opening Kickoff - No Touchback",
+        )
+        self.assertEqual(
+            report._today_pick_html("Allen o0.5 Pass OR Rush TD 1Q", "NFL", "logos", files),
+            "Allen o0.5 Pass OR Rush TD 1Q",
+        )
+        self.assertEqual(
+            report._today_pick_html("McDavid o1.5 Ast", "NHL", "logos", files),
+            "McDavid o1.5 Ast",
+        )
+        self.assertEqual(
+            report._today_pick_html("DUKE/NCST o52", "NCAAB", "logos", files),
+            "DUKE/NCST o52",
+        )
+        self.assertEqual(
+            report._today_pick_html("MTL/TOR o6.5", "NHL", "logos", set()),
+            "MTL/TOR o6.5",
+        )
+        self.assertIn("&lt;script&gt;", report._today_pick_html("MTL <script>", "NHL", "logos", set()))
+
+    def test_today_cards_use_logos_and_tables_keep_abbreviations(self) -> None:
+        today = report.dt.date.today()
+        bets = [
+            _bet(date=today, pick="MTL/TOR o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
+            _bet(date=today, pick="DUKE/NCST o52", league="NCAAB", result="", net=float("nan"), bet_type="Total"),
+        ]
+        doc = report.build_html_report(
+            report.summarize(bets),
+            "Test",
+            {},
+            "NHL",
+            logo_base_href="logos",
+            available_logo_files={"teams/nhl/mtl.png", "teams/nhl/tor.png"},
+        )
+        today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
+        self.assertIn('class="team-logo" src="logos/teams/nhl/mtl.png"', today_html)
+        self.assertIn('class="team-logo" src="logos/teams/nhl/tor.png"', today_html)
+        self.assertIn("DUKE/NCST o52", today_html)
+        self.assertEqual(today_html.count('class="team-logo"'), 2)
+        self.assertIn('title="MTL/TOR o6.5 · -110"', today_html)
+        table = doc.split("id='all-bets-table'", 1)[1].split("</table>", 1)[0]
+        self.assertIn("MTL/TOR o6.5", table)
+        self.assertNotIn("team-logo", table)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,7 @@ import html
 import json
 import math
 import os
+import re
 import ssl
 import tempfile
 import urllib.request
@@ -89,6 +90,423 @@ BOOK_LOGO_MAP = {
     "BOL": "betonline.png",
     "BETONLINE": "betonline.png",
 }
+
+
+def _team_logo_map(league: str, teams: List[Tuple[str, ...]]) -> Dict[str, Tuple[str, str]]:
+    """Map a pick abbreviation to (logo path under logos/, display name)."""
+    mapping: Dict[str, Tuple[str, str]] = {}
+    for team in teams:
+        canonical, name, *aliases = team
+        filename = f"teams/{league}/{canonical.lower()}.png"
+        for abbr in (canonical, *aliases):
+            mapping[abbr] = (filename, name)
+    return mapping
+
+
+# Paths are the 128px square PNGs in logos/teams/. Extra tokens are aliases
+# that show up in the sheet. TBI is a one-off typo for Tampa Bay (TBI/NYI).
+TEAM_LOGO_BY_LEAGUE: Dict[str, Dict[str, Tuple[str, str]]] = {
+    "NHL": _team_logo_map(
+        "nhl",
+        [
+            ("ANA", "Anaheim Ducks"),
+            ("BOS", "Boston Bruins"),
+            ("BUF", "Buffalo Sabres"),
+            ("CGY", "Calgary Flames"),
+            ("CAR", "Carolina Hurricanes"),
+            ("CHI", "Chicago Blackhawks"),
+            ("COL", "Colorado Avalanche"),
+            ("CBJ", "Columbus Blue Jackets"),
+            ("DAL", "Dallas Stars"),
+            ("DET", "Detroit Red Wings"),
+            ("EDM", "Edmonton Oilers"),
+            ("FLA", "Florida Panthers"),
+            ("LAK", "Los Angeles Kings", "LA"),
+            ("MIN", "Minnesota Wild"),
+            ("MTL", "Montreal Canadiens"),
+            ("NSH", "Nashville Predators"),
+            ("NJD", "New Jersey Devils", "NJ"),
+            ("NYI", "New York Islanders"),
+            ("NYR", "New York Rangers"),
+            ("OTT", "Ottawa Senators"),
+            ("PHI", "Philadelphia Flyers"),
+            ("PIT", "Pittsburgh Penguins"),
+            ("SJS", "San Jose Sharks", "SJ"),
+            ("SEA", "Seattle Kraken"),
+            ("STL", "St. Louis Blues"),
+            ("TBL", "Tampa Bay Lightning", "TB", "TBI"),
+            ("TOR", "Toronto Maple Leafs"),
+            ("UTA", "Utah Mammoth", "UTAH"),
+            ("VAN", "Vancouver Canucks"),
+            ("VGK", "Vegas Golden Knights"),
+            ("WPG", "Winnipeg Jets"),
+            ("WSH", "Washington Capitals"),
+        ],
+    ),
+    "NFL": _team_logo_map(
+        "nfl",
+        [
+            ("ARI", "Arizona Cardinals"),
+            ("ATL", "Atlanta Falcons"),
+            ("BAL", "Baltimore Ravens"),
+            ("BUF", "Buffalo Bills"),
+            ("CAR", "Carolina Panthers"),
+            ("CHI", "Chicago Bears"),
+            ("CIN", "Cincinnati Bengals"),
+            ("CLE", "Cleveland Browns"),
+            ("DAL", "Dallas Cowboys"),
+            ("DEN", "Denver Broncos"),
+            ("DET", "Detroit Lions"),
+            ("GB", "Green Bay Packers"),
+            ("HOU", "Houston Texans"),
+            ("IND", "Indianapolis Colts"),
+            ("JAX", "Jacksonville Jaguars", "JAC"),
+            ("KC", "Kansas City Chiefs"),
+            ("LV", "Las Vegas Raiders", "LVR"),
+            ("LAC", "Los Angeles Chargers"),
+            ("LAR", "Los Angeles Rams"),
+            ("MIA", "Miami Dolphins"),
+            ("MIN", "Minnesota Vikings"),
+            ("NE", "New England Patriots"),
+            ("NO", "New Orleans Saints"),
+            ("NYG", "New York Giants"),
+            ("NYJ", "New York Jets"),
+            ("PHI", "Philadelphia Eagles"),
+            ("PIT", "Pittsburgh Steelers"),
+            ("SF", "San Francisco 49ers"),
+            ("SEA", "Seattle Seahawks"),
+            ("TB", "Tampa Bay Buccaneers"),
+            ("TEN", "Tennessee Titans"),
+            ("WSH", "Washington Commanders", "WAS"),
+        ],
+    ),
+    "NBA": _team_logo_map(
+        "nba",
+        [
+            ("ATL", "Atlanta Hawks"),
+            ("BKN", "Brooklyn Nets", "BRK"),
+            ("BOS", "Boston Celtics"),
+            ("CHA", "Charlotte Hornets", "CHO"),
+            ("CHI", "Chicago Bulls"),
+            ("CLE", "Cleveland Cavaliers"),
+            ("DAL", "Dallas Mavericks"),
+            ("DEN", "Denver Nuggets"),
+            ("DET", "Detroit Pistons"),
+            ("GSW", "Golden State Warriors", "GS"),
+            ("HOU", "Houston Rockets"),
+            ("IND", "Indiana Pacers"),
+            ("LAC", "LA Clippers"),
+            ("LAL", "Los Angeles Lakers"),
+            ("MEM", "Memphis Grizzlies"),
+            ("MIA", "Miami Heat"),
+            ("MIL", "Milwaukee Bucks"),
+            ("MIN", "Minnesota Timberwolves"),
+            ("NOP", "New Orleans Pelicans", "NO"),
+            ("NYK", "New York Knicks"),
+            ("OKC", "Oklahoma City Thunder"),
+            ("ORL", "Orlando Magic"),
+            ("PHI", "Philadelphia 76ers"),
+            ("PHX", "Phoenix Suns", "PHO"),
+            ("POR", "Portland Trail Blazers"),
+            ("SAC", "Sacramento Kings"),
+            ("SAS", "San Antonio Spurs", "SA"),
+            ("TOR", "Toronto Raptors"),
+            ("UTA", "Utah Jazz"),
+            ("WSH", "Washington Wizards", "WAS"),
+        ],
+    ),
+    # NL and AL stay as text. They are the All-Star Game, not clubs.
+    # CHI is the Cubs wherever the sheet pairs it with CWS.
+    "MLB": _team_logo_map(
+        "mlb",
+        [
+            ("ARI", "Arizona Diamondbacks", "AZ"),
+            ("ATH", "Athletics", "OAK"),
+            ("ATL", "Atlanta Braves"),
+            ("BAL", "Baltimore Orioles"),
+            ("BOS", "Boston Red Sox"),
+            ("CHC", "Chicago Cubs", "CHI"),
+            ("CWS", "Chicago White Sox", "CHW"),
+            ("CIN", "Cincinnati Reds"),
+            ("CLE", "Cleveland Guardians"),
+            ("COL", "Colorado Rockies"),
+            ("DET", "Detroit Tigers"),
+            ("HOU", "Houston Astros"),
+            ("KC", "Kansas City Royals"),
+            ("LAA", "Los Angeles Angels"),
+            ("LAD", "Los Angeles Dodgers"),
+            ("MIA", "Miami Marlins"),
+            ("MIL", "Milwaukee Brewers"),
+            ("MIN", "Minnesota Twins"),
+            ("NYM", "New York Mets"),
+            ("NYY", "New York Yankees"),
+            ("PHI", "Philadelphia Phillies"),
+            ("PIT", "Pittsburgh Pirates"),
+            ("SD", "San Diego Padres", "SDP"),
+            ("SF", "San Francisco Giants", "SFG"),
+            ("SEA", "Seattle Mariners"),
+            ("STL", "St. Louis Cardinals"),
+            ("TB", "Tampa Bay Rays", "TBR"),
+            ("TEX", "Texas Rangers"),
+            ("TOR", "Toronto Blue Jays"),
+            ("WSH", "Washington Nationals", "WAS"),
+        ],
+    ),
+}
+
+
+def _ncaa_logo_map(rows: List[Tuple[Tuple[str, ...], str, str]]) -> Dict[str, Tuple[str, str]]:
+    mapping: Dict[str, Tuple[str, str]] = {}
+    for abbrs, slug, name in rows:
+        filename = f"teams/ncaa/{slug.lower()}.png"
+        for abbr in abbrs:
+            mapping[abbr] = (filename, name)
+    return mapping
+
+
+# Abbreviations that clearly mean one school. Ambiguous codes are omitted
+# so those picks stay as text.
+NCAA_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
+    (("DUKE", "DUK"), "duke", "Duke"),
+    (("NCST",), "ncState", "NC State"),
+    (("UNC",), "northCarolina", "North Carolina"),
+    (("WAKE",), "wakeForest", "Wake Forest"),
+    (("CLEM",), "clemson", "Clemson"),
+    (("FSU",), "floridaState", "Florida State"),
+    (("LOUI",), "louisville", "Louisville"),
+    (("ND",), "notreDame", "Notre Dame"),
+    (("SYR", "CUSE"), "syracuse", "Syracuse"),
+    (("MIA", "MI-FL", "MIAMI"), "miami", "Miami"),
+    (("MIOH", "MI-OH"), "miamiOH", "Miami (OH)"),
+    (("STAN",), "stanford", "Stanford"),
+    (("CAL",), "california", "California"),
+    (("UCLA",), "ucla", "UCLA"),
+    (("USC",), "usc", "USC"),
+    (("WSU",), "washingtonState", "Washington State"),
+    (("WASH",), "washington", "Washington"),
+    (("ORE",), "oregon", "Oregon"),
+    (("ORST",), "oregonState", "Oregon State"),
+    (("ASU",), "arizonaState", "Arizona State"),
+    (("ARIZ", "ARI"), "arizona", "Arizona"),
+    (("COL", "COLO"), "colorado", "Colorado"),
+    (("CSU",), "coloradoState", "Colorado State"),
+    (("UTAH",), "utah", "Utah"),
+    (("BYU",), "byu", "BYU"),
+    (("BAY",), "baylor", "Baylor"),
+    (("TCU",), "TCU", "TCU"),
+    (("TTU",), "texasTech", "Texas Tech"),
+    (("TEX",), "texas", "Texas"),
+    (("OKST",), "OklahomaState", "Oklahoma State"),
+    (("OKLA", "OU"), "oklahoma", "Oklahoma"),
+    (("KSU",), "kansasState", "Kansas State"),
+    (("KU", "KAN"), "kansas", "Kansas"),
+    (("ISU",), "iowaState", "Iowa State"),
+    (("HOU",), "houston", "Houston"),
+    (("CIN",), "cincinnati", "Cincinnati"),
+    (("UCF",), "ucf", "UCF"),
+    (("WVU",), "westVirginia", "West Virginia"),
+    (("IOWA", "IOW"), "iowa", "Iowa"),
+    (("ILL",), "illinois", "Illinois"),
+    (("IND", "IU"), "indiana", "Indiana"),
+    (("INST", "INDS"), "indianaState", "Indiana State"),
+    (("PUR",), "purdue", "Purdue"),
+    (("MSU",), "michiganState", "Michigan State"),
+    (("MICH",), "michigan", "Michigan"),
+    (("OSU",), "ohioState", "Ohio State"),
+    (("PSU",), "pennState", "Penn State"),
+    (("WISC",), "wisconsin", "Wisconsin"),
+    (("MINN",), "minnesota", "Minnesota"),
+    (("NEB",), "nebraska", "Nebraska"),
+    (("NW",), "northwestern", "Northwestern"),
+    (("UMD", "MD"), "maryland", "Maryland"),
+    (("RUT",), "rutgers", "Rutgers"),
+    (("UK", "KY"), "kentucky", "Kentucky"),
+    (("TEN", "TENN"), "tennessee", "Tennessee"),
+    (("VAN", "VAND"), "vanderbilt", "Vanderbilt"),
+    (("FLA",), "florida", "Florida"),
+    (("UGA",), "georgia", "Georgia"),
+    (("AUB",), "auburn", "Auburn"),
+    (("BAMA", "ALA"), "alabama", "Alabama"),
+    (("LSU",), "lsu", "LSU"),
+    (("MISS",), "oleMiss", "Ole Miss"),
+    (("MSST",), "mississippiState", "Mississippi State"),
+    (("MIZZ", "MIZ"), "missouri", "Missouri"),
+    (("ARK",), "arkansas", "Arkansas"),
+    (("TAMU",), "texasAM", "Texas A&M"),
+    (("SC",), "southCarolina", "South Carolina"),
+    (("CONN",), "connecticut", "UConn"),
+    (("BUT",), "butler", "Butler"),
+    (("NOVA",), "villanova", "Villanova"),
+    (("GTWN",), "georgetown", "Georgetown"),
+    (("DAV", "DAVI"), "davidson", "Davidson"),
+    (("DUQ",), "duquesne", "Duquesne"),
+    (("URI",), "rhodeIsland", "Rhode Island"),
+    (("MASS", "UMASS"), "massachusetts", "Massachusetts"),
+    (("FOR",), "fordham", "Fordham"),
+    (("SDSU",), "sanDiegoState", "San Diego State"),
+    (("USD",), "sanDiego", "San Diego"),
+    (("SD", "SDAK"), "southDakota", "South Dakota"),
+    (("SDST",), "southDakotaState", "South Dakota State"),
+    (("FRES",), "fresnoState", "Fresno State"),
+    (("BSU",), "boiseState", "Boise State"),
+    (("USU",), "utahState", "Utah State"),
+    (("WYO",), "wyoming", "Wyoming"),
+    (("UNLV",), "unlv", "UNLV"),
+    (("NEV",), "nevada", "Nevada"),
+    (("NM", "UNM"), "newMexico", "New Mexico"),
+    (("NMSU", "NMST"), "newMexicoState", "New Mexico State"),
+    (("SJSU",), "sanJoseState", "San Jose State"),
+    (("AFA", "AF"), "airForce", "Air Force"),
+    (("HAW",), "hawaii", "Hawaii"),
+    (("UCD",), "ucDavis", "UC Davis"),
+    (("CP", "SLO", "POLY"), "calPoly", "Cal Poly"),
+    (("SAC", "SACR", "CSUS"), "sacramentoState", "Sacramento State"),
+    (("WEB",), "weberState", "Weber State"),
+    (("NAU",), "northernArizona", "Northern Arizona"),
+    (("EWU", "EW"), "easternWashington", "Eastern Washington"),
+    (("IDA", "IDAH"), "idaho", "Idaho"),
+    (("IDST",), "idahoState", "Idaho State"),
+    (("MONT",), "montana", "Montana"),
+    (("MNST", "MTST"), "montanaState", "Montana State"),
+    (("UND",), "northDakota", "North Dakota"),
+    (("NDSU", "NDST"), "northDakotaState", "North Dakota State"),
+    (("NOCO",), "northernColorado", "Northern Colorado"),
+    (("SUU",), "southernUtah", "Southern Utah"),
+    (("ACU", "ABIL"), "abileneChristian", "Abilene Christian"),
+    (("SHSU",), "samHoustonState", "Sam Houston"),
+    (("KENN",), "kennesawState", "Kennesaw State"),
+    (("PEAY",), "austinPeay", "Austin Peay"),
+    (("LAM",), "lamar", "Lamar"),
+    (("MCNS",), "mcNeeseState", "McNeese"),
+    (("NICH",), "nichollsState", "Nicholls"),
+    (("SFA",), "stephenFAustin", "Stephen F. Austin"),
+    (("SELA", "SELO"), "southeasternLouisiana", "SE Louisiana"),
+    (("SEM", "SEMO"), "southeastMissouriState", "Southeast Missouri"),
+    (("UCA",), "centralArkansas", "Central Arkansas"),
+    (("TUL", "TULN"), "tulane", "Tulane"),
+    (("TLSA", "TULS"), "tulsa", "Tulsa"),
+    (("MEM",), "memphis", "Memphis"),
+    (("SMU",), "smu", "SMU"),
+    (("UTSA",), "texasSanAntonio", "UTSA"),
+    (("UTEP",), "utep", "UTEP"),
+    (("UNT",), "northTexas", "North Texas"),
+    (("TXST",), "texasState", "Texas State"),
+    (("TXSO",), "texasSouthern", "Texas Southern"),
+    (("LT",), "LouisianaTech", "Louisiana Tech"),
+    (("WKY",), "westernKentucky", "Western Kentucky"),
+    (("MTSU",), "middleTennessee", "Middle Tennessee"),
+    (("FIU",), "floridaIntl", "FIU"),
+    (("FAU",), "floridaAtlantic", "FAU"),
+    (("USF",), "southFlorida", "South Florida"),
+    (("CHAR",), "charlotte", "Charlotte"),
+    (("APP", "APST"), "appalachianState", "Appalachian State"),
+    (("UAB",), "uab", "UAB"),
+    (("MRSH",), "marshall", "Marshall"),
+    (("LIB",), "liberty", "Liberty"),
+    (("TEM", "TEMP"), "temple", "Temple"),
+    (("TOL",), "toledo", "Toledo"),
+    (("BG", "BGSU"), "bowlingGreen", "Bowling Green"),
+    (("CMU",), "centralMichigan", "Central Michigan"),
+    (("EMU",), "easternMichigan", "Eastern Michigan"),
+    (("WMU",), "westernMichigan", "Western Michigan"),
+    (("KENT",), "kentState", "Kent State"),
+    (("AKR",), "akron", "Akron"),
+    (("OHIO",), "ohio", "Ohio"),
+    (("BUF", "BUFF"), "buffalo", "Buffalo"),
+    (("BALL",), "ballState", "Ball State"),
+    (("NIU",), "northernIllinois", "Northern Illinois"),
+    (("MOST",), "missouriState", "Missouri State"),
+    (("DRAK",), "drake", "Drake"),
+    (("UNI",), "northernIowa", "Northern Iowa"),
+    (("ILST",), "illinoisState", "Illinois State"),
+    (("VALP",), "valparaiso", "Valparaiso"),
+    (("MURR",), "murrayState", "Murray State"),
+    (("EIU",), "easternIllinois", "Eastern Illinois"),
+    (("TNST",), "tennesseeState", "Tennessee State"),
+    (("TNTC",), "tennesseeTech", "Tennessee Tech"),
+    (("UTM",), "tennesseeMartin", "UT Martin"),
+    (("EKU", "EKY"), "easternKentucky", "Eastern Kentucky"),
+    (("JVST", "JXST"), "jacksonvilleState", "Jacksonville State"),
+    (("JSU", "JKST"), "jacksonState", "Jackson State"),
+    (("JAX",), "jacksonville", "Jacksonville"),
+    (("BCU",), "bethuneCookman", "Bethune-Cookman"),
+    (("AAMU",), "alabamaAM", "Alabama A&M"),
+    (("ALST",), "alabamaState", "Alabama State"),
+    (("GRAM",), "gramblingState", "Grambling"),
+    (("PVAM",), "prairieView", "Prairie View"),
+    (("NCAT",), "northCarolinaAT", "NC A&T"),
+    (("NCC",), "northCarolinaCentral", "NC Central"),
+    (("HOW",), "howard", "Howard"),
+    (("SCST",), "southCarolinaState", "South Carolina State"),
+    (("MORG",), "morganState", "Morgan State"),
+    (("UL",), "louisianaLafayette", "Louisiana"),
+    (("ULM",), "louisianaMonroe", "UL Monroe"),
+    (("TROY",), "troy", "Troy"),
+    (("USA",), "southAlabama", "South Alabama"),
+    (("GASO",), "georgiaSouthern", "Georgia Southern"),
+    (("GAST",), "georgiaState", "Georgia State"),
+    (("CCU",), "coastalCarolina", "Coastal Carolina"),
+    (("ARST",), "arkansasState", "Arkansas State"),
+    (("WIU",), "westernIllinois", "Western Illinois"),
+    (("YSU",), "youngstownState", "Youngstown State"),
+    (("PRST",), "portlandState", "Portland State"),
+    (("ECU",), "eastCarolina", "East Carolina"),
+    (("USM",), "southernMississippi", "Southern Miss"),
+    (("BRY",), "bryant", "Bryant"),
+    (("APB",), "arkansasPineBluff", "Arkansas-Pine Bluff"),
+    (("SFPA",), "stFrancisPA", "St. Francis (PA)"),
+    (("STET",), "stetson", "Stetson"),
+    (("MVSU",), "mississippiValleyState", "Mississippi Valley State"),
+    (("MON", "MONM"), "monmouth", "Monmouth"),
+    (("CHSO",), "charlestonSouthern", "Charleston Southern"),
+    (("CHAT", "UTC"), "chattanooga", "Chattanooga"),
+    (("WOF", "WOFF"), "wofford", "Wofford"),
+    (("ETSU",), "eastTennessee", "ETSU"),
+    (("FUR",), "furman", "Furman"),
+    (("SAM", "SAST"), "samford", "Samford"),
+    (("WC", "WCU"), "westernCarolina", "Western Carolina"),
+    (("MER", "MERC"), "mercer", "Mercer"),
+    (("CIT",), "citadel", "The Citadel"),
+    (("ELON",), "elon", "Elon"),
+    (("DEL",), "delaware", "Delaware"),
+    (("DSU",), "delawareState", "Delaware State"),
+    (("TOW", "TOWS"), "towson", "Towson"),
+    (("UNH",), "newHampshire", "New Hampshire"),
+    (("ME",), "maine", "Maine"),
+    (("ALB",), "albany", "Albany"),
+    (("HARV",), "harvard", "Harvard"),
+    (("YALE", "YAL"), "yale", "Yale"),
+    (("PRIN",), "princeton", "Princeton"),
+    (("PENN",), "penn", "Penn"),
+    (("COR", "CORN"), "cornell", "Cornell"),
+    (("DART",), "dartmouth", "Dartmouth"),
+    (("HC",), "holyCross", "Holy Cross"),
+    (("LEH",), "lehigh", "Lehigh"),
+    (("LAF",), "lafayette", "Lafayette"),
+    (("BUC",), "bucknell", "Bucknell"),
+    (("NAVY",), "navy", "Navy"),
+    (("ARMY",), "army", "Army"),
+    (("SBK",), "stonyBrook", "Stony Brook"),
+    (("BU",), "boston", "Boston University"),
+    (("GT",), "georgiaTech", "Georgia Tech"),
+    (("PIT", "PITT"), "pittsburgh", "Pittsburgh"),
+    (("RICE",), "rice", "Rice"),
+    (("MORE",), "moreheadState", "Morehead State"),
+    (("MARS",), "marist", "Marist"),
+    (("WIL",), "williamMary", "William & Mary"),
+    (("WAG",), "wagner", "Wagner"),
+    (("RM", "RMU"), "robertMorris", "Robert Morris"),
+    (("PRES",), "presbyterianCollege", "Presbyterian"),
+]
+
+NCAAF_ONLY_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
+    (("SHU",), "sacredHeart", "Sacred Heart"),
+]
+
+TEAM_LOGO_BY_LEAGUE["NCAAB"] = _ncaa_logo_map(NCAA_LOGO_TEAMS)
+TEAM_LOGO_BY_LEAGUE["NCAAF"] = _ncaa_logo_map(NCAA_LOGO_TEAMS + NCAAF_ONLY_LOGO_TEAMS)
+
+_TEAM_ABBR_RE = re.compile(r"\b([A-Z]{2,6}(?:-[A-Z]{2,4})?)\b")
 
 
 BADGE_FALLBACK_PALETTE = [
@@ -181,6 +599,40 @@ def _book_badge(
     color = BOOK_COLOR_MAP.get(key, _fallback_color(book))
     logo_href = _logo_href(book, BOOK_LOGO_MAP, logo_base_href, available_logo_files)
     return _badge_html(book, color, logo_href=logo_href)
+
+
+def _today_pick_html(
+    pick: str,
+    league: str,
+    logo_base_href: str = "logos",
+    available_logo_files: Optional[set[str]] = None,
+) -> str:
+    """Replace NHL/NFL team abbreviations on today cards with a uniform logo."""
+    mapping = TEAM_LOGO_BY_LEAGUE.get((league or "").strip().upper())
+    if not mapping:
+        return html.escape(pick)
+    parts: List[str] = []
+    last = 0
+    for match in _TEAM_ABBR_RE.finditer(pick):
+        parts.append(html.escape(pick[last:match.start()]))
+        abbr = match.group(1)
+        entry = mapping.get(abbr)
+        if entry is None:
+            parts.append(html.escape(abbr))
+        else:
+            filename, name = entry
+            if available_logo_files is not None and filename.lower() not in available_logo_files:
+                parts.append(html.escape(abbr))
+            else:
+                href = html.escape(_join_href(logo_base_href, filename), quote=True)
+                parts.append(
+                    '<img class="team-logo" src="'
+                    f'{href}" alt="{html.escape(abbr)}" title="{html.escape(name, quote=True)}" '
+                    'loading="lazy" decoding="async" />'
+                )
+        last = match.end()
+    parts.append(html.escape(pick[last:]))
+    return "".join(parts)
 
 
 def _parse_money(value: str) -> float:
@@ -1050,9 +1502,10 @@ def build_html_report(
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
             odds_text = html.escape(_fmt_odds(r.get("odds"))) or "—"
             pick_tooltip = html.escape(f'{r["pick"]} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
+            pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files)
             items["closed" if result else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-body">
-                <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{html.escape(r["pick"])}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
+                <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{pick_html}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
                 <div class="today-meta">{date_label}</div>
               </div>
               <div class="today-bet-top">
@@ -1717,7 +2170,9 @@ def build_html_report(
     .today-result > span {{ font-size: 12px; line-height: 1; }}
     .today-bet-body {{ flex: 1; min-width: 0; padding: 0 0 7px; }}
     .today-pick-line {{ --pick-font-size: 13px; display: flex; align-items: baseline; gap: 6px; width: 100%; min-width: 0; white-space: nowrap; line-height: 1.35; }}
+    .today-pick-line:has(.team-logo) {{ align-items: center; }}
     .today-pick {{ min-width: 0; margin: 0; font-size: var(--pick-font-size); font-weight: 700; line-height: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+    .today-pick .team-logo {{ display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
     .today-meta:empty {{ display: none; }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
@@ -2788,9 +3243,14 @@ def main() -> int:
     logos_dir = os.path.join(report_root, "logos")
     available_logo_files: Optional[set[str]] = None
     if os.path.isdir(logos_dir):
-        available_logo_files = {
-            name.lower() for name in os.listdir(logos_dir) if os.path.isfile(os.path.join(logos_dir, name))
-        }
+        available_logo_files = set()
+        for dirpath, _, filenames in os.walk(logos_dir):
+            for name in filenames:
+                full = os.path.join(dirpath, name)
+                if not os.path.isfile(full):
+                    continue
+                rel = os.path.relpath(full, logos_dir).replace(os.sep, "/")
+                available_logo_files.add(rel.lower())
 
     out_dir = os.path.dirname(os.path.abspath(args.output))
     logo_base_href = "logos"
