@@ -207,6 +207,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Source logo pack. The site uses the copied files in logos/teams/.
+# Nested clones. The site uses the copied files in logos/teams/.
+# Do not record these as submodules: Pages fails checkout without .gitmodules.
 team-logos/
+logos/sdv-assets/
 
