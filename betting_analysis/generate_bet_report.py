@@ -1046,6 +1046,11 @@ def _team_logo_for_abbr(
     return filename, name
 
 
+def _display_pick(pick: str) -> str:
+    """Remove sheet separators while preserving names like Texas A&M and fractions."""
+    return re.sub(r"\s+", " ", re.sub(r"(?<!\d)/(?!\d)|(?<!\w)&(?!\w)|(?<!\d),|,(?!\d)", " ", pick)).strip()
+
+
 def _today_pick_text(
     pick: str,
     league: str,
@@ -1056,7 +1061,7 @@ def _today_pick_text(
         logo = _team_logo_for_abbr(match.group(1), league, available_logo_files)
         return logo[1] if logo else match.group(1)
 
-    return _TEAM_ABBR_RE.sub(replace, pick)
+    return _TEAM_ABBR_RE.sub(replace, _display_pick(pick))
 
 
 def _today_pick_html(
@@ -1066,6 +1071,7 @@ def _today_pick_html(
     available_logo_files: Optional[set[str]] = None,
 ) -> str:
     """Replace team abbreviations on today cards with a uniform logo."""
+    pick = _display_pick(pick)
     parts: List[str] = []
     last = 0
     for match in _TEAM_ABBR_RE.finditer(pick):
@@ -1165,8 +1171,8 @@ def _recognized_teams(pick: str, league: str) -> List[Dict[str, str]]:
 
 def _matchup_from_pick(
     pick: str, league: str
-) -> Tuple[Optional[Tuple[Dict[str, str], Dict[str, str]]], Optional[str]]:
-    """Both teams, when the pick is one A/B matchup we can look up."""
+) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    """Teams to look up: both sides of one A/B matchup, or the one named team."""
     league = (league or "").strip().upper()
     pairs: List[Tuple[Dict[str, str], Dict[str, str]]] = []
     seen = set()
@@ -1193,20 +1199,31 @@ def _matchup_from_pick(
         elif away or home:
             partial.append(left if away is None else right)
     if len(pairs) == 1:
-        return pairs[0], None
+        return list(pairs[0]), None
     if len(pairs) > 1:
-        return None, "pick names more than one matchup"
+        return [], "pick names more than one matchup"
     if missing_ids:
-        return None, f"no ESPN team id for {missing_ids[0]}"
+        return [], f"no ESPN team id for {missing_ids[0]}"
     if partial:
-        return None, f"unrecognized team ({partial[0]})"
+        return [], f"unrecognized team ({partial[0]})"
     teams = _recognized_teams(pick, league)
     if not teams:
-        return None, "no recognized team abbreviation"
+        return [], "no recognized team abbreviation"
     if len(teams) == 1:
-        return None, f"only one team named ({teams[0]['name']})"
+        team = teams[0]
+        if league in {"NCAAB", "NCAAF"} and not team["espn_id"]:
+            return [], f"no ESPN team id for {team['abbr']}"
+        return [team], None
     names = ", ".join(team["name"] for team in teams)
-    return None, f"teams are not written as one matchup ({names})"
+    return [], f"teams are not written as one matchup ({names})"
+
+
+def _matching_games(games: List[Dict[str, Any]], teams: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    if all(team.get("espn_id") for team in teams):
+        wanted = {team["espn_id"] for team in teams}
+        return [game for game in games if wanted <= game["ids"]]
+    wanted = {team["espn_abbr"] for team in teams}
+    return [game for game in games if wanted <= game["abbrs"]]
 
 
 def _format_game_start(raw: str) -> Optional[Tuple[str, str]]:
@@ -1222,8 +1239,9 @@ def _format_game_start(raw: str) -> Optional[Tuple[str, str]]:
     if start.tzinfo is None:
         start = start.replace(tzinfo=dt.timezone.utc)
     eastern = start.astimezone(_EASTERN)
-    clock = eastern.strftime("%I:%M %p").lstrip("0")
-    return f"{clock} ET", start.isoformat()
+    hour = eastern.strftime("%I").lstrip("0")
+    clock = f"{hour}:{eastern.minute:02d}" if eastern.minute else hour
+    return f"{clock} {eastern.strftime('%p')}", start.isoformat()
 
 
 def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -1343,10 +1361,11 @@ def resolve_game_times(
     fetch: Optional[Callable[[str, dt.date], Tuple[List[Dict[str, Any]], Optional[str]]]] = None,
     now: Optional[dt.datetime] = None,
 ) -> Tuple[Dict[Tuple[str, str, str], Dict[str, str]], List[str]]:
-    """Start times for today/upcoming cards whose pick names both teams of one game.
+    """Start times for today/upcoming team cards.
 
-    Parlays and other multi-game picks are skipped quietly. The notes are matchups
-    we could not place, plus one summary line for picks with no recognized team.
+    A matchup uses both teams. A single-team side, moneyline, or total uses that
+    team's only game on the slate date. Parlays are skipped. The notes are the
+    cards we could not place, plus one summary line for picks with no team.
     """
     fetch = fetch or _espn_slate
     if now is None:
@@ -1359,8 +1378,8 @@ def resolve_game_times(
         league = str(row.get("league") or "").strip().upper() or "OTHER"
         pick = str(row.get("pick") or "")
         date_text = str(row.get("date") or "").strip()
-        pair, reason = _matchup_from_pick(pick, league)
-        if pair is None:
+        teams, reason = _matchup_from_pick(pick, league)
+        if not teams:
             if reason == "no recognized team abbreviation":
                 no_team += 1
             elif reason and (
@@ -1383,16 +1402,8 @@ def resolve_game_times(
         if error:
             notes.append(f"{date_text} {league} {pick}: {error}")
             continue
-        away, home = pair
-        if away["espn_id"] and home["espn_id"]:
-            hits = [game for game in games if away["espn_id"] in game["ids"] and home["espn_id"] in game["ids"]]
-        else:
-            hits = [
-                game
-                for game in games
-                if away["espn_abbr"] in game["abbrs"] and home["espn_abbr"] in game["abbrs"]
-            ]
-        label = f"{away['name']} and {home['name']}"
+        hits = _matching_games(games, teams)
+        label = " and ".join(team["name"] for team in teams)
         if len(hits) == 1:
             times[(date_text, league, pick)] = _clock_label(hits[0], now)
         elif len(hits) > 1:
@@ -2248,13 +2259,22 @@ def build_html_report(
             return f"--league-color:{color};--league-rgb:{rgb}"
 
         rows = _collapse_bet_rows(bet_rows)
-        if upcoming:
-            rows.sort(key=lambda r: r["date"])
+
+        def card_sort_key(row: Dict[str, Any]) -> Tuple[float, float]:
+            league = str(row.get("league") or "").strip().upper() or "OTHER"
+            start = (game_times or {}).get((row["date"], league, row["pick"])) or {}
+            formatted = _format_game_start(str(start.get("iso") or ""))
+            timestamp = dt.datetime.fromisoformat(formatted[1]).timestamp() if formatted else float("inf")
+            risk = _finite_float(row.get("risk"))
+            return timestamp, -risk if risk is not None else float("inf")
+
+        # Keep unknown starts last, and larger combined stakes first at each start.
+        rows.sort(key=card_sort_key)
         league_names = sorted({str(r.get("league") or "").strip().upper() or "OTHER" for r in rows})
         filters = [f'<button type="button" data-today-league="" aria-pressed="true" aria-controls="{panel_key}-bets">All</button>']
         for league in league_names:
             filters.append(f'<button type="button" data-today-league="{html.escape(league, quote=True)}" style="{league_style(league)}" aria-pressed="false" aria-controls="{panel_key}-bets"><span class="today-league-dot" aria-hidden="true"></span>{html.escape(league)}</button>')
-        items = {"open": []} if upcoming else {"open": [], "closed": []}
+        items = {status: {"straight": [], "parlay": []} for status in (["open"] if upcoming else ["open", "closed"])}
         statuses = {
             "": ("open", "Open", "◷"),
             "W": ("won", "Won", "✓"),
@@ -2286,17 +2306,19 @@ def build_html_report(
             date_label = ""
             if upcoming:
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
+            bet_section = "parlay" if str(r.get("type") or "").strip().casefold() == "parlay" else "straight"
             odds_text = html.escape(_fmt_odds(r.get("odds"))) or "—"
             pick_label = _today_pick_text(r["pick"], league, available_logo_files)
             pick_tooltip = html.escape(f'{pick_label} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
             pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files)
             start = (game_times or {}).get((r["date"], league, r["pick"]))
             start_html = _game_time_html(start)
+            when_html = f'<div class="today-when">{start_html}</div>' if start_html else ""
             game_done = bool(start and start.get("done")) and not upcoming
-            items["closed" if result or game_done else "open"].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+            items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-body">
                 <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{pick_html}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
-                <div class="today-meta">{date_label}{start_html}</div>
+                <div class="today-meta">{date_label}</div>
               </div>
               <div class="today-bet-top">
                 <div class="today-league">{result_badge}</div>
@@ -2304,18 +2326,31 @@ def build_html_report(
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money_compact(r.get("risk")) or "—"}{units}</dd></div>
+                {when_html}
                 <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "wins"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
             </li>''')
         group_markup = []
-        for status, bets in items.items():
+        for status, sections in items.items():
+            count = sum(len(bets) for bets in sections.values())
+            section_markup = []
+            for kind, bets in sections.items():
+                if not bets:
+                    continue
+                label = "Parlays" if kind == "parlay" else "Straight"
+                section_id = f"{panel_key}-{status}-{kind}-title"
+                section_markup.append(
+                    f'<div class="today-bet-section" data-bet-section="{kind}" role="group" aria-labelledby="{section_id}">'
+                    f'<h4 id="{section_id}" class="today-bet-section-title">{label}</h4>'
+                    f'<ul class="today-bets" aria-label="{status.title()} {label.lower()} bets">{"".join(bets)}</ul></div>'
+                )
             tag = "details" if status == "closed" else "div"
             heading = "summary" if status == "closed" else "h3"
             role = ' role="group"' if status == "open" else ""
             group_markup.append(
-                f'<{tag} class="today-group" data-today-group="{status}"{role} aria-labelledby="{panel_key}-{status}-title"{(" hidden" if not bets else "")}>'
-                f'<{heading} id="{panel_key}-{status}-title" class="today-group-title">{status.title()} <span class="today-group-count">{len(bets)}</span></{heading}>'
-                f'<ul class="today-bets" aria-label="{status.title()} bets">{"".join(bets)}</ul></{tag}>'
+                f'<{tag} class="today-group" data-today-group="{status}"{role} aria-labelledby="{panel_key}-{status}-title"{(" open" if status == "closed" else "")}{(" hidden" if not count else "")}>'
+                f'<{heading} id="{panel_key}-{status}-title" class="today-group-title">{status.title()} <span class="today-group-count">{count}</span></{heading}>'
+                f'{"".join(section_markup)}</{tag}>'
             )
         groups = "".join(group_markup)
         return (
@@ -2906,7 +2941,7 @@ def build_html_report(
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
 
-    .today-panel {{ min-width: 0; padding: 10px 12px; }}
+    .today-panel {{ min-width: 0; padding: 12px; }}
     .today-header {{ display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 7px; }}
     .today-heading {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }}
     .today-heading h2 {{ margin: 0; font-size: 16px; }}
@@ -2917,7 +2952,7 @@ def build_html_report(
     .today-filter-bar {{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border); }}
     .today-filter-controls {{ display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }}
     .today-filter-bar[hidden], .today-panel[data-view] .today-bet[hidden], .today-group[hidden], .today-empty[hidden] {{ display: none; }}
-    .today-group + .today-group {{ margin-top: 9px; }}
+    .today-group + .today-group {{ margin-top: 12px; }}
     .today-group[hidden] + .today-group {{ margin-top: 0; }}
     .today-group-title {{ display: flex; align-items: center; gap: 6px; margin: 0 0 5px; font-size: 11px; font-weight: 600; color: var(--muted); }}
     .today-group-title::after {{ content: ''; height: 1px; flex: 1; background: var(--border); }}
@@ -2948,7 +2983,11 @@ def build_html_report(
     .today-panel dd {{ margin: 3px 0 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }}
     .today-summary dd {{ margin: 0; font-size: 14px; }}
     .today-summary .today-risk-value {{ color: #fbbf24; }}
-    .today-bets {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; list-style: none; padding: 0; margin: 0; }}
+    .today-bets {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 0; }}
+    .today-bet-section[hidden] {{ display: none; }}
+    .today-bet-section:not([hidden]) + .today-bet-section {{ margin-top: 12px; }}
+    .today-bet-section-title {{ display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }}
+    .today-bet-section-title::after {{ content: ''; flex: 1; height: 1px; background: var(--border); }}
     .today-bet {{ --result-color: var(--muted); display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid var(--border); border-left: 2px solid rgba(var(--league-rgb),0.35); border-radius: 6px; background: rgba(var(--league-rgb),0.025); }}
     .today-bet--won {{ --result-color: var(--good); }}
     .today-bet--lost {{ --result-color: var(--bad); }}
@@ -2969,15 +3008,14 @@ def build_html_report(
     .today-pick .team-logo {{ display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
     .today-meta:empty {{ display: none; }}
-    .today-meta .today-start {{ font-variant-numeric: tabular-nums; }}
-    .today-meta .today-start.is-live {{ color: var(--accent); font-weight: 600; }}
-    .today-meta time + .today-start::before {{ content: "· "; }}
+    .today-when {{ display: flex; align-items: baseline; min-width: 0; }}
+    .today-bet-money .today-start {{ color: inherit; font: inherit; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
     .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
     .today-logos .badge-logo {{ background: transparent; border: 0; filter: saturate(0.65); }}
     .today-logos:hover .badge-logo {{ filter: none; }}
-    .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 5px; color: var(--muted); }}
+    .today-bet-money {{ display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px; margin: 0; padding-top: 5px; color: var(--muted); font-size: 11px; font-weight: 400; line-height: 1.4; }}
     .today-panel .today-bet-money dt {{ font-size: 10px; }}
     .today-stake {{ padding: 2px 0; }}
     .today-stake dt {{ color: var(--muted); font-weight: 400; }}
@@ -2986,21 +3024,22 @@ def build_html_report(
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
     .today-net-label {{ position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }}
-    .today-panel[data-view="cards"] .today-bet {{ display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 4px 8px; }}
+    .today-panel[data-view="cards"] .today-bet {{ display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 6px 10px; padding: 10px; }}
     .today-panel[data-view="cards"] .today-bet-top {{ display: contents; }}
     .today-panel[data-view="cards"] .today-bet-body {{ grid-column: 1; grid-row: 1; padding: 0; }}
-    .today-panel[data-view="cards"] .today-logos {{ grid-column: 2; grid-row: 1; align-self: start; max-width: 60px; margin-top: 1px; }}
+    .today-panel[data-view="cards"] .today-logos {{ grid-column: 2; grid-row: 1; align-self: start; gap: 4px; max-width: 84px; margin-top: 2px; }}
     .today-panel[data-view="cards"] .today-league {{ grid-column: 1 / -1; }}
+    .today-panel[data-view="cards"] .today-pick-line {{ min-height: 22px; align-items: center; }}
     .today-panel[data-view="cards"] .today-pick {{ margin: 0; min-width: 0; }}
-    .today-panel[data-view="cards"] .today-meta {{ gap: 4px 6px; }}
-    .today-panel[data-view="cards"] .today-bet-money {{ grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; margin-top: 6px; padding-top: 2px; border-top: 1px solid rgba(255,255,255,0.055); }}
-    .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
-    .today-panel[data-view="cards"] .today-return {{ margin-left: auto; padding-right: 0; }}
-    .today-panel[data-view="cards"] .today-bet-money dd {{ margin: 0; font-size: 11px; font-weight: 400; }}
+    .today-panel[data-view="cards"] .today-meta {{ gap: 4px 6px; margin-top: 4px; line-height: 1.4; }}
+    .today-panel[data-view="cards"] .today-bet-money {{ grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 8px; margin-top: 2px; padding-top: 7px; border-top: 1px solid rgba(255,255,255,0.055); }}
+    .today-panel[data-view="cards"] .today-stake, .today-panel[data-view="cards"] .today-return, .today-panel[data-view="cards"] .today-when {{ display: flex; align-items: baseline; flex-wrap: nowrap; gap: 4px; padding: 0; white-space: nowrap; }}
+    .today-panel[data-view="cards"] .today-return {{ margin-left: 0; padding-right: 0; }}
+    .today-panel[data-view="cards"] .today-bet-money dd {{ flex-wrap: nowrap; gap: 4px; margin: 0; font-size: 11px; font-weight: 400; }}
     .today-bet-money .today-return dd:not(.positive):not(.negative) {{ color: var(--muted); }}
     .today-empty {{ margin: 0; padding: 12px; text-align: center; color: var(--muted); font-size: 12px; }}
     .today-panel[data-view="list"] .today-bets {{ grid-template-columns: 1fr; gap: 4px; }}
-    .today-panel[data-view="list"] .today-bet {{ display: grid; grid-template-columns: max-content minmax(0, 1fr) 230px minmax(40px, 70px); align-items: center; gap: 8px; padding: 4px 7px; border-radius: 6px; }}
+    .today-panel[data-view="list"] .today-bet {{ display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(240px, 34%) minmax(40px, 84px); align-items: center; gap: 8px; padding: 4px 7px; border-radius: 6px; }}
     .today-panel[data-view="list"] .today-bet-top {{ display: contents; }}
     .today-panel[data-view="list"] .today-league {{ grid-column: 1; grid-row: 1; gap: 5px; }}
     .today-panel[data-view="list"] .today-logos {{ grid-column: 4; grid-row: 1; }}
@@ -3009,13 +3048,14 @@ def build_html_report(
     .today-panel[data-view="list"] .today-bet--open .today-bet-body {{ grid-column: 1 / 3; }}
     .today-panel[data-view="list"] .today-meta {{ gap: 3px 6px; }}
     .today-panel[data-view="list"] .badge-logo {{ width: 16px; height: 16px; padding: 0; border-radius: 4px; }}
-    .today-panel[data-view="list"] .today-bet-money {{ grid-column: 3; grid-row: 1; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; border-left: 1px solid rgba(255,255,255,0.055); padding: 0 0 0 8px; }}
-    .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
-    .today-panel[data-view="list"] .today-return {{ margin-left: auto; padding-right: 0; }}
+    .today-panel[data-view="list"] .today-bet-money {{ grid-column: 3; grid-row: 1; display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 0; border-left: 1px solid rgba(255,255,255,0.055); padding: 0 0 0 8px; }}
+    .today-panel[data-view="list"] .today-bet-money > * + *::before {{ content: "|"; margin-right: 8px; color: var(--muted); font-weight: 400; }}
+    .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return, .today-panel[data-view="list"] .today-when {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
+    .today-panel[data-view="list"] .today-return {{ margin-left: 0; padding-right: 0; }}
     .today-panel[data-view="list"] .today-bet-money dd {{ margin: 0; font-size: 11px; font-weight: 400; }}
     @media (max-width: 1100px) {{
       .today-bets {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
-      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: max-content minmax(0, 1fr) 210px minmax(40px, 60px); gap: 6px; }}
+      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: max-content minmax(0, 1fr) minmax(220px, 36%) minmax(40px, 84px); gap: 6px; }}
     }}
     @media (max-width: 850px) {{
       .today-bets {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
@@ -3026,7 +3066,7 @@ def build_html_report(
     @media (max-width: 720px) {{
       .today-summary {{ order: 1; flex-basis: 100%; margin-left: 0; }}
       .today-panel[data-view="list"] .today-bet {{ grid-template-columns: minmax(0, 1fr) auto; gap: 4px; }}
-      .today-panel[data-view="list"] .today-logos {{ grid-column: 2; align-self: start; max-width: 60px; }}
+      .today-panel[data-view="list"] .today-logos {{ grid-column: 2; align-self: start; max-width: 84px; }}
       .today-panel[data-view="list"] .today-bet .today-bet-body {{ grid-column: 1; grid-row: 1; }}
       .today-panel[data-view="list"] .today-league {{ grid-column: 1 / -1; grid-row: auto; }}
       .today-panel[data-view="list"] .today-bet-money {{ grid-column: 1 / -1; grid-row: auto; margin-top: 6px; padding: 2px 0 0; border-left: 0; border-top: 1px solid rgba(255,255,255,0.055); }}
@@ -3476,6 +3516,9 @@ def build_html_report(
         if (bet.dataset.open === 'true') {{ openRisk += stake; open += count; }}
       }});
       leagueButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todayLeague === league)));
+      panel.querySelectorAll('[data-bet-section]').forEach(section => {{
+        section.hidden = !section.querySelector('.today-bet:not([hidden])');
+      }});
       groups.forEach(group => {{
         const count = Array.from(group.querySelectorAll('.today-bet')).filter(bet => !bet.hidden).length;
         group.hidden = count === 0;

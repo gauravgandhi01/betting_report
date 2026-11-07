@@ -292,7 +292,7 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertIn('<dd class="positive">+$100</dd>', today_html)
         self.assertIn('<dd class="negative">−$10</dd>', today_html)
         self.assertEqual(today_html.count('<li class="today-bet '), 6)
-        self.assertIn('<details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title">', today_html)
+        self.assertIn('<details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title" open>', today_html)
         self.assertIn('<summary id="today-closed-title"', today_html)
         self.assertIn("| Last synced ", html_doc)
         self.assertNotIn("Showing data from", html_doc)
@@ -318,7 +318,7 @@ class SettledPerformanceTests(unittest.TestCase):
         today_html = doc.split('<section id="today-panel"', 1)[1].split('</section>', 1)[0]
         self.assertEqual(today_html.count('<li class="today-bet '), 2)
         self.assertNotIn('wagers combined', today_html)
-        self.assertIn('&lt;Win &amp; &quot;total&quot;&gt;', today_html)
+        self.assertIn('&lt;Win &quot;total&quot;&gt;', today_html)
         self.assertIn('<dt>Risk</dt><dd>$60<span class="today-units" title="1u = $100">0.60u</span></dd>', today_html)
         self.assertIn('<dt>wins</dt><dd class="">$90</dd>', today_html)
         self.assertIn('today-bet--push', today_html)
@@ -407,7 +407,7 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn('data-name="Chicago White Sox"', cubs)
         self.assertIn('src="logos/teams/mlb/ari.png"', report._today_pick_html("COL/AZ o11", "MLB", "logos", files | {"teams/mlb/col.png"}))
         self.assertIn('data-name="Athletics"', report._today_pick_html("MIN/OAK o11.5", "MLB", "logos", files | {"teams/mlb/min.png"}))
-        self.assertEqual(report._today_pick_html("NL/AL o7.5", "MLB", "logos", files), "NL/AL o7.5")
+        self.assertEqual(report._today_pick_html("NL/AL o7.5", "MLB", "logos", files), "NL AL o7.5")
         self.assertEqual(report._today_pick_html("NL Cy Young - Misiorowski", "MLB", "logos", files), "NL Cy Young - Misiorowski")
 
         nba = report._today_pick_html("WAS/CLE o244.5", "NBA", "logos", files)
@@ -434,7 +434,7 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn('data-name="Utah"', cb)
         self.assertIn(f'src="{espn("californiaBaptist")}"', report._today_pick_html("UTA/CBU o131.5", "NCAAB", "logos", set()))
         ncaab_shu = report._today_pick_html("SHU/NCST u144.5", "NCAAB", "logos", set())
-        self.assertTrue(ncaab_shu.startswith("SHU/"))
+        self.assertTrue(ncaab_shu.startswith("SHU "))
         self.assertNotIn(espn("sacredHeart"), ncaab_shu)
         self.assertIn(espn("ncState"), ncaab_shu)
         self.assertIn('data-name="Sacred Heart"', report._today_pick_html("LIU/SHU u43.5", "NCAAF", "logos", set()))
@@ -443,7 +443,7 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn("St. John", gonz)
         self.assertIn(espn("gonzaga"), gonz)
         self.assertIn('data-name="Marshall"', report._today_pick_html("BU, MAR & UNCG ML", "NCAAB", "logos", set()))
-        self.assertTrue(report._today_pick_html("TSU/UTSA u65", "NCAAF", "logos", set()).startswith("TSU/"))
+        self.assertTrue(report._today_pick_html("TSU/UTSA u65", "NCAAF", "logos", set()).startswith("TSU "))
         liu = report._today_pick_html("LIU/SHU u43.5", "NCAAF", "logos", set())
         self.assertIn(espn("longIsland"), liu)
         self.assertIn(espn("sacredHeart"), liu)
@@ -467,7 +467,7 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertNotIn("logos/teams/ncaa/duke.png", duke)
         self.assertEqual(
             report._today_pick_html("MTL/TOR o6.5", "NHL", "logos", set()),
-            "MTL/TOR o6.5",
+            "MTL TOR o6.5",
         )
         self.assertIn("&lt;script&gt;", report._today_pick_html("MTL <script>", "NHL", "logos", set()))
 
@@ -491,9 +491,9 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn(report.ESPN_NCAA_LOGO.format(team_id=report.NCAA_ESPN_IDS["duke"]), today_html)
         self.assertIn(report.ESPN_NCAA_LOGO.format(team_id=report.NCAA_ESPN_IDS["ncState"]), today_html)
         self.assertEqual(today_html.count('class="team-logo"'), 4)
-        self.assertIn('title="Montreal Canadiens/Toronto Maple Leafs o6.5 · -110"', today_html)
+        self.assertIn('title="Montreal Canadiens Toronto Maple Leafs o6.5 · -110"', today_html)
         self.assertIn('data-name="Montreal Canadiens"', today_html)
-        self.assertIn('title="Duke/NC State o52 · -110"', today_html)
+        self.assertIn('title="Duke NC State o52 · -110"', today_html)
         table = doc.split("id='all-bets-table'", 1)[1].split("</table>", 1)[0]
         self.assertIn("MTL/TOR o6.5", table)
         self.assertNotIn("team-logo", table)
@@ -505,7 +505,7 @@ class TodayTeamLogoTests(unittest.TestCase):
         ]
         times = {
             (today.isoformat(), "NHL", "MTL/TOR o6.5"): {
-                "display": "7:00 PM ET",
+                "display": "7:00 PM",
                 "iso": "2026-11-08T00:00:00+00:00",
                 "title": "Montreal Canadiens at Toronto Maple Leafs · Scotiabank Arena, Toronto · ESPN+",
                 "done": "",
@@ -522,7 +522,12 @@ class TodayTeamLogoTests(unittest.TestCase):
         )
         today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
         self.assertIn('class="today-start"', today_html)
-        self.assertIn("7:00 PM ET", today_html)
+        self.assertIn("7:00 PM", today_html)
+        money = today_html.split('class="today-bet-money"', 1)[1].split("</dl>", 1)[0]
+        meta = today_html.split('class="today-meta"', 1)[1].split("</div>", 1)[0]
+        self.assertIn("7:00 PM", money)
+        self.assertIn('class="today-when"', money)
+        self.assertNotIn("7:00 PM", meta)
         self.assertIn("Scotiabank Arena, Toronto", today_html)
         self.assertIn('datetime="2026-11-08T00:00:00+00:00"', today_html)
 
@@ -565,6 +570,64 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertNotIn(">Live<", closed_html)
 
 
+class CardSortingTests(unittest.TestCase):
+    def test_straight_and_parlay_sections_replace_card_badges(self) -> None:
+        today = report.dt.date.today()
+        for panel, result, days in [("today", "", 0), ("today", "W", 0), ("upcoming", "", 1)]:
+            with self.subTest(panel=panel, result=result):
+                day = today + report.dt.timedelta(days=days)
+                bets = [
+                    _bet(date=day, pick="Combined pick", bet_type="Parlay", risk=200, result=result),
+                    _bet(date=day, pick="Single pick", bet_type="ML", risk=100, result=result),
+                ]
+                doc = report.build_html_report(report.summarize(bets), "Test", {}, "MLB")
+                panel_html = doc.split(f'<section id="{panel}-panel"', 1)[1].split("</section>", 1)[0]
+                straight, parlay = panel_html.split('data-bet-section="parlay"', 1)
+                self.assertIn('data-bet-section="straight"', straight)
+                self.assertIn('>Straight</h4>', straight)
+                self.assertIn('>Single pick</h4>', straight)
+                self.assertNotIn('>Combined pick</h4>', straight)
+                self.assertIn('>Parlays</h4>', parlay)
+                self.assertIn('>Combined pick</h4>', parlay)
+                self.assertNotIn('today-parlay', panel_html)
+
+    def test_cards_sort_by_start_then_combined_risk_with_unknown_starts_last(self) -> None:
+        today = report.dt.date.today()
+        for panel, result, days in [("today", "", 0), ("today", "W", 0), ("upcoming", "", 1)]:
+            with self.subTest(panel=panel, result=result):
+                day = today + report.dt.timedelta(days=days)
+                later_day = day + report.dt.timedelta(days=1) if days else day
+                specs = [
+                    ("Unknown small", 20, day),
+                    ("Late large", 900, later_day),
+                    ("Early small", 100, day),
+                    ("Unknown large", 1000, day),
+                    ("Early combined", 60, day),
+                    ("Early combined", 60, day),
+                ]
+                bets = [_bet(date=date, pick=pick, risk=risk, league="NHL", result=result)
+                        for pick, risk, date in specs]
+                times = {}
+                for pick, date, clock, offset, display in [
+                    ("Late large", later_day, "22:00:00", "+00:00", "5 PM"),
+                    ("Early small", day, "17:00:00", "+00:00", "Live"),
+                    ("Early combined", day, "12:00:00", "-05:00", "Live"),
+                ]:
+                    times[(date.isoformat(), "NHL", pick)] = {
+                        "iso": f"{date.isoformat()}T{clock}{offset}",
+                        "display": "Final" if result else display,
+                        "title": pick,
+                        "done": "1" if result else "",
+                    }
+                doc = report.build_html_report(report.summarize(bets), "Test", {}, "NHL",
+                                               available_logo_files=set(), game_times=times)
+                panel_html = doc.split(f'<section id="{panel}-panel"', 1)[1].split("</section>", 1)[0]
+                picks = [card.split('<h4 class="today-pick">', 1)[1].split('</h4>', 1)[0]
+                         for card in panel_html.split('<li class="today-bet ')[1:]]
+                self.assertEqual(picks, ["Early combined", "Early small", "Late large",
+                                         "Unknown large", "Unknown small"])
+
+
 class GameTimeTests(unittest.TestCase):
     def test_pro_abbreviations_follow_espn_spelling(self) -> None:
         self.assertEqual(report._team_ref("TB", "NHL")["espn_abbr"], "TB")
@@ -590,20 +653,41 @@ class GameTimeTests(unittest.TestCase):
                     {
                         "abbrs": frozenset({"TB", "MIN"}),
                         "ids": frozenset({"20", "30"}),
-                        "display": "8:00 PM ET",
+                        "display": "8:00 PM",
                         "iso": "2026-11-08T01:00:00+00:00",
                         "title": "Tampa Bay Lightning at Minnesota Wild",
                         "done": False,
                     }
                 ], None
             if league == "NCAAF":
+                texas = report.NCAA_ESPN_IDS["texas"]
+                missouri = report.NCAA_ESPN_IDS["missouri"]
                 return [
                     {
                         "abbrs": frozenset({"DUKE", "NCSU"}),
                         "ids": frozenset({duke, ncst}),
-                        "display": "12:30 PM ET",
+                        "display": "12:30 PM",
                         "iso": "2026-11-07T17:30:00+00:00",
                         "title": "Duke at NC State",
+                        "done": False,
+                    },
+                    {
+                        "abbrs": frozenset({"TEX", "MIZ"}),
+                        "ids": frozenset({texas, missouri}),
+                        "display": "12:00 PM",
+                        "iso": "2026-11-07T17:00:00+00:00",
+                        "title": "Texas at Missouri",
+                        "done": False,
+                    },
+                ], None
+            if league == "NFL":
+                return [
+                    {
+                        "abbrs": frozenset({"TB", "ARI"}),
+                        "ids": frozenset(),
+                        "display": "1:00 PM",
+                        "iso": "2026-11-08T18:00:00+00:00",
+                        "title": "Tampa Bay Buccaneers at Arizona Cardinals",
                         "done": False,
                     }
                 ], None
@@ -613,18 +697,19 @@ class GameTimeTests(unittest.TestCase):
             {"date": day, "league": "NHL", "pick": "TBL/MIN 1P o1.5"},
             {"date": day, "league": "NCAAF", "pick": "DUKE/NCST o52"},
             {"date": day, "league": "NFL", "pick": "TB +6"},
+            {"date": day, "league": "NCAAF", "pick": "TEX -6.5"},
             {"date": day, "league": "NHL", "pick": "McDavid o1.5 Ast"},
             {"date": day, "league": "NCAAF", "pick": "MSU & GT ML"},
             {"date": day, "league": "NBA", "pick": "NYK/BOS o220"},
         ]
         before_tip = report.dt.datetime(2026, 11, 7, 15, 0, tzinfo=report.dt.timezone.utc)
         times, notes = report.resolve_game_times(rows, fetch=fetch, now=before_tip)
-        self.assertEqual(times[(day, "NHL", "TBL/MIN 1P o1.5")]["display"], "8:00 PM ET")
-        self.assertEqual(times[(day, "NCAAF", "DUKE/NCST o52")]["display"], "12:30 PM ET")
-        self.assertNotIn((day, "NFL", "TB +6"), times)
+        self.assertEqual(times[(day, "NHL", "TBL/MIN 1P o1.5")]["display"], "8 PM")
+        self.assertEqual(times[(day, "NCAAF", "DUKE/NCST o52")]["display"], "12:30 PM")
+        self.assertEqual(times[(day, "NFL", "TB +6")]["display"], "1 PM")
+        self.assertEqual(times[(day, "NCAAF", "TEX -6.5")]["display"], "12 PM")
         self.assertNotIn((day, "NCAAF", "MSU & GT ML"), times)
         joined = "\n".join(notes)
-        self.assertIn("only one team named (Tampa Bay Buccaneers)", joined)
         self.assertIn("1 cards have no recognized team abbreviation", joined)
         self.assertNotIn("Michigan State", joined)
         self.assertNotIn("not written as one matchup", joined)
@@ -641,7 +726,7 @@ class GameTimeTests(unittest.TestCase):
                     {
                         "abbrs": frozenset({"TB", "MIN"}),
                         "ids": frozenset(),
-                        "display": "8:00 PM ET",
+                        "display": "8:00 PM",
                         "iso": "2026-11-08T01:00:00+00:00",
                         "title": "Tampa Bay Lightning at Minnesota Wild",
                         "done": done,
@@ -658,8 +743,9 @@ class GameTimeTests(unittest.TestCase):
 
     def test_format_game_start_uses_eastern_time(self) -> None:
         display, iso = report._format_game_start("2026-11-08T00:00Z")
-        self.assertEqual(display, "7:00 PM ET")
+        self.assertEqual(display, "7 PM")
         self.assertTrue(iso.startswith("2026-11-08T00:00:00"))
+        self.assertEqual(report._format_game_start("2026-11-07T17:30:00+00:00")[0], "12:30 PM")
 
     def test_sast_is_sacramento_state(self) -> None:
         sast = report._team_ref("SAST", "NCAAB")
