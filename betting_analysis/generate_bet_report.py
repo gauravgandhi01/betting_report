@@ -2298,6 +2298,7 @@ def build_html_report(
                 amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money_compact(abs(amount_value))
             amount_class = _net_class(amount_value) if result and amount_value is not None else ""
             risk_value = _finite_float(r.get("risk"))
+            risk_level = "high" if risk_value is not None and risk_value >= 500 else "medium" if risk_value is not None and risk_value >= 200 else "low"
             units = ""
             if risk_value is not None:
                 unit_text = f"{risk_value / 100:.2f}".removesuffix(".00")
@@ -2314,8 +2315,10 @@ def build_html_report(
             start = (game_times or {}).get((r["date"], league, r["pick"]))
             start_html = _game_time_html(start)
             when_html = f'<div class="today-when">{start_html}</div>' if start_html else ""
+            start_timestamp = card_sort_key(r)[0]
+            start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""
             game_done = bool(start and start.get("done")) and not upcoming
-            items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+            items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-body">
                 <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{pick_html}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
                 <div class="today-meta">{date_label}</div>
@@ -2325,7 +2328,7 @@ def build_html_report(
                 <span class="chip-row today-logos">{leagues}{books}</span>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake"><dt>Risk</dt><dd>{_fmt_money_compact(r.get("risk")) or "—"}{units}</dd></div>
+                <div class="today-stake" data-risk-level="{risk_level}"><dt>Risk</dt><dd><span class="today-risk-amount">{_fmt_money_compact(r.get("risk")) or "—"}</span>{units}</dd></div>
                 {when_html}
                 <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "wins"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
@@ -2357,6 +2360,10 @@ def build_html_report(
             '<div class="today-filter-bar" hidden><div class="today-filter-controls">'
             + f'<div class="today-filters" role="group" aria-label="Filter {context} by league">'
             + "".join(filters)
+            + f'</div><div class="today-filters today-sort" role="group" aria-label="Sort {context}">'
+            + '<span class="today-sort-label">Sort</span>'
+            + f'<button type="button" data-today-sort="time" aria-pressed="true" aria-controls="{panel_key}-bets" title="Earliest start first; unknown times last">Time ↑</button>'
+            + f'<button type="button" data-today-sort="risk" aria-pressed="false" aria-controls="{panel_key}-bets" title="Highest risk first">Risk ↓</button>'
             + f'</div></div><span id="{panel_key}-filter-count" class="note today-filter-count" role="status">{len(rows)} bets</span></div>'
             + f'<div id="{panel_key}-bets">' + groups
             + f'<p id="{panel_key}-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>'
@@ -2972,6 +2979,8 @@ def build_html_report(
     .today-filters button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
     .today-league-dot {{ width: 6px; height: 6px; border-radius: 50%; background: var(--league-color); box-shadow: 0 0 0 1px rgba(255,255,255,0.18); }}
     .today-filter-count {{ font-size: 11px; }}
+    .today-sort {{ align-items: center; border-left: 1px solid var(--border); padding-left: 8px; }}
+    .today-sort-label {{ color: var(--muted); font-size: 10px; margin-right: 2px; }}
     .today-view button {{ display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); padding: 5px 8px; font: inherit; font-size: 11px; cursor: pointer; }}
     .today-view button[aria-pressed="true"] {{ color: var(--text); background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.35); }}
     .today-view button:hover {{ color: var(--text); }}
@@ -3021,6 +3030,9 @@ def build_html_report(
     .today-stake {{ padding: 2px 0; }}
     .today-stake dt {{ color: var(--muted); font-weight: 400; }}
     .today-stake dd {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 6px; }}
+    .today-risk-amount {{ color: var(--text); font-weight: 650; border-radius: 3px; background: rgba(251,191,36,0.04); box-shadow: 0 0 0 2px rgba(251,191,36,0.04); }}
+    [data-risk-level="medium"] .today-risk-amount {{ color: #e8cd91; background: rgba(251,191,36,0.09); box-shadow: 0 0 0 2px rgba(251,191,36,0.09); }}
+    [data-risk-level="high"] .today-risk-amount {{ color: #f4c56a; background: rgba(251,191,36,0.15); box-shadow: 0 0 0 2px rgba(251,191,36,0.15); }}
     .today-units {{ color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; white-space: nowrap; }}
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
@@ -3500,6 +3512,29 @@ def build_html_report(
     const leagueButtons = panel.querySelectorAll('[data-today-league]');
     const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
+    const sortButtons = panel.querySelectorAll('[data-today-sort]');
+    const sortStorageKey = upcoming ? 'bettingReportUpcomingSort' : 'bettingReportTodaySort';
+    const originalOrder = new Map(bets.map((bet, index) => [bet, index]));
+    const startTime = bet => bet.dataset.startMs ? Number(bet.dataset.startMs) : Infinity;
+    const setSort = value => {{
+      const selected = value === 'risk' ? 'risk' : 'time';
+      panel.dataset.sort = selected;
+      sortButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todaySort === selected)));
+      panel.querySelectorAll('.today-bets').forEach(list => {{
+        const sorted = Array.from(list.children).sort((a, b) => {{
+          const timeDifference = startTime(a) - startTime(b);
+          const riskDifference = Number(b.dataset.risk) - Number(a.dataset.risk);
+          return (selected === 'risk' ? riskDifference || timeDifference : timeDifference || riskDifference)
+            || originalOrder.get(a) - originalOrder.get(b);
+        }});
+        list.append(...sorted);
+      }});
+    }};
+    try {{ setSort(localStorage.getItem(sortStorageKey)); }} catch {{ setSort('time'); }}
+    sortButtons.forEach(button => button.addEventListener('click', () => {{
+      setSort(button.dataset.todaySort);
+      try {{ localStorage.setItem(sortStorageKey, panel.dataset.sort); }} catch {{ /* Sorting still works without storage. */ }}
+    }}));
     let league = '';
     const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 2, maximumFractionDigits: 2}}).replace(/[.]00$/, '');
     const applyFilters = () => {{
