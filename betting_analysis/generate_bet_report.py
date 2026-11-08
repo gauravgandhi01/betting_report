@@ -44,6 +44,20 @@ LEAGUE_COLOR_MAP = {
 }
 
 
+# Brighter, distinct accents for the dark card surface and its league filters.
+LEAGUE_CARD_COLOR_MAP = {
+    "NFL": "#60A5FA",
+    "NCAAF": "#F472B6",
+    "NBA": "#FB923C",
+    "NCAAB": "#A78BFA",
+    "NHL": "#67E8F9",
+    "MLB": "#2DD4BF",
+    "PGA": "#A3E635",
+    "CROSSSPORT": "#CBD5E1",
+    "OTHER": "#94A3B8",
+}
+
+
 BOOK_COLOR_MAP = {
     "FANDUEL": "#0077FF",
     "DRAFTKINGS": "#53B949",
@@ -1049,6 +1063,17 @@ def _team_logo_for_abbr(
 def _display_pick(pick: str) -> str:
     """Remove sheet separators while preserving names like Texas A&M and fractions."""
     return re.sub(r"\s+", " ", re.sub(r"(?<!\d)/(?!\d)|(?<!\w)&(?!\w)|(?<!\d),|,(?!\d)", " ", pick)).strip()
+
+
+def _parlay_leg_count(pick: str) -> Optional[int]:
+    """Count listed legs without splitting matchups, fractions, or combined stats."""
+    explicit = re.search(r"\b(\d+)[ -]+leg(?:s)?\b", pick, re.IGNORECASE)
+    if explicit:
+        return int(explicit.group(1))
+    stats = r"(?:pts|points|reb|rebounds|ast|assists)"
+    counted = re.sub(rf"\b({stats})\s+(?:&|and)\s+(?={stats}\b)", r"\1 + ", pick, flags=re.IGNORECASE)
+    parts = [part.strip() for part in re.split(r"(?<!\d),|,(?!\d)|(?<!\w)&(?!\w)|\band\b|;", counted, flags=re.IGNORECASE) if part.strip()]
+    return len(parts) if len(parts) > 1 else None
 
 
 def _today_pick_text(
@@ -2216,6 +2241,13 @@ def build_html_report(
     avgs = summary["averages"]
     today_label = f"{dt.date.today():%b} {dt.date.today().day}, {dt.date.today().year}"
     today_rows = summary["today_open"] + summary["today_settled"]
+    # Share the scale across both panels and keep it stable when filtering or sorting.
+    displayed_risks = [
+        _finite_float(row.get("risk")) or 0.0
+        for rows in (today_rows, summary["future_open"])
+        for row in _collapse_bet_rows(rows)
+    ]
+    risk_scale_max = max(displayed_risks, default=0.0)
     today_net_total = _sum_finite(r.get("net") for r in summary["today_settled"])
     today_risk_total = _sum_finite(r.get("risk") for r in today_rows)
     today_open_risk = _sum_finite(r.get("risk") for r in summary["today_open"])
@@ -2254,7 +2286,7 @@ def build_html_report(
             return f'<p class="today-empty">{message}</p>'
 
         def league_style(league: str) -> str:
-            color = LEAGUE_COLOR_MAP.get(league, LEAGUE_COLOR_MAP["OTHER"])
+            color = LEAGUE_CARD_COLOR_MAP.get(league, LEAGUE_CARD_COLOR_MAP["OTHER"])
             rgb = ",".join(str(int(color[i:i + 2], 16)) for i in (1, 3, 5))
             return f"--league-color:{color};--league-rgb:{rgb}"
 
@@ -2282,7 +2314,7 @@ def build_html_report(
             "P": ("push", "Push", "—"),
             "CO": ("cash-out", "Cash Out", "↗"),
         }
-        for r in rows:
+        for card_index, r in enumerate(rows):
             result = str(r.get("result") or "").strip().upper()
             state, label, icon = statuses.get(result, ("other", _result_label(result), "—"))
             result_badge = (
@@ -2298,11 +2330,19 @@ def build_html_report(
                 amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money_compact(abs(amount_value))
             amount_class = _net_class(amount_value) if result and amount_value is not None else ""
             risk_value = _finite_float(r.get("risk"))
-            risk_level = "high" if risk_value is not None and risk_value >= 500 else "medium" if risk_value is not None and risk_value >= 200 else "low"
-            units = ""
+            risk_style = ""
+            if risk_value is not None:
+                intensity = min(1.0, max(0.0, risk_value / risk_scale_max)) if risk_scale_max > 0 else 0.0
+                # Interpolate teal → amber → coral, instead of discrete risk tiers.
+                stops = ((113, 204, 190), (234, 196, 119), (242, 133, 128))
+                lower, upper = (stops[0], stops[1]) if intensity <= 0.5 else (stops[1], stops[2])
+                blend = intensity * 2 if intensity <= 0.5 else (intensity - 0.5) * 2
+                rgb = ",".join(str(round(a + (b - a) * blend)) for a, b in zip(lower, upper))
+                risk_style = f' style="--risk-rgb:{rgb};--risk-alpha:{0.07 + 0.08 * intensity:.3f}"'
+            risk_tooltip = ""
             if risk_value is not None:
                 unit_text = f"{risk_value / 100:.2f}".removesuffix(".00")
-                units = f'<span class="today-units" title="1u = $100">{unit_text}u</span>'
+                risk_tooltip = f' title="{unit_text}u · 1u = $100"'
             league = str(r.get("league") or "").strip().upper() or "OTHER"
             date_label = ""
             if upcoming:
@@ -2312,6 +2352,19 @@ def build_html_report(
             pick_label = _today_pick_text(r["pick"], league, available_logo_files)
             pick_tooltip = html.escape(f'{pick_label} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
             pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files)
+            compact_pick = ""
+            pick_title = f' title="{pick_tooltip}"'
+            if bet_section == "parlay":
+                leg_count = _parlay_leg_count(r["pick"])
+                compact_label = f"{leg_count} leg parlay" if leg_count else "Parlay"
+                details_id = f"{panel_key}-bet-{card_index}-details"
+                details = html.escape(r["pick"])
+                compact_pick = (
+                    f'<button type="button" class="compact-pick" aria-describedby="{details_id}" hidden>'
+                    f'{compact_label}<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button>'
+                    f'<span id="{details_id}" class="pick-details" role="tooltip">{details} · {odds_text}</span>'
+                )
+                pick_title = ""
             start = (game_times or {}).get((r["date"], league, r["pick"]))
             start_html = _game_time_html(start)
             when_html = f'<div class="today-when">{start_html}</div>' if start_html else ""
@@ -2320,7 +2373,7 @@ def build_html_report(
             game_done = bool(start and start.get("done")) and not upcoming
             items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               <div class="today-bet-body">
-                <div class="today-pick-line" title="{pick_tooltip}"><h4 class="today-pick">{pick_html}</h4><span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
+                <div class="today-pick-line"{pick_title}><h4 class="today-pick">{pick_html}</h4>{compact_pick}<span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
                 <div class="today-meta">{date_label}</div>
               </div>
               <div class="today-bet-top">
@@ -2328,7 +2381,7 @@ def build_html_report(
                 <span class="chip-row today-logos">{leagues}{books}</span>
               </div>
               <dl class="today-bet-money">
-                <div class="today-stake" data-risk-level="{risk_level}"><dt>Risk</dt><dd><span class="today-risk-amount">{_fmt_money_compact(r.get("risk")) or "—"}</span>{units}</dd></div>
+                <div class="today-stake"{risk_style}><dt>Risk</dt><dd><span class="today-risk-amount"{risk_tooltip}>{_fmt_money_compact(r.get("risk")) or "—"}</span></dd></div>
                 {when_html}
                 <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "wins"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
               </dl>
@@ -2976,6 +3029,7 @@ def build_html_report(
     .today-filters button {{ display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 2px 7px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }}
     .today-filters button:hover {{ background: rgba(255,255,255,0.04); color: var(--text); }}
     .today-filters button[aria-pressed="true"] {{ border-color: var(--border); background: rgba(255,255,255,0.06); color: var(--text); }}
+    .today-filters button[data-today-league]:not([data-today-league=""])[aria-pressed="true"] {{ color: var(--league-color); border-color: rgba(var(--league-rgb),0.4); background: rgba(var(--league-rgb),0.12); }}
     .today-filters button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
     .today-league-dot {{ width: 6px; height: 6px; border-radius: 50%; background: var(--league-color); box-shadow: 0 0 0 1px rgba(255,255,255,0.18); }}
     .today-filter-count {{ font-size: 11px; }}
@@ -2997,7 +3051,7 @@ def build_html_report(
     .today-bet-section:not([hidden]) + .today-bet-section {{ margin-top: 12px; }}
     .today-bet-section-title {{ display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }}
     .today-bet-section-title::after {{ content: ''; flex: 1; height: 1px; background: var(--border); }}
-    .today-bet {{ --result-color: var(--muted); display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid var(--border); border-left: 2px solid rgba(var(--league-rgb),0.35); border-radius: 6px; background: rgba(var(--league-rgb),0.025); }}
+    .today-bet {{ --result-color: var(--muted); display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }}
     .today-bet--won {{ --result-color: var(--good); }}
     .today-bet--lost {{ --result-color: var(--bad); }}
     .today-bet-top {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
@@ -3010,6 +3064,16 @@ def build_html_report(
     .today-pick-line {{ --pick-font-size: 13px; display: flex; align-items: baseline; gap: 6px; width: 100%; min-width: 0; white-space: nowrap; line-height: 1.35; }}
     .today-pick-line:has(.team-logo) {{ align-items: center; }}
     .today-pick {{ min-width: 0; margin: 0; font-size: var(--pick-font-size); font-weight: 700; line-height: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+    [data-bet-section="parlay"] .today-pick {{ text-overflow: clip; }}
+    [data-bet-section="parlay"] .today-pick-line {{ position: relative; }}
+    .compact-pick {{ display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; border: 0; padding: 0; background: none; color: var(--text); font: inherit; font-size: var(--pick-font-size); font-weight: 700; cursor: help; }}
+    .compact-pick[hidden], .today-pick[hidden] {{ display: none; }}
+    .compact-pick:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }}
+    .pick-details-icon {{ color: var(--muted); font-size: 11px; font-weight: 400; }}
+    .pick-details {{ display: none; position: absolute; bottom: calc(100% + 8px); left: 0; width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: #111827; color: var(--text); font-size: 12px; font-weight: 400; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; box-shadow: 0 6px 18px rgba(0,0,0,0.35); z-index: 5; }}
+    .pick-details::after {{ content: ''; position: absolute; top: 100%; left: 0; width: 100%; height: 8px; }}
+    .today-pick-line.is-compact:not(.details-dismissed):is(:hover, :focus-within) .pick-details {{ display: block; }}
+    .today-bet:has(.today-pick-line.is-compact:is(:hover, :focus-within)) {{ position: relative; z-index: 4; }}
     .today-pick:has(.team-logo-tip:hover) {{ overflow: visible; position: relative; z-index: 2; }}
     .today-bet:has(.team-logo-tip:hover) {{ position: relative; z-index: 3; }}
     .team-logo-tip {{ position: relative; display: inline-block; line-height: 0; vertical-align: middle; }}
@@ -3030,10 +3094,8 @@ def build_html_report(
     .today-stake {{ padding: 2px 0; }}
     .today-stake dt {{ color: var(--muted); font-weight: 400; }}
     .today-stake dd {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 6px; }}
-    .today-risk-amount {{ color: var(--text); font-weight: 650; border-radius: 3px; background: rgba(251,191,36,0.04); box-shadow: 0 0 0 2px rgba(251,191,36,0.04); }}
-    [data-risk-level="medium"] .today-risk-amount {{ color: #e8cd91; background: rgba(251,191,36,0.09); box-shadow: 0 0 0 2px rgba(251,191,36,0.09); }}
-    [data-risk-level="high"] .today-risk-amount {{ color: #f4c56a; background: rgba(251,191,36,0.15); box-shadow: 0 0 0 2px rgba(251,191,36,0.15); }}
-    .today-units {{ color: var(--muted); font-size: 10px; font-weight: 400; letter-spacing: 0; white-space: nowrap; }}
+    .today-risk-amount {{ --risk-tint: rgba(var(--risk-rgb, 157,176,208),var(--risk-alpha, 0.04)); color: rgb(var(--risk-rgb, 157,176,208)); font-weight: 650; border-radius: 3px; background: var(--risk-tint); box-shadow: 0 0 0 2px var(--risk-tint); }}
+    .today-risk-amount[title] {{ cursor: help; }}
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
     .today-net-label {{ position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }}
@@ -3448,18 +3510,55 @@ def build_html_report(
 
 <script>
   // Fit each pick and its odds on one line without increasing the card height.
-  // Keep a readable minimum; exceptionally long names retain their full hover text.
+  // Long parlays use a readable summary with full details on hover or focus.
   function fitPickLine(line, width) {{
     const maxSize = 13, minSize = 10, gap = 6;
     line.style.setProperty('--pick-font-size', `${{maxSize}}px`);
     const pick = line.querySelector('.today-pick');
     const odds = line.querySelector('.today-odds');
+    const compact = line.querySelector('.compact-pick');
+    if (compact) {{
+      pick.hidden = false;
+      compact.hidden = true;
+      line.classList.remove('is-compact');
+      const range = document.createRange();
+      range.selectNodeContents(pick);
+      const fits = () => range.getBoundingClientRect().width + odds.getBoundingClientRect().width <= width - gap;
+      if (fits()) return;
+      const comfortableSize = 11;
+      line.style.setProperty('--pick-font-size', `${{comfortableSize}}px`);
+      if (!fits()) {{
+        pick.hidden = true;
+        compact.hidden = false;
+        line.classList.add('is-compact');
+        line.style.setProperty('--pick-font-size', `${{maxSize}}px`);
+        return;
+      }}
+      let lower = comfortableSize, upper = maxSize;
+      for (let step = 0; step < 8; step++) {{
+        const size = (lower + upper) / 2;
+        line.style.setProperty('--pick-font-size', `${{size}}px`);
+        if (fits()) lower = size;
+        else upper = size;
+      }}
+      line.style.setProperty('--pick-font-size', `${{lower}}px`);
+      return;
+    }}
     const textWidth = pick.scrollWidth + odds.getBoundingClientRect().width;
     if (textWidth > width - gap) {{
       const size = Math.max(minSize, Math.floor(maxSize * Math.max(0, width - gap) / textWidth * 4) / 4);
       line.style.setProperty('--pick-font-size', `${{size}}px`);
     }}
   }}
+  document.querySelectorAll('.compact-pick').forEach(button => {{
+    const line = button.closest('.today-pick-line');
+    line.addEventListener('mouseenter', () => line.classList.remove('details-dismissed'));
+    button.addEventListener('focus', () => line.classList.remove('details-dismissed'));
+    button.addEventListener('click', () => {{ line.classList.remove('details-dismissed'); button.focus(); }});
+    line.addEventListener('keydown', event => {{
+      if (event.key === 'Escape') line.classList.add('details-dismissed');
+    }});
+  }});
   if (typeof ResizeObserver !== 'undefined') {{
     const fittedWidths = new WeakMap();
     const pickObserver = new ResizeObserver(entries => {{

@@ -319,7 +319,7 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertEqual(today_html.count('<li class="today-bet '), 2)
         self.assertNotIn('wagers combined', today_html)
         self.assertIn('&lt;Win &quot;total&quot;&gt;', today_html)
-        self.assertIn('<dt>Risk</dt><dd><span class="today-risk-amount">$60</span><span class="today-units" title="1u = $100">0.60u</span></dd>', today_html)
+        self.assertIn('<dt>Risk</dt><dd><span class="today-risk-amount" title="0.60u · 1u = $100">$60</span></dd>', today_html)
         self.assertIn('<dt>wins</dt><dd class="">$90</dd>', today_html)
         self.assertIn('today-bet--push', today_html)
         self.assertIn('<dt class="today-net-label">Net result</dt><dd class="">$0</dd>', today_html)
@@ -353,7 +353,7 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertNotIn('wagers combined', upcoming)
         self.assertIn('<dt>Open risk</dt><dd class="today-risk-value">$125.50</dd>', upcoming)
         self.assertIn('<dt>wins</dt><dd>$200</dd>', upcoming)
-        self.assertIn('title="1u = $100">1u</span>', upcoming)
+        self.assertIn('title="1u · 1u = $100">$100</span>', upcoming)
         self.assertIn('aria-controls="upcoming-bets"', upcoming)
         self.assertNotIn('aria-controls="today-bets"', upcoming)
         self.assertNotIn('data-today-status=', upcoming)
@@ -571,6 +571,22 @@ class TodayTeamLogoTests(unittest.TestCase):
 
 
 class CardSortingTests(unittest.TestCase):
+    def test_parlay_leg_count_preserves_matchups_and_combined_stats(self) -> None:
+        cases = {
+            "Robinson o2.5, Concepcion o3.5 & Lamb o5.5 Rec": 3,
+            "NYK/PHI u228.5, BOS -14.5 & TOR -5.5": 3,
+            "Young o11.5, McDavid o1.5 Ast, Peralta o5.5 K, & Pickens Long Rec o29.5": 4,
+            "Texas A&M ML & Duke ML": 2,
+            "Fears o9.5 Reb & Ast": None,
+            "Fears o9.5 Reb & Ast, Smith o10.5 Pts": 2,
+            "A o1,000 Yds and B o1/2": 2,
+            "4-leg parlay": 4,
+            "Combined pick": None,
+        }
+        for pick, count in cases.items():
+            with self.subTest(pick=pick):
+                self.assertEqual(report._parlay_leg_count(pick), count)
+
     def test_straight_and_parlay_sections_replace_card_badges(self) -> None:
         today = report.dt.date.today()
         for panel, result, days in [("today", "", 0), ("today", "W", 0), ("upcoming", "", 1)]:
