@@ -3010,6 +3010,7 @@ def build_html_report(
     .today-meta:empty {{ display: none; }}
     .today-when {{ display: flex; align-items: baseline; min-width: 0; }}
     .today-bet-money .today-start {{ color: inherit; font: inherit; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
+    .today-bet-money .today-start.is-live {{ color: var(--bad); }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
     .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
