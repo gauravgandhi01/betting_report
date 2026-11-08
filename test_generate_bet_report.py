@@ -200,6 +200,10 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertEqual(report._net_class(-5.0), "negative")
         self.assertEqual(report._result_label("CO"), "Cash Out")
         self.assertEqual(report._result_label(""), "")
+        self.assertEqual(report._result_mark_html("W"), '<span class="result-mark result-win">W</span>')
+        self.assertEqual(report._result_mark_html("L"), '<span class="result-mark result-loss">L</span>')
+        self.assertEqual(report._result_mark_html("CO"), '<span class="result-mark result-cash">Cash Out</span>')
+        self.assertEqual(report._result_mark_html(""), "")
 
     def test_roi_excludes_open_risk_and_counts_cash_outs(self) -> None:
         bets = [
@@ -297,6 +301,9 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertIn("| Last synced ", html_doc)
         self.assertNotIn("Showing data from", html_doc)
         self.assertIn("Cash Out", html_doc)
+        self.assertIn('class="result-mark result-win">W</span>', html_doc)
+        self.assertIn('class="result-mark result-loss">L</span>', html_doc)
+        self.assertIn('class="result-mark result-cash">Cash Out</span>', html_doc)
         self.assertIn("Cash out: 1", html_doc)
         self.assertIn("Settled ROI:", html_doc)
         self.assertIn("Edge vs implied:", html_doc)

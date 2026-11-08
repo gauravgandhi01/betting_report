@@ -1598,6 +1598,23 @@ def _result_label(result: str) -> str:
     return RESULT_LABELS.get(code, code)
 
 
+_RESULT_MARK_CLASS = {
+    "W": "result-win",
+    "L": "result-loss",
+    "P": "result-push",
+    "CO": "result-cash",
+}
+
+
+def _result_mark_html(result: str) -> str:
+    label = _result_label(result)
+    if not label:
+        return ""
+    code = (result or "").strip().upper()
+    cls = _RESULT_MARK_CLASS.get(code, "result-other")
+    return f'<span class="result-mark {cls}">{html.escape(label)}</span>'
+
+
 def _net_class(value: Any) -> str:
     number = _finite_float(value)
     if number is None or number == 0:
@@ -2497,7 +2514,7 @@ def build_html_report(
                 _fmt_money(r["risk"]),
             ]
             if include_result:
-                row.append(html.escape(_result_label(str(r.get("result") or ""))))
+                row.append(_result_mark_html(str(r.get("result") or "")))
             if include_net:
                 row.append(_money_net_cell(r.get("net")))
             rows.append(row)
@@ -2603,7 +2620,7 @@ def build_html_report(
                 html.escape(pick),
                 html.escape(_fmt_odds(odds)),
                 _fmt_money(risk),
-                html.escape(_result_label(result)),
+                _result_mark_html(result),
                 (_fmt_money(finite_net), net_cls) if net_cls else (_fmt_money(finite_net) if finite_net is not None else ""),
             ]
             tds = []
@@ -3000,6 +3017,34 @@ def build_html_report(
 
     .positive {{ color: var(--good); }}
     .negative {{ color: var(--bad); }}
+    .result-mark {{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.7em;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      line-height: 1.45;
+      white-space: nowrap;
+    }}
+    .result-win {{
+      color: #d1fae5;
+      background: rgba(52, 211, 153, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.72);
+    }}
+    .result-loss {{
+      color: #ffe4e6;
+      background: rgba(251, 113, 133, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.72);
+    }}
+    .result-push, .result-cash, .result-other {{
+      color: var(--text);
+      background: rgba(157, 176, 208, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(157, 176, 208, 0.45);
+    }}
 
     .today-panel {{ min-width: 0; padding: 12px; }}
     .today-header {{ display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 7px; }}
@@ -3051,15 +3096,16 @@ def build_html_report(
     .today-bet-section:not([hidden]) + .today-bet-section {{ margin-top: 12px; }}
     .today-bet-section-title {{ display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }}
     .today-bet-section-title::after {{ content: ''; flex: 1; height: 1px; background: var(--border); }}
-    .today-bet {{ --result-color: var(--muted); display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }}
-    .today-bet--won {{ --result-color: var(--good); }}
-    .today-bet--lost {{ --result-color: var(--bad); }}
+    .today-bet {{ --result-color: var(--muted); --result-rgb: 157, 176, 208; display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }}
+    .today-bet--won {{ --result-color: var(--good); --result-rgb: 52, 211, 153; }}
+    .today-bet--lost {{ --result-color: var(--bad); --result-rgb: 251, 113, 133; }}
     .today-bet-top {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
     .today-league {{ display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 10px; min-width: 0; overflow-wrap: anywhere; }}
     .today-league:empty {{ display: none; }}
     .today-logos {{ justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; margin-left: auto; }}
-    .today-result {{ display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; color: var(--result-color); font-size: 10px; font-weight: 500; }}
-    .today-result > span {{ font-size: 12px; line-height: 1; }}
+    .today-result {{ display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; color: var(--result-color); background: rgba(var(--result-rgb), 0.18); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.55); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.3; text-transform: uppercase; }}
+    .today-bet--won .today-result, .today-bet--lost .today-result {{ background: rgba(var(--result-rgb), 0.24); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.8); }}
+    .today-result > span {{ font-size: 13px; line-height: 1; }}
     .today-bet-body {{ flex: 1; min-width: 0; padding: 0 0 7px; }}
     .today-pick-line {{ --pick-font-size: 13px; display: flex; align-items: baseline; gap: 6px; width: 100%; min-width: 0; white-space: nowrap; line-height: 1.35; }}
     .today-pick-line:has(.team-logo) {{ align-items: center; }}
