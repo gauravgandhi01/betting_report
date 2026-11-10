@@ -1133,7 +1133,8 @@ def _today_pick_html(
             parts.append(
                 f'<span class="team-logo-tip" data-name="{label}">'
                 f'<img class="team-logo" src="{href}" alt="{label}" '
-                'loading="lazy" decoding="async" /></span>'
+                'loading="lazy" decoding="async" />'
+                f'<span class="team-abbr">{html.escape(abbr)}</span></span>'
             )
         last = match.end()
     parts.append(html.escape(pick[last:]))
@@ -1550,19 +1551,35 @@ def _game_info_html(start: Optional[Dict[str, str]]) -> str:
     rows = "".join(f'<div class="game-info-line">{html.escape(str(value))}</div>'
                    for value in (start.get("venue"),) if value)
     if start.get("display") not in {"Live", "Final"}:
-        for market in ("spread", "total"):
-            value = start.get(market)
-            if not value:
-                continue
-            quotes = []
-            for quote in str(value).split(" · "):
-                match = re.fullmatch(r"(.+?)\s+\(([+−-]?\d+)\)", quote)
-                line, juice = match.groups() if match else (quote, "")
-                if market == "total":
-                    line = re.sub(r"^o(?=\d)", "Over ", line)
-                    line = re.sub(r"^u(?=\d)", "Under ", line)
-                quotes.append(f'<div class="game-info-quote"><span>{html.escape(line)}</span><span class="game-info-juice">{html.escape(juice)}</span></div>')
-            rows += f'<div class="game-info-market">{"".join(quotes)}</div>'
+        markets = []
+        spread = str(start.get("spread") or "")
+        total = str(start.get("total") or "")
+        parsed_spreads = []
+        for quote in spread.split(" · "):
+            match = re.fullmatch(r"(.+?)\s+\(([+−-]?\d+)\)", quote)
+            if match:
+                parsed_spreads.append(match.groups())
+        if parsed_spreads:
+            favorite = next((quote for quote in parsed_spreads if re.search(r"\s[-−]\d", quote[0])), parsed_spreads[0])
+            other_prices = [price for line, price in parsed_spreads if line != favorite[0]]
+            markets.append(f"{favorite[0]} {'/'.join([favorite[1]] + other_prices)}")
+        elif spread:
+            markets.append(spread)
+        parsed_totals = {}
+        for quote in total.split(" · "):
+            match = re.fullmatch(r"([ou])(\d+(?:\.\d+)?)\s+\(([+−-]?\d+)\)", quote)
+            if match:
+                side, line, price = match.groups()
+                parsed_totals[side] = (line, price)
+        if parsed_totals and len({line for line, price in parsed_totals.values()}) == 1:
+            line = next(iter(parsed_totals.values()))[0]
+            prices = "/".join(f"{side}{parsed_totals[side][1]}" for side in ("o", "u") if side in parsed_totals)
+            markets.append(f"{line} {prices}")
+        elif total:
+            markets.append(total)
+        if markets:
+            odds_lines = "<br>".join(html.escape(market) for market in markets)
+            rows += f'<div class="game-info-odds">{odds_lines}</div>'
     if not rows:
         return ""
     return ('<div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button>'
@@ -3236,13 +3253,13 @@ def build_html_report(
     .game-info-trigger {{ display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 12px; height: 12px; padding: 0; border: 1px solid rgba(157,176,208,0.5); border-radius: 50%; background: transparent; color: var(--muted); font: 500 8px Georgia, serif; cursor: help; }}
     .game-info:hover .game-info-trigger, .game-info:focus-within .game-info-trigger {{ color: var(--text); border-color: var(--text); }}
     .game-info-trigger:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
-    .game-info-bubble {{ display: none; position: absolute; top: calc(100% + 5px); right: 0; z-index: 8; width: min(210px, 65vw); padding: 7px 9px; border: 1px solid var(--border); border-radius: 5px; background: #111827; box-shadow: 0 6px 18px rgba(0,0,0,0.35); white-space: normal; }}
-    .game-info-bubble::before {{ content: ''; position: absolute; bottom: 100%; left: 0; width: 100%; height: 5px; }}
-    .game-info:hover .game-info-bubble, .game-info:focus-within .game-info-bubble {{ display: block; }}
+    .game-info-bubble {{ display: none; position: absolute; bottom: calc(100% + 5px); right: 0; z-index: 8; width: max-content; max-width: min(300px, 75vw); box-sizing: border-box; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 5px; background: #111827; box-shadow: 0 6px 18px rgba(0,0,0,0.35); white-space: normal; }}
+    .game-info-bubble::before {{ content: ''; position: absolute; top: 100%; left: 0; width: 100%; height: 5px; }}
+    .game-info:hover .game-info-bubble, .game-info:focus-within .game-info-bubble {{ display: grid; }}
     .game-info-bubble {{ font-size: 10px; line-height: 1.5; font-variant-numeric: tabular-nums; }}
-    .game-info-line + .game-info-line {{ margin-top: 2px; color: var(--muted); }}
-    .game-info-market {{ margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--border); }}
-    .game-info-quote {{ display: flex; justify-content: space-between; gap: 14px; }}
+    .game-info-line {{ grid-column: 1 / -1; overflow-wrap: anywhere; }}
+    .game-info-odds {{ grid-column: 1 / -1; padding-top: 4px; border-top: 1px solid var(--border); overflow-wrap: anywhere; }}
+    .game-info-quote {{ display: flex; justify-content: space-between; gap: 7px; }}
     .game-info-juice {{ color: var(--muted); text-align: right; }}
     .today-bet:has(.game-info:hover), .today-bet:has(.game-info:focus-within) {{ z-index: 6; }}
     .today-result {{ display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; color: var(--result-color); background: rgba(var(--result-rgb), 0.18); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.55); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.3; text-transform: uppercase; }}
@@ -3265,6 +3282,9 @@ def build_html_report(
     .today-pick:has(.team-logo-tip:hover) {{ overflow: visible; position: relative; z-index: 2; }}
     .today-bet:has(.team-logo-tip:hover) {{ position: relative; z-index: 3; }}
     .team-logo-tip {{ position: relative; display: inline-block; line-height: 0; vertical-align: middle; }}
+    .team-abbr {{ display: none; }}
+    .today-panel[data-view="list"] .team-logo-tip {{ display: inline-flex; align-items: center; gap: 3px; }}
+    .today-panel[data-view="list"] .team-abbr {{ display: inline; line-height: 1.35; }}
     .team-logo-tip:hover::after {{ content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); z-index: 5; padding: 2px 6px; border-radius: 4px; background: #111827; color: #f8fafc; font-size: 11px; font-weight: 600; line-height: 1.4; letter-spacing: 0; white-space: nowrap; pointer-events: none; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }}
     .today-pick .team-logo {{ display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}

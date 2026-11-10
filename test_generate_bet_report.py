@@ -384,7 +384,8 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn('data-name="Montreal Canadiens"', nhl)
         self.assertIn('src="logos/teams/nhl/tor.png"', nhl)
         self.assertIn("1P o1.5", nhl)
-        self.assertNotIn(">MTL<", nhl)
+        self.assertIn('class="team-abbr">MTL</span>', nhl)
+        self.assertIn('class="team-abbr">TOR</span>', nhl)
         self.assertIn('src="logos/teams/nhl/tbl.png"', report._today_pick_html("TBI/NYI o5.5", "NHL", "logos", files | {"teams/nhl/nyi.png"}))
 
         nfl = report._today_pick_html("WAS/SEA u48", "NFL", "logos", files)
