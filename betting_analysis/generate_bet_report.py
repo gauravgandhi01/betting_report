@@ -1278,6 +1278,7 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     ids: List[str] = []
     home = ""
     away = ""
+    sides: Dict[str, Dict[str, Any]] = {}
     for competitor in comp.get("competitors") or []:
         team = competitor.get("team") or {}
         abbr = str(team.get("abbreviation") or "").upper()
@@ -1288,6 +1289,13 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             ids.append(team_id)
         name = str(team.get("displayName") or abbr)
         side = competitor.get("homeAway")
+        if side in {"home", "away"}:
+            sides[side] = {
+                "id": team_id,
+                "abbr": abbr,
+                "name": name,
+                "score": str(competitor["score"]) if competitor.get("score") is not None else None,
+            }
         if side == "home":
             home = name
         elif side == "away":
@@ -1317,6 +1325,15 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 networks.append(str(name))
     title = " · ".join(part for part in (matchup, venue_name, ", ".join(networks)) if part)
     return {
+        "event_id": str(event.get("id") or comp.get("id") or ""),
+        "home": sides.get("home"),
+        "away": sides.get("away"),
+        "neutral_site": bool(comp.get("neutralSite")),
+        "state": str(status_type.get("state") or ""),
+        "status_name": str(status_type.get("name") or ""),
+        "status_detail": str(status_type.get("detail") or status_type.get("description") or ""),
+        "period": status.get("period"),
+        "clock": str(status.get("displayClock") or ""),
         "abbrs": frozenset(abbrs),
         "ids": frozenset(ids),
         "display": display,
@@ -1326,7 +1343,7 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def _espn_slate(league: str, day: dt.date) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+def _espn_slate(league: str, day: dt.date, timeout_seconds: int = 20) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     spec = _ESPN_SCOREBOARDS.get(league)
     if spec is None:
         return [], f"no ESPN scoreboard for {league}"
@@ -1340,7 +1357,9 @@ def _espn_slate(league: str, day: dt.date) -> Tuple[List[Dict[str, Any]], Option
             query += f"&groups={group}"
         url = f"https://site.api.espn.com/apis/site/v2/sports/{path}/scoreboard?{query}"
         try:
-            payload = json.loads(_download_bytes_with_ssl(url, timeout_seconds=20))
+            payload = json.loads(_download_bytes_with_ssl(url, timeout_seconds=timeout_seconds))
+            if not isinstance(payload, dict) or not isinstance(payload.get("events"), list):
+                raise ValueError("Invalid ESPN scoreboard payload")
         except Exception:
             errors = True
             continue
@@ -1348,13 +1367,11 @@ def _espn_slate(league: str, day: dt.date) -> Tuple[List[Dict[str, Any]], Option
             game = _game_from_espn_event(event)
             if game is None:
                 continue
-            key = tuple(sorted(game["ids"])) or tuple(sorted(game["abbrs"]))
+            key = (game["event_id"],) if game["event_id"] else tuple(sorted(game["ids"])) or tuple(sorted(game["abbrs"]))
             found[key] = game
-    if found:
-        return list(found.values()), None
     if errors:
-        return [], f"ESPN scoreboard request failed for {league} on {day.isoformat()}"
-    return [], None
+        return list(found.values()), f"ESPN scoreboard request failed for {league} on {day.isoformat()} (slate may be incomplete)"
+    return list(found.values()), None
 
 
 def _clock_label(game: Dict[str, Any], now: dt.datetime) -> Dict[str, str]:
