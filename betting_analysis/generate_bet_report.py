@@ -1333,11 +1333,23 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     title = " · ".join(part for part in (matchup, venue_name, ", ".join(networks)) if part)
     odds = (comp.get("odds") or [{}])[0]
     total = odds.get("overUnder")
+    spread_parts = []
+    total_parts = []
+    for side in ("away", "home"):
+        quote = ((odds.get("pointSpread") or {}).get(side) or {}).get("close") or {}
+        if quote.get("line") and sides.get(side):
+            juice = f" ({quote['odds']})" if quote.get("odds") else ""
+            spread_parts.append(f"{sides[side]['abbr']} {quote['line']}{juice}")
+    for side in ("over", "under"):
+        quote = ((odds.get("total") or {}).get(side) or {}).get("close") or {}
+        if quote.get("line"):
+            juice = f" ({quote['odds']})" if quote.get("odds") else ""
+            total_parts.append(f"{quote['line']}{juice}")
     return {
         "venue": venue_name,
         "broadcast": ", ".join(networks),
-        "spread": str(odds.get("details") or ""),
-        "total": str(total) if total is not None else "",
+        "spread": " · ".join(spread_parts) or str(odds.get("details") or ""),
+        "total": " · ".join(total_parts) or (str(total) if total is not None else ""),
         "event_id": str(event.get("id") or comp.get("id") or ""),
         "home": sides.get("home"),
         "away": sides.get("away"),
@@ -1493,14 +1505,27 @@ def _game_time_html(start: Optional[Dict[str, str]]) -> str:
 def _game_info_html(start: Optional[Dict[str, str]]) -> str:
     if not start:
         return ""
-    fields = [("Location", start.get("venue")), ("Broadcast", start.get("broadcast"))]
+    rows = "".join(f'<div class="game-info-line">{html.escape(str(value))}</div>'
+                   for value in (start.get("venue"),) if value)
     if start.get("display") not in {"Live", "Final"}:
-        fields.extend([("Spread", start.get("spread")), ("Total", start.get("total"))])
-    rows = "".join(f'<div><dt>{label}</dt><dd>{html.escape(str(value))}</dd></div>' for label, value in fields if value)
+        for market in ("spread", "total"):
+            value = start.get(market)
+            if not value:
+                continue
+            quotes = []
+            for quote in str(value).split(" · "):
+                match = re.fullmatch(r"(.+?)\s+\(([+−-]?\d+)\)", quote)
+                line, juice = match.groups() if match else (quote, "")
+                if market == "total":
+                    line = re.sub(r"^o(?=\d)", "Over ", line)
+                    line = re.sub(r"^u(?=\d)", "Under ", line)
+                quotes.append(f'<div class="game-info-quote"><span>{html.escape(line)}</span><span class="game-info-juice">{html.escape(juice)}</span></div>')
+            rows += f'<div class="game-info-market">{"".join(quotes)}</div>'
     if not rows:
         return ""
-    return ('<details class="game-info"><summary aria-label="Game information" title="Game information">i</summary>'
-            f'<div class="game-info-bubble"><dl>{rows}</dl></div></details>')
+    return ('<div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button>'
+            f'<div class="game-info-bubble" role="tooltip">{rows}</div></div>')
+
 
 
 def _parse_money(value: str) -> float:
@@ -2439,7 +2464,22 @@ def build_html_report(
             start = (game_times or {}).get((r["date"], league, r["pick"]))
             game_info = _game_info_html(start)
             start_html = _game_time_html(start)
-            when_html = f'<div class="today-when">{start_html}</div>' if start_html else ""
+            broadcast = str((start or {}).get("broadcast") or "").split(",", 1)[0].strip()
+            network_files = {
+                "espn": "ESPN_logos.png", "espn+": "ESPN-PNG-File.png",
+                "youtube": "Youtube_logo.png", "fox": "fox.svg", "fs1": "fs1.png",
+                "acc network": "accn.png", "accnx": "accn.png",
+                "sec network": "secn.png", "secn+": "secn.png",
+                "flosports": "FloSports-logo.png",
+            }
+            network_file = network_files.get(broadcast.casefold())
+            network_href = _join_href(logo_base_href, f"networks/{network_file}") if network_file else ""
+            if network_file and available_logo_files is not None and f"networks/{network_file}".lower() not in available_logo_files:
+                network_href = ""
+            network_mark = (f'<img class="today-network-logo" src="{html.escape(network_href, quote=True)}" alt="{html.escape(broadcast, quote=True)}" decoding="async" />'
+                            if network_href else html.escape(broadcast))
+            broadcast_html = f'<span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="{html.escape(broadcast, quote=True)}">{network_mark}</span>' if broadcast else ""
+            when_html = f'<div class="today-when">{start_html}{broadcast_html}</div>' if start_html else ""
             start_timestamp = card_sort_key(r)[0]
             start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""
             game_done = bool(start and start.get("done")) and not upcoming
@@ -3164,14 +3204,18 @@ def build_html_report(
     .today-league:empty {{ display: none; }}
     .today-logos {{ justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; margin-left: auto; }}
     .game-info {{ position: relative; flex: 0 0 auto; }}
-    .game-info summary {{ display: flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--muted); border-radius: 50%; color: var(--muted); font: 600 10px Georgia, serif; cursor: pointer; list-style: none; }}
-    .game-info summary::-webkit-details-marker {{ display: none; }}
-    .game-info summary:hover, .game-info[open] summary {{ color: var(--text); border-color: var(--text); }}
-    .game-info summary:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; }}
-    .game-info-bubble {{ position: absolute; top: calc(100% + 7px); right: 0; z-index: 8; width: min(240px, 65vw); padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: #111827; box-shadow: 0 8px 24px rgba(0,0,0,0.4); white-space: normal; }}
-    .game-info-bubble dl {{ display: grid; gap: 8px; margin: 0; }}
-    .game-info-bubble dd {{ margin: 2px 0 0; font-size: 12px; font-weight: 500; letter-spacing: normal; overflow-wrap: anywhere; }}
-    .today-bet:has(.game-info[open]) {{ z-index: 6; }}
+    .game-info-trigger {{ display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 12px; height: 12px; padding: 0; border: 1px solid rgba(157,176,208,0.5); border-radius: 50%; background: transparent; color: var(--muted); font: 500 8px Georgia, serif; cursor: help; }}
+    .game-info:hover .game-info-trigger, .game-info:focus-within .game-info-trigger {{ color: var(--text); border-color: var(--text); }}
+    .game-info-trigger:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
+    .game-info-bubble {{ display: none; position: absolute; top: calc(100% + 5px); right: 0; z-index: 8; width: min(210px, 65vw); padding: 7px 9px; border: 1px solid var(--border); border-radius: 5px; background: #111827; box-shadow: 0 6px 18px rgba(0,0,0,0.35); white-space: normal; }}
+    .game-info-bubble::before {{ content: ''; position: absolute; bottom: 100%; left: 0; width: 100%; height: 5px; }}
+    .game-info:hover .game-info-bubble, .game-info:focus-within .game-info-bubble {{ display: block; }}
+    .game-info-bubble {{ font-size: 10px; line-height: 1.5; font-variant-numeric: tabular-nums; }}
+    .game-info-line + .game-info-line {{ margin-top: 2px; color: var(--muted); }}
+    .game-info-market {{ margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--border); }}
+    .game-info-quote {{ display: flex; justify-content: space-between; gap: 14px; }}
+    .game-info-juice {{ color: var(--muted); text-align: right; }}
+    .today-bet:has(.game-info:hover), .today-bet:has(.game-info:focus-within) {{ z-index: 6; }}
     .today-result {{ display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; color: var(--result-color); background: rgba(var(--result-rgb), 0.18); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.55); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.3; text-transform: uppercase; }}
     .today-bet--won .today-result, .today-bet--lost .today-result {{ background: rgba(var(--result-rgb), 0.24); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.8); }}
     .today-result > span {{ font-size: 13px; line-height: 1; }}
@@ -3196,7 +3240,11 @@ def build_html_report(
     .today-pick .team-logo {{ display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }}
     .today-meta {{ display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }}
     .today-meta:empty {{ display: none; }}
-    .today-when {{ display: flex; align-items: baseline; min-width: 0; }}
+    .today-when {{ display: flex; align-items: baseline; min-width: 0; gap: 5px; }}
+    .today-broadcast-separator {{ color: var(--muted); opacity: 0.6; font-size: 9px; }}
+    .today-broadcast {{ position: relative; display: inline-block; width: 40px; height: 10px; line-height: 10px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }}
+    .today-network-logo {{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 40px; height: 18px; object-fit: contain; }}
+    .today-network-logo[src$="ESPN-PNG-File.png"] {{ width: 46px; height: 26px; }}
     .today-bet-money .today-start {{ color: inherit; font: inherit; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
     .today-bet-money .today-start.is-live {{ color: var(--bad); }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}

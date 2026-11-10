@@ -327,14 +327,18 @@
     .today-league:empty { display: none; }
     .today-logos { justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; margin-left: auto; }
     .game-info { position: relative; flex: 0 0 auto; }
-    .game-info summary { display: flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--muted); border-radius: 50%; color: var(--muted); font: 600 10px Georgia, serif; cursor: pointer; list-style: none; }
-    .game-info summary::-webkit-details-marker { display: none; }
-    .game-info summary:hover, .game-info[open] summary { color: var(--text); border-color: var(--text); }
-    .game-info summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-    .game-info-bubble { position: absolute; top: calc(100% + 7px); right: 0; z-index: 8; width: min(240px, 65vw); padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: #111827; box-shadow: 0 8px 24px rgba(0,0,0,0.4); white-space: normal; }
-    .game-info-bubble dl { display: grid; gap: 8px; margin: 0; }
-    .game-info-bubble dd { margin: 2px 0 0; font-size: 12px; font-weight: 500; letter-spacing: normal; overflow-wrap: anywhere; }
-    .today-bet:has(.game-info[open]) { z-index: 6; }
+    .game-info-trigger { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 12px; height: 12px; padding: 0; border: 1px solid rgba(157,176,208,0.5); border-radius: 50%; background: transparent; color: var(--muted); font: 500 8px Georgia, serif; cursor: help; }
+    .game-info:hover .game-info-trigger, .game-info:focus-within .game-info-trigger { color: var(--text); border-color: var(--text); }
+    .game-info-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .game-info-bubble { display: none; position: absolute; top: calc(100% + 5px); right: 0; z-index: 8; width: min(210px, 65vw); padding: 7px 9px; border: 1px solid var(--border); border-radius: 5px; background: #111827; box-shadow: 0 6px 18px rgba(0,0,0,0.35); white-space: normal; }
+    .game-info-bubble::before { content: ''; position: absolute; bottom: 100%; left: 0; width: 100%; height: 5px; }
+    .game-info:hover .game-info-bubble, .game-info:focus-within .game-info-bubble { display: block; }
+    .game-info-bubble { font-size: 10px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+    .game-info-line + .game-info-line { margin-top: 2px; color: var(--muted); }
+    .game-info-market { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--border); }
+    .game-info-quote { display: flex; justify-content: space-between; gap: 14px; }
+    .game-info-juice { color: var(--muted); text-align: right; }
+    .today-bet:has(.game-info:hover), .today-bet:has(.game-info:focus-within) { z-index: 6; }
     .today-result { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; color: var(--result-color); background: rgba(var(--result-rgb), 0.18); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.55); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.3; text-transform: uppercase; }
     .today-bet--won .today-result, .today-bet--lost .today-result { background: rgba(var(--result-rgb), 0.24); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.8); }
     .today-result > span { font-size: 13px; line-height: 1; }
@@ -359,7 +363,11 @@
     .today-pick .team-logo { display: inline-block; width: 22px; height: 22px; margin: 0 1px; object-fit: contain; vertical-align: middle; background: transparent; }
     .today-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; color: var(--muted); font-size: 11px; }
     .today-meta:empty { display: none; }
-    .today-when { display: flex; align-items: baseline; min-width: 0; }
+    .today-when { display: flex; align-items: baseline; min-width: 0; gap: 5px; }
+    .today-broadcast-separator { color: var(--muted); opacity: 0.6; font-size: 9px; }
+    .today-broadcast { position: relative; display: inline-block; width: 40px; height: 10px; line-height: 10px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }
+    .today-network-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 40px; height: 18px; object-fit: contain; }
+    .today-network-logo[src$="ESPN-PNG-File.png"] { width: 46px; height: 26px; }
     .today-bet-money .today-start { color: inherit; font: inherit; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
     .today-bet-money .today-start.is-live { color: var(--bad); }
     .today-odds { flex-shrink: 0; white-space: nowrap; }
@@ -442,7 +450,7 @@
 <body>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-11-10 | Last synced 2:38 PM EST</div>
+    <div class="subtitle">As of 2026-11-10 | Last synced 2:56 PM EST</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -496,11 +504,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>UPMC Cooper Fieldhouse, Pittsburgh</dd></div><div><dt>Broadcast</dt><dd>ESPN+</dd></div><div><dt>Spread</dt><dd>DUQ -3.5</dd></div><div><dt>Total</dt><dd>144.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">UPMC Cooper Fieldhouse, Pittsburgh</div><div class="game-info-market"><div class="game-info-quote"><span>WSU +3.5</span><span class="game-info-juice">-112</span></div><div class="game-info-quote"><span>DUQ -3.5</span><span class="game-info-juice">-108</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 144.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>Under 144.5</span><span class="game-info-juice">-112</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:242,133,128;--risk-alpha:0.150"><dt>Risk</dt><dd><span class="today-risk-amount" title="10.26u · 1u = $100">$1,026</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Washington State Cougars at Duquesne Dukes · UPMC Cooper Fieldhouse, Pittsburgh · ESPN+">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Washington State Cougars at Duquesne Dukes · UPMC Cooper Fieldhouse, Pittsburgh · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$900</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="1000.0" data-net="0" data-potential="1090.0" data-count="1" data-open="true">
@@ -511,11 +519,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>United Center, Chicago</dd></div><div><dt>Broadcast</dt><dd>ESPN</dd></div><div><dt>Spread</dt><dd>DUKE -7.5</dd></div><div><dt>Total</dt><dd>145.5</dd></div></dl></div></details><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">United Center, Chicago</div><div class="game-info-market"><div class="game-info-quote"><span>MSU +7.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>DUKE -7.5</span><span class="game-info-juice">-112</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 146.5</span><span class="game-info-juice">-115</span></div><div class="game-info-quote"><span>Under 146.5</span><span class="game-info-juice">-105</span></div></div></div></div><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:242,136,128;--risk-alpha:0.148"><dt>Risk</dt><dd><span class="today-risk-amount" title="10u · 1u = $100">$1,000</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$1,090</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -526,11 +534,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>UD Arena, Dayton</dd></div><div><dt>Broadcast</dt><dd>ESPN+, Spectrum News 1</dd></div><div><dt>Spread</dt><dd>DAY -13.5</dd></div><div><dt>Total</dt><dd>159.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">UD Arena, Dayton</div><div class="game-info-market"><div class="game-info-quote"><span>SIE +13.5</span><span class="game-info-juice">-115</span></div><div class="game-info-quote"><span>DAY -13.5</span><span class="game-info-juice">-105</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 159.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>Under 159.5</span><span class="game-info-juice">-112</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -541,11 +549,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>Dean E. Smith Center, Chapel Hill</dd></div><div><dt>Broadcast</dt><dd>ACC Network</dd></div><div><dt>Spread</dt><dd>UNC -12.5</dd></div><div><dt>Total</dt><dd>155.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Dean E. Smith Center, Chapel Hill</div><div class="game-info-market"><div class="game-info-quote"><span>WYO +12.5</span><span class="game-info-juice">+100</span></div><div class="game-info-quote"><span>UNC -12.5</span><span class="game-info-juice">-120</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 155.5</span><span class="game-info-juice">-112</span></div><div class="game-info-quote"><span>Under 155.5</span><span class="game-info-juice">-108</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Wyoming Cowboys at North Carolina Tar Heels · Dean E. Smith Center, Chapel Hill · ACC Network">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Wyoming Cowboys at North Carolina Tar Heels · Dean E. Smith Center, Chapel Hill · ACC Network">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ACC Network"><img class="today-network-logo" src="logos/networks/accn.png" alt="ACC Network" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
@@ -556,11 +564,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>UD Arena, Dayton</dd></div><div><dt>Broadcast</dt><dd>ESPN+, Spectrum News 1</dd></div><div><dt>Spread</dt><dd>DAY -13.5</dd></div><div><dt>Total</dt><dd>159.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">UD Arena, Dayton</div><div class="game-info-market"><div class="game-info-quote"><span>SIE +13.5</span><span class="game-info-juice">-115</span></div><div class="game-info-quote"><span>DAY -13.5</span><span class="game-info-juice">-105</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 159.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>Under 159.5</span><span class="game-info-juice">-112</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:191,199,144;--risk-alpha:0.096"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.30u · 1u = $100">$330</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
@@ -571,11 +579,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>Cabot Center, Boston</dd></div><div><dt>Broadcast</dt><dd>FloSports</dd></div><div><dt>Spread</dt><dd>HARV -1.5</dd></div><div><dt>Total</dt><dd>143.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Cabot Center, Boston</div><div class="game-info-market"><div class="game-info-quote"><span>HARV -1.5</span><span class="game-info-juice">-115</span></div><div class="game-info-quote"><span>NE +1.5</span><span class="game-info-juice">-105</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 143.5</span><span class="game-info-juice">-110</span></div><div class="game-info-quote"><span>Under 143.5</span><span class="game-info-juice">-110</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:191,199,144;--risk-alpha:0.096"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.30u · 1u = $100">$330</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Harvard Crimson at Northeastern Huskies · Cabot Center, Boston · FloSports">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Harvard Crimson at Northeastern Huskies · Cabot Center, Boston · FloSports">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FloSports"><img class="today-network-logo" src="logos/networks/FloSports-logo.png" alt="FloSports" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
@@ -586,11 +594,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>Cintas Center, Cincinnati</dd></div><div><dt>Broadcast</dt><dd>ESPN+</dd></div><div><dt>Spread</dt><dd>XAV -35.5</dd></div><div><dt>Total</dt><dd>157.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Cintas Center, Cincinnati</div><div class="game-info-market"><div class="game-info-quote"><span>DETM +35.5</span><span class="game-info-juice">-112</span></div><div class="game-info-quote"><span>XAV -35.5</span><span class="game-info-juice">-108</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 157.5</span><span class="game-info-juice">-105</span></div><div class="game-info-quote"><span>Under 157.5</span><span class="game-info-juice">-115</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:191,199,144;--risk-alpha:0.096"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.30u · 1u = $100">$330</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Detroit Mercy Titans at Xavier Musketeers · Cintas Center, Cincinnati · ESPN+">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Detroit Mercy Titans at Xavier Musketeers · Cintas Center, Cincinnati · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="153.0" data-net="0" data-potential="150.0" data-count="1" data-open="true">
@@ -601,11 +609,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>United Center, Chicago</dd></div><div><dt>Broadcast</dt><dd>ESPN</dd></div><div><dt>Spread</dt><dd>DUKE -7.5</dd></div><div><dt>Total</dt><dd>145.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">United Center, Chicago</div><div class="game-info-market"><div class="game-info-quote"><span>MSU +7.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>DUKE -7.5</span><span class="game-info-juice">-112</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 146.5</span><span class="game-info-juice">-115</span></div><div class="game-info-quote"><span>Under 146.5</span><span class="game-info-juice">-105</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:149,202,169;--risk-alpha:0.082"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.53u · 1u = $100">$153</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$150</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794358800000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -616,11 +624,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>Chaifetz Arena, St. Louis</dd></div><div><dt>Broadcast</dt><dd>ESPN+</dd></div><div><dt>Spread</dt><dd>SLU -23.5</dd></div><div><dt>Total</dt><dd>168.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Chaifetz Arena, St. Louis</div><div class="game-info-market"><div class="game-info-quote"><span>NKU +23.5</span><span class="game-info-juice">-112</span></div><div class="game-info-quote"><span>SLU -23.5</span><span class="game-info-juice">-108</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 168.5</span><span class="game-info-juice">-115</span></div><div class="game-info-quote"><span>Under 168.5</span><span class="game-info-juice">-105</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,186,120;--risk-alpha:0.116"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.94u · 1u = $100">$594</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T01:00:00+00:00" title="Northern Kentucky Norse at Saint Louis Billikens · Chaifetz Arena, St. Louis · ESPN+">8 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T01:00:00+00:00" title="Northern Kentucky Norse at Saint Louis Billikens · Chaifetz Arena, St. Louis · ESPN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -631,11 +639,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>McKale Center at ALKEME Arena, Tucson</dd></div><div><dt>Broadcast</dt><dd>ESPN+</dd></div><div><dt>Spread</dt><dd>ARIZ -35.5</dd></div><div><dt>Total</dt><dd>156.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">McKale Center at ALKEME Arena, Tucson</div><div class="game-info-market"><div class="game-info-quote"><span>NAU +35.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>ARIZ -35.5</span><span class="game-info-juice">-112</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 156.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>Under 156.5</span><span class="game-info-juice">-112</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,186,120;--risk-alpha:0.116"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.94u · 1u = $100">$594</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Northern Arizona Lumberjacks at Arizona Wildcats · McKale Center at ALKEME Arena, Tucson · ESPN+">9 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Northern Arizona Lumberjacks at Arizona Wildcats · McKale Center at ALKEME Arena, Tucson · ESPN+">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="572.4" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -646,11 +654,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>Bramlage Coliseum, Manhattan</dd></div><div><dt>Broadcast</dt><dd>FS1</dd></div><div><dt>Spread</dt><dd>CREI -3.5</dd></div><div><dt>Total</dt><dd>158.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Bramlage Coliseum, Manhattan</div><div class="game-info-market"><div class="game-info-quote"><span>CREI -3.5</span><span class="game-info-juice">-105</span></div><div class="game-info-quote"><span>KSU +3.5</span><span class="game-info-juice">-115</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 158.5</span><span class="game-info-juice">-112</span></div><div class="game-info-quote"><span>Under 158.5</span><span class="game-info-juice">-108</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,189,120;--risk-alpha:0.115"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.72u · 1u = $100">$572.40</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Creighton Bluejays at Kansas State Wildcats · Bramlage Coliseum, Manhattan · FS1">9 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Creighton Bluejays at Kansas State Wildcats · Bramlage Coliseum, Manhattan · FS1">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FS1"><img class="today-network-logo" src="logos/networks/fs1.png" alt="FS1" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="567.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -661,11 +669,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>Dee Glen Smith Spectrum, Logan</dd></div><div><dt>Broadcast</dt><dd>YouTube</dd></div><div><dt>Spread</dt><dd>USU -25.5</dd></div><div><dt>Total</dt><dd>156.5</dd></div></dl></div></details><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Dee Glen Smith Spectrum, Logan</div><div class="game-info-market"><div class="game-info-quote"><span>UTU +25.5</span><span class="game-info-juice">-108</span></div><div class="game-info-quote"><span>USU -25.5</span><span class="game-info-juice">-112</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 156.5</span><span class="game-info-juice">-112</span></div><div class="game-info-quote"><span>Under 156.5</span><span class="game-info-juice">-108</span></div></div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,189,120;--risk-alpha:0.114"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.67u · 1u = $100">$567</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Utah Tech Trailblazers at Utah State Aggies · Dee Glen Smith Spectrum, Logan · YouTube">9 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Utah Tech Trailblazers at Utah State Aggies · Dee Glen Smith Spectrum, Logan · YouTube">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794366000000" data-risk="113.0" data-net="0" data-potential="113.0" data-count="1" data-open="true">
@@ -676,11 +684,11 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"></div>
-                <div class="chip-row today-logos"><details class="game-info"><summary aria-label="Game information" title="Game information">i</summary><div class="game-info-bubble"><dl><div><dt>Location</dt><dd>The Sobrato Center, San Francisco</dd></div><div><dt>Broadcast</dt><dd>ESPN+</dd></div><div><dt>Spread</dt><dd>SF -11.5</dd></div><div><dt>Total</dt><dd>148.5</dd></div></dl></div></details><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">The Sobrato Center, San Francisco</div><div class="game-info-market"><div class="game-info-quote"><span>MONT +11.5</span><span class="game-info-juice">-110</span></div><div class="game-info-quote"><span>SF -11.5</span><span class="game-info-juice">-110</span></div></div><div class="game-info-market"><div class="game-info-quote"><span>Over 148.5</span><span class="game-info-juice">-105</span></div><div class="game-info-quote"><span>Under 148.5</span><span class="game-info-juice">-115</span></div></div></div></div><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:140,202,174;--risk-alpha:0.079"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.13u · 1u = $100">$113</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T03:00:00+00:00" title="Montana Grizzlies at San Francisco Dons · The Sobrato Center, San Francisco · ESPN+">10 PM</time></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T03:00:00+00:00" title="Montana Grizzlies at San Francisco Dons · The Sobrato Center, San Francisco · ESPN+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$113</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="" data-risk="550.0" data-net="0" data-potential="500.0" data-count="1" data-open="true">

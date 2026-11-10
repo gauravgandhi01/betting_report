@@ -785,7 +785,7 @@ class GameInfoTests(unittest.TestCase):
         for display in ("7 PM", "Live", "Final"):
             markup = report._game_info_html(dict(start, display=display))
             self.assertIn("Arena &amp; City", markup)
-            self.assertIn("ESPN+", markup)
+            self.assertNotIn("ESPN+", markup)
             self.assertEqual("DAY -13.5" in markup, display == "7 PM")
             self.assertEqual("159.5" in markup, display == "7 PM")
         self.assertEqual(report._game_info_html(None), "")
