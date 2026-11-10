@@ -272,13 +272,27 @@ TEAM_LOGO_BY_LEAGUE: Dict[str, Dict[str, Tuple[str, str]]] = {
 
 # ESPN serves a transparent PNG for each school at a stable id.
 ESPN_NCAA_LOGO = "https://a.espncdn.com/i/teamlogos/ncaa/500/{team_id}.png"
+# Local artwork takes precedence without changing ESPN game matching.
+NCAA_LOCAL_LOGOS = {"dayton": "teams/ncaa/dayton.png", "utahTech": "teams/ncaa/utahtech.png"}
+NETWORK_LOGO_FILES = {
+    "espn": "ESPN_logos.png", "espn+": "ESPN-PNG-File.png",
+    "youtube": "Youtube_logo.png", "fox": "fox.svg", "fs1": "fs1.png",
+    "acc network": "accn.png", "accnx": "accn.png",
+    "sec network": "secn.png", "secn+": "secn.png",
+    "flosports": "FloSports-logo.png",
+}
+# Stable hour colors in Eastern time; live/final styling overrides these.
+START_HOUR_COLORS = ("196,181,253", "253,230,138", "134,239,172", "125,211,252",
+                     "216,180,254", "252,211,77", "110,231,183", "165,180,252")
 
 
 def _ncaa_logo_map(rows: List[Tuple[Tuple[str, ...], str, str]]) -> Dict[str, Tuple[str, str]]:
     mapping: Dict[str, Tuple[str, str]] = {}
     for abbrs, slug, name in rows:
         team_id = NCAA_ESPN_IDS.get(slug)
-        ref = ESPN_NCAA_LOGO.format(team_id=team_id) if team_id and slug not in {"dayton", "utahTech"} else f"teams/ncaa/{slug.lower()}.png"
+        ref = NCAA_LOCAL_LOGOS.get(slug) or (
+            ESPN_NCAA_LOGO.format(team_id=team_id) if team_id else f"teams/ncaa/{slug.lower()}.png"
+        )
         for abbr in abbrs:
             mapping[abbr] = (ref, name)
     return mapping
@@ -1503,15 +1517,31 @@ def _game_time_html(start: Optional[Dict[str, str]]) -> str:
             if scheduled.tzinfo is None:
                 scheduled = scheduled.replace(tzinfo=dt.timezone.utc)
             hour = scheduled.astimezone(_EASTERN).hour
-            palette = ("196,181,253", "253,230,138", "134,239,172", "125,211,252",
-                       "216,180,254", "252,211,77", "110,231,183", "165,180,252")
-            badge_style = f' style="--start-rgb:{palette[hour % len(palette)]}"'
+            badge_style = f' style="--start-rgb:{START_HOUR_COLORS[hour % len(START_HOUR_COLORS)]}"'
         except (ValueError, KeyError):
             pass
     return (
         f'<time class="today-start{kind}" datetime="{html.escape(start["iso"], quote=True)}"{badge_style} '
         f'title="{html.escape(start["title"], quote=True)}">{html.escape(start["display"])}</time>'
     )
+
+
+def _broadcast_html(
+    broadcast: str, logo_base_href: str = "logos", available_logo_files: Optional[set[str]] = None
+) -> str:
+    """Render the first network in the fixed-size footer slot, falling back to text."""
+    broadcast = broadcast.split(",", 1)[0].strip()
+    if not broadcast:
+        return ""
+    filename = NETWORK_LOGO_FILES.get(broadcast.casefold())
+    relative_path = f"networks/{filename}" if filename else ""
+    available = relative_path and (available_logo_files is None or relative_path.lower() in available_logo_files)
+    logo_href = _join_href(logo_base_href, relative_path) if available else ""
+    safe_name = html.escape(broadcast, quote=True)
+    mark = (f'<img class="today-network-logo" src="{html.escape(logo_href, quote=True)}" '
+            f'alt="{safe_name}" decoding="async" />' if logo_href else safe_name)
+    return ('<span class="today-broadcast-separator" aria-hidden="true">|</span>'
+            f'<span class="today-broadcast" title="{safe_name}">{mark}</span>')
 
 
 def _game_info_html(start: Optional[Dict[str, str]]) -> str:
@@ -2428,7 +2458,7 @@ def build_html_report(
                 mark = (f'<img src="{html.escape(logo_href, quote=True)}" alt="" loading="lazy" decoding="async" />'
                         if logo_href else html.escape(card_league))
                 league_marks.append(f'<span class="today-sport-mark" role="img" aria-label="{html.escape(card_league, quote=True)}">{mark}</span>')
-            sport_watermark = f'<span class="today-sport-watermark">{"".join(league_marks)}</span>' 
+            sport_watermark = f'<span class="today-sport-watermark">{"".join(league_marks)}</span>'
             books = "".join(book_badge(x) for x in r["books"])
             amount = r.get("net") if result else r.get("to_win")
             amount_value = _finite_float(amount)
@@ -2476,21 +2506,8 @@ def build_html_report(
             start = (game_times or {}).get((r["date"], league, r["pick"]))
             game_info = _game_info_html(start)
             start_html = _game_time_html(start)
-            broadcast = str((start or {}).get("broadcast") or "").split(",", 1)[0].strip()
-            network_files = {
-                "espn": "ESPN_logos.png", "espn+": "ESPN-PNG-File.png",
-                "youtube": "Youtube_logo.png", "fox": "fox.svg", "fs1": "fs1.png",
-                "acc network": "accn.png", "accnx": "accn.png",
-                "sec network": "secn.png", "secn+": "secn.png",
-                "flosports": "FloSports-logo.png",
-            }
-            network_file = network_files.get(broadcast.casefold())
-            network_href = _join_href(logo_base_href, f"networks/{network_file}") if network_file else ""
-            if network_file and available_logo_files is not None and f"networks/{network_file}".lower() not in available_logo_files:
-                network_href = ""
-            network_mark = (f'<img class="today-network-logo" src="{html.escape(network_href, quote=True)}" alt="{html.escape(broadcast, quote=True)}" decoding="async" />'
-                            if network_href else html.escape(broadcast))
-            broadcast_html = f'<span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="{html.escape(broadcast, quote=True)}">{network_mark}</span>' if broadcast else ""
+            broadcast = str((start or {}).get("broadcast") or "")
+            broadcast_html = _broadcast_html(broadcast, logo_base_href, available_logo_files)
             when_html = f'<div class="today-when">{start_html}{broadcast_html}</div>' if start_html else ""
             start_timestamp = card_sort_key(r)[0]
             start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""

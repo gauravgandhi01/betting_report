@@ -779,6 +779,22 @@ class GameTimeTests(unittest.TestCase):
         self.assertEqual(sam["name"], "Samford")
 
 
+class BroadcastTests(unittest.TestCase):
+    def test_first_network_uses_local_asset_and_custom_base(self):
+        markup = report._broadcast_html("ESPN+, Spectrum News 1", "../logos",
+                                        {"networks/espn-png-file.png"})
+        self.assertIn('src="../logos/networks/ESPN-PNG-File.png"', markup)
+        self.assertIn('alt="ESPN+"', markup)
+        self.assertNotIn("Spectrum", markup)
+
+    def test_missing_or_unknown_logo_falls_back_to_escaped_text(self):
+        for name in ("ESPN+", "Unknown & Network"):
+            markup = report._broadcast_html(name, available_logo_files=set())
+            self.assertNotIn("<img", markup)
+            self.assertIn(name.replace("&", "&amp;"), markup)
+        self.assertEqual(report._broadcast_html(""), "")
+
+
 class GameInfoTests(unittest.TestCase):
     def test_game_details_keep_location_but_hide_lines_after_tip(self):
         start = {"venue": "Arena & City", "broadcast": "ESPN+", "spread": "DAY -13.5", "total": "159.5"}

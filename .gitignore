@@ -5,7 +5,6 @@ __pycache__/
 bets.csv
 # C extensions
 *.so
-betting_analysis/cron_log.txt
 # Distribution / packaging
 .Python
 build/
@@ -212,3 +211,6 @@ __marimo__/
 team-logos/
 logos/sdv-assets/
 
+
+# macOS Finder metadata
+.DS_Store

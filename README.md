@@ -1,8 +1,96 @@
 # Betting report tools
 
-## Live scores CLI
+Generate the static betting dashboard in `index.html`, sync the local CSV from a
+published Google Sheet, and follow matched games with the terminal live-score tool.
+Requires Python 3.9+ and internet access for ESPN and sheet downloads. No additional
+Python packages or API key are required. The dashboard loads Plotly from a CDN.
 
-Requires Python 3.9+ and internet access. No additional packages or API key are required.
+## Generate the report
+
+Run from the repository root with explicit paths:
+
+```sh
+python3 betting_analysis/generate_bet_report.py \
+  --input betting_analysis/bets.csv \
+  --output index.html \
+  --start-year 2025
+```
+
+Open `index.html` in a browser to review the result. Edit the generator rather
+than the generated HTML so changes survive the next refresh. The generator's
+historical defaults (`bets.csv` and `../index.html`) are relative to the working
+directory; the command above avoids that ambiguity.
+
+To download the sheet before generating, add `--sync-url 'PUBLISHED_CSV_URL'`.
+This replaces the local input CSV. To sync only:
+
+```sh
+python3 betting_analysis/sync_bets_from_sheet.py \
+  --url 'PUBLISHED_CSV_URL' --output betting_analysis/bets.csv
+```
+
+The CSV columns are `D,Pick,Odds,Risk,Wins,R,Net,Book,League,Type`. Dates use
+month/day, starting in `--start-year`; each year rollover advances the year.
+Blank results are open bets. The HTML report currently includes only bets dated
+January 1, 2026 onward. `bets.csv` and the cron log are intentionally ignored by Git.
+
+## Game cards and ESPN data
+
+Today and Upcoming cards share the same renderer. Sport logos appear as faint
+watermarks; team and sportsbook logos remain in the foreground. Parlays and round
+robins share a section but retain distinct compact labels and full pick details.
+
+A uniquely matched ESPN game supplies its start time, arena and broadcast. The
+footer shows only the first broadcast, using a logo when available. Scheduled time
+badges are colored by Eastern start hour; live and final badges have separate
+status colors. Hover or focus the small info icon for venue and pregame spread /
+total with juice when supplied. Betting lines are omitted for live/final games.
+
+The HTML is a snapshot made during generation. Refreshing the browser does not
+fetch a new ESPN slate; regenerate the report to update game data. Missing or
+ambiguous team mappings, missing ESPN IDs, unavailable games and request failures
+are reported in the generator's output. Player-only and multi-game picks may not
+have a single game to attach.
+
+## Logo and team maintenance
+
+Mappings live in `betting_analysis/generate_bet_report.py`:
+
+- Add college abbreviations, school slug and display name to `NCAA_LOGO_TEAMS` or
+  `NCAA_GAP_LOGO_TEAMS`, and its ESPN ID to `NCAA_ESPN_IDS` for game matching.
+- College logos normally use ESPN artwork. For custom artwork, put the file in
+  `logos/teams/ncaa/` and register its slug/path in `NCAA_LOCAL_LOGOS`. Keep the
+  local filename stem aligned with the school slug so the local-logo ID lookup
+  works. Dayton and Utah Tech are examples.
+- Put network artwork in `logos/networks/` and register the broadcast name and
+  exact filename in `NETWORK_LOGO_FILES`. Names match without case sensitivity;
+  file paths preserve case for hosting. Missing files fall back to network text.
+- `START_HOUR_COLORS` controls scheduled badge colors. Network CSS uses fixed
+  footer dimensions; ESPN+ has extra scaling for image padding and a color filter
+  that makes its dark E white while retaining the yellow plus.
+
+`team-logos/` and `logos/sdv-assets/` are ignored source asset directories, not
+runtime dependencies. Keep assets used by the site under `logos/`.
+
+## Automation and checks
+
+`betting_analysis/run_betting_cron.sh` is the existing machine-specific sync,
+generate, commit and push job. Its paths, Git remote and SSH configuration are
+local to the configured machine. It uses a lock directory to prevent overlapping
+runs and skips tracked working-tree changes before syncing. For local preview,
+use the generation command above; the cron script also changes Git state.
+
+```sh
+python3 -m unittest -q
+python3 betting_analysis/generate_bet_report.py --help
+python3 betting_analysis/live_scores.py --help
+```
+
+Tests use fixtures and injected fetch functions; they do not require live ESPN
+requests. `test_generate_bet_report.py` covers rendering and game matching;
+`test_live_scores.py` covers terminal scores and countdowns.
+
+## Live scores CLI
 
 Run from the repository root:
 
