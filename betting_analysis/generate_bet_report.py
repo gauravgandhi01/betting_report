@@ -278,7 +278,7 @@ def _ncaa_logo_map(rows: List[Tuple[Tuple[str, ...], str, str]]) -> Dict[str, Tu
     mapping: Dict[str, Tuple[str, str]] = {}
     for abbrs, slug, name in rows:
         team_id = NCAA_ESPN_IDS.get(slug)
-        ref = ESPN_NCAA_LOGO.format(team_id=team_id) if team_id else f"teams/ncaa/{slug.lower()}.png"
+        ref = ESPN_NCAA_LOGO.format(team_id=team_id) if team_id and slug not in {"dayton", "utahTech"} else f"teams/ncaa/{slug.lower()}.png"
         for abbr in abbrs:
             mapping[abbr] = (ref, name)
     return mapping
@@ -621,6 +621,8 @@ NCAA_GAP_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
 # ESPN team ids for the schools above. Cards load
 # https://a.espncdn.com/i/teamlogos/ncaa/500/{id}.png
 NCAA_ESPN_IDS: Dict[str, str] = {
+    "dayton": "2168",
+    "utahTech": "3101",
     "LouisianaTech": "2348",
     "OklahomaState": "197",
     "TCU": "2628",
@@ -1169,6 +1171,9 @@ def _team_ref(abbr: str, league: str) -> Optional[Dict[str, str]]:
     filename, name = entry
     id_match = _ESPN_TEAM_ID_RE.search(filename)
     espn_id = id_match.group(1) if id_match else ""
+    if not espn_id and league in {"NCAAB", "NCAAF"}:
+        local_slug = os.path.splitext(os.path.basename(filename))[0].casefold()
+        espn_id = next((team_id for slug, team_id in NCAA_ESPN_IDS.items() if slug.casefold() == local_slug), "")
     if filename.startswith("teams/"):
         canonical = os.path.splitext(os.path.basename(filename))[0].upper()
     else:
@@ -1326,7 +1331,13 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             if name and name not in networks:
                 networks.append(str(name))
     title = " · ".join(part for part in (matchup, venue_name, ", ".join(networks)) if part)
+    odds = (comp.get("odds") or [{}])[0]
+    total = odds.get("overUnder")
     return {
+        "venue": venue_name,
+        "broadcast": ", ".join(networks),
+        "spread": str(odds.get("details") or ""),
+        "total": str(total) if total is not None else "",
         "event_id": str(event.get("id") or comp.get("id") or ""),
         "home": sides.get("home"),
         "away": sides.get("away"),
@@ -1397,6 +1408,10 @@ def _clock_label(game: Dict[str, Any], now: dt.datetime) -> Dict[str, str]:
         "iso": formatted[1] if formatted else str(game.get("iso") or ""),
         "title": str(game.get("title") or ""),
         "done": "1" if done else "",
+        "venue": str(game.get("venue") or ""),
+        "broadcast": str(game.get("broadcast") or ""),
+        "spread": str(game.get("spread") or "") if display not in {"Live", "Final"} and game.get("state") == "pre" else "",
+        "total": str(game.get("total") or "") if display not in {"Live", "Final"} and game.get("state") == "pre" else "",
     }
 
 
@@ -1473,6 +1488,19 @@ def _game_time_html(start: Optional[Dict[str, str]]) -> str:
         f'<time class="today-start{kind}" datetime="{html.escape(start["iso"], quote=True)}" '
         f'title="{html.escape(start["title"], quote=True)}">{html.escape(start["display"])}</time>'
     )
+
+
+def _game_info_html(start: Optional[Dict[str, str]]) -> str:
+    if not start:
+        return ""
+    fields = [("Location", start.get("venue")), ("Broadcast", start.get("broadcast"))]
+    if start.get("display") not in {"Live", "Final"}:
+        fields.extend([("Spread", start.get("spread")), ("Total", start.get("total"))])
+    rows = "".join(f'<div><dt>{label}</dt><dd>{html.escape(str(value))}</dd></div>' for label, value in fields if value)
+    if not rows:
+        return ""
+    return ('<details class="game-info"><summary aria-label="Game information" title="Game information">i</summary>'
+            f'<div class="game-info-bubble"><dl>{rows}</dl></div></details>')
 
 
 def _parse_money(value: str) -> float:
@@ -2409,6 +2437,7 @@ def build_html_report(
                 )
                 pick_title = ""
             start = (game_times or {}).get((r["date"], league, r["pick"]))
+            game_info = _game_info_html(start)
             start_html = _game_time_html(start)
             when_html = f'<div class="today-when">{start_html}</div>' if start_html else ""
             start_timestamp = card_sort_key(r)[0]
@@ -2422,7 +2451,7 @@ def build_html_report(
               </div>
               <div class="today-bet-top">
                 <div class="today-league">{result_badge}</div>
-                <span class="chip-row today-logos">{books}</span>
+                <div class="chip-row today-logos">{game_info}{books}</div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"{risk_style}><dt>Risk</dt><dd><span class="today-risk-amount"{risk_tooltip}>{_fmt_money_compact(r.get("risk")) or "—"}</span></dd></div>
@@ -3134,6 +3163,15 @@ def build_html_report(
     .today-league {{ display: flex; align-items: center; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 10px; min-width: 0; overflow-wrap: anywhere; }}
     .today-league:empty {{ display: none; }}
     .today-logos {{ justify-content: flex-end; align-items: center; gap: 3px; min-width: 0; margin-left: auto; }}
+    .game-info {{ position: relative; flex: 0 0 auto; }}
+    .game-info summary {{ display: flex; align-items: center; justify-content: center; width: 15px; height: 15px; border: 1px solid var(--muted); border-radius: 50%; color: var(--muted); font: 600 10px Georgia, serif; cursor: pointer; list-style: none; }}
+    .game-info summary::-webkit-details-marker {{ display: none; }}
+    .game-info summary:hover, .game-info[open] summary {{ color: var(--text); border-color: var(--text); }}
+    .game-info summary:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 3px; }}
+    .game-info-bubble {{ position: absolute; top: calc(100% + 7px); right: 0; z-index: 8; width: min(240px, 65vw); padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: #111827; box-shadow: 0 8px 24px rgba(0,0,0,0.4); white-space: normal; }}
+    .game-info-bubble dl {{ display: grid; gap: 8px; margin: 0; }}
+    .game-info-bubble dd {{ margin: 2px 0 0; font-size: 12px; font-weight: 500; letter-spacing: normal; overflow-wrap: anywhere; }}
+    .today-bet:has(.game-info[open]) {{ z-index: 6; }}
     .today-result {{ display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; color: var(--result-color); background: rgba(var(--result-rgb), 0.18); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.55); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.3; text-transform: uppercase; }}
     .today-bet--won .today-result, .today-bet--lost .today-result {{ background: rgba(var(--result-rgb), 0.24); box-shadow: inset 0 0 0 1px rgba(var(--result-rgb), 0.8); }}
     .today-result > span {{ font-size: 13px; line-height: 1; }}

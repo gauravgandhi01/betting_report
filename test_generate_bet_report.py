@@ -779,5 +779,18 @@ class GameTimeTests(unittest.TestCase):
         self.assertEqual(sam["name"], "Samford")
 
 
+class GameInfoTests(unittest.TestCase):
+    def test_game_details_keep_location_but_hide_lines_after_tip(self):
+        start = {"venue": "Arena & City", "broadcast": "ESPN+", "spread": "DAY -13.5", "total": "159.5"}
+        for display in ("7 PM", "Live", "Final"):
+            markup = report._game_info_html(dict(start, display=display))
+            self.assertIn("Arena &amp; City", markup)
+            self.assertIn("ESPN+", markup)
+            self.assertEqual("DAY -13.5" in markup, display == "7 PM")
+            self.assertEqual("159.5" in markup, display == "7 PM")
+        self.assertEqual(report._game_info_html(None), "")
+        self.assertEqual(report._game_info_html({}), "")
+
+
 if __name__ == "__main__":
     unittest.main()
