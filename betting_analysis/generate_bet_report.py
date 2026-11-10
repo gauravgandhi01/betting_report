@@ -2355,7 +2355,13 @@ def build_html_report(
                 f'<span class="today-result"><span aria-hidden="true">{icon}</span> {html.escape(label)}</span>'
                 if result else ""
             )
-            leagues = "".join(league_badge(x) for x in r["leagues"])
+            league_marks = []
+            for card_league in r["leagues"]:
+                logo_href = _logo_href(card_league, LEAGUE_LOGO_MAP, logo_base_href, available_logo_files)
+                mark = (f'<img src="{html.escape(logo_href, quote=True)}" alt="" loading="lazy" decoding="async" />'
+                        if logo_href else html.escape(card_league))
+                league_marks.append(f'<span class="today-sport-mark" role="img" aria-label="{html.escape(card_league, quote=True)}">{mark}</span>')
+            sport_watermark = f'<span class="today-sport-watermark">{"".join(league_marks)}</span>' 
             books = "".join(book_badge(x) for x in r["books"])
             amount = r.get("net") if result else r.get("to_win")
             amount_value = _finite_float(amount)
@@ -2381,7 +2387,7 @@ def build_html_report(
             date_label = ""
             if upcoming:
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
-            bet_section = "parlay" if str(r.get("type") or "").strip().casefold() == "parlay" else "straight"
+            bet_section = "parlay" if str(r.get("type") or "").strip().casefold() in {"parlay", "round robin"} else "straight"
             odds_text = html.escape(_fmt_odds(r.get("odds"))) or "—"
             pick_label = _today_pick_text(r["pick"], league, available_logo_files)
             pick_tooltip = html.escape(f'{pick_label} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
@@ -2390,7 +2396,7 @@ def build_html_report(
             pick_title = f' title="{pick_tooltip}"'
             if bet_section == "parlay":
                 leg_count = _parlay_leg_count(r["pick"])
-                compact_label = f"{leg_count} leg parlay" if leg_count else "Parlay"
+                compact_label = f"{leg_count} way parlay" if leg_count else "Parlay"
                 details_id = f"{panel_key}-bet-{card_index}-details"
                 details = html.escape(r["pick"])
                 compact_pick = (
@@ -2406,13 +2412,14 @@ def build_html_report(
             start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""
             game_done = bool(start and start.get("done")) and not upcoming
             items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+              {sport_watermark}
               <div class="today-bet-body">
                 <div class="today-pick-line"{pick_title}><h4 class="today-pick">{pick_html}</h4>{compact_pick}<span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
                 <div class="today-meta">{date_label}</div>
               </div>
               <div class="today-bet-top">
                 <div class="today-league">{result_badge}</div>
-                <span class="chip-row today-logos">{leagues}{books}</span>
+                <span class="chip-row today-logos">{books}</span>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake"{risk_style}><dt>Risk</dt><dd><span class="today-risk-amount"{risk_tooltip}>{_fmt_money_compact(r.get("risk")) or "—"}</span></dd></div>
@@ -3113,7 +3120,11 @@ def build_html_report(
     .today-bet-section:not([hidden]) + .today-bet-section {{ margin-top: 12px; }}
     .today-bet-section-title {{ display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }}
     .today-bet-section-title::after {{ content: ''; flex: 1; height: 1px; background: var(--border); }}
-    .today-bet {{ --result-color: var(--muted); --result-rgb: 157, 176, 208; display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }}
+    .today-bet {{ position: relative; isolation: isolate; --result-color: var(--muted); --result-rgb: 157, 176, 208; display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }}
+    .today-sport-watermark {{ position: absolute; inset: 0; z-index: -1; display: flex; justify-content: center; align-items: center; gap: 12px; overflow: hidden; border-radius: inherit; pointer-events: none; opacity: 0.085; }}
+    .today-sport-mark {{ display: flex; align-items: center; justify-content: center; width: 140px; height: 100%; min-width: 0; color: var(--text); font-size: 48px; font-weight: 900; }}
+    .today-sport-mark img {{ display: block; width: 100%; height: 100%; max-height: 120px; object-fit: contain; filter: grayscale(1); }}
+    .today-panel[data-view="list"] .today-sport-mark {{ width: 100px; }}
     .today-bet--won {{ --result-color: var(--good); --result-rgb: 52, 211, 153; }}
     .today-bet--lost {{ --result-color: var(--bad); --result-rgb: 251, 113, 133; }}
     .today-bet-top {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; }}
