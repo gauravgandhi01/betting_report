@@ -316,7 +316,7 @@
     .today-bet-section-title { display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
     .today-bet-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
     .today-bet { position: relative; isolation: isolate; --result-color: var(--muted); --result-rgb: 157, 176, 208; display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }
-    .today-sport-watermark { position: absolute; inset: 0; z-index: -1; display: flex; justify-content: center; align-items: center; gap: 12px; overflow: hidden; border-radius: inherit; pointer-events: none; opacity: 0.085; }
+    .today-sport-watermark { position: absolute; inset: 0; z-index: -1; display: flex; justify-content: flex-end; align-items: center; gap: 12px; overflow: hidden; border-radius: inherit; pointer-events: none; opacity: 0.085; }
     .today-sport-mark { display: flex; align-items: center; justify-content: center; width: 140px; height: 100%; min-width: 0; color: var(--text); font-size: 48px; font-weight: 900; }
     .today-sport-mark img { display: block; width: 100%; height: 100%; max-height: 120px; object-fit: contain; filter: grayscale(1); }
     .today-panel[data-view="list"] .today-sport-mark { width: 100px; }
@@ -433,7 +433,7 @@
 <body>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-11-10 | Last synced 2:26 PM EST</div>
+    <div class="subtitle">As of 2026-11-10 | Last synced 2:32 PM EST</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -647,7 +647,7 @@
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
-                <div class="today-pick-line" title="DAY Siena o154.5 · -115"><h4 class="today-pick">DAY <span class="team-logo-tip" data-name="Siena"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2561.png" alt="Siena" loading="lazy" decoding="async" /></span> o154.5</h4><span class="today-odds" title="Odds"><strong>-115</strong></span></div>
+                <div class="today-pick-line" title="Dayton Siena o154.5 · -115"><h4 class="today-pick"><span class="team-logo-tip" data-name="Dayton"><img class="team-logo" src="logos/teams/ncaa/dayton.png" alt="Dayton" loading="lazy" decoding="async" /></span> <span class="team-logo-tip" data-name="Siena"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2561.png" alt="Siena" loading="lazy" decoding="async" /></span> o154.5</h4><span class="today-odds" title="Odds"><strong>-115</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
@@ -662,7 +662,7 @@
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="" data-risk="567.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
-                <div class="today-pick-line" title="UTU Utah State o153.5 · -105"><h4 class="today-pick">UTU <span class="team-logo-tip" data-name="Utah State"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/328.png" alt="Utah State" loading="lazy" decoding="async" /></span> o153.5</h4><span class="today-odds" title="Odds"><strong>-105</strong></span></div>
+                <div class="today-pick-line" title="Utah Tech Utah State o153.5 · -105"><h4 class="today-pick"><span class="team-logo-tip" data-name="Utah Tech"><img class="team-logo" src="logos/teams/ncaa/utahtech.png" alt="Utah Tech" loading="lazy" decoding="async" /></span> <span class="team-logo-tip" data-name="Utah State"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/328.png" alt="Utah State" loading="lazy" decoding="async" /></span> o153.5</h4><span class="today-odds" title="Odds"><strong>-105</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
@@ -692,7 +692,7 @@
             </li></ul></div><div class="today-bet-section" data-bet-section="parlay" role="group" aria-labelledby="today-open-parlay-title"><h4 id="today-open-parlay-title" class="today-bet-section-title">Parlays</h4><ul class="today-bets" aria-label="Open parlays bets"><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-start-ms="" data-risk="150.0" data-net="0" data-potential="1137.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
-                <div class="today-pick-line"><h4 class="today-pick">Acuff o3.5 Brown Booker SGA o3.5 3PM</h4><button type="button" class="compact-pick" aria-describedby="today-bet-14-details" hidden>4 way parlay<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-14-details" class="pick-details" role="tooltip">Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM · +758</span><span class="today-odds" title="Odds"><strong>+758</strong></span></div>
+                <div class="today-pick-line"><h4 class="today-pick">Acuff o3.5 Brown Booker SGA o3.5 3PM</h4><button type="button" class="compact-pick" aria-describedby="today-bet-14-details" hidden>4 way round robin<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-14-details" class="pick-details" role="tooltip">Round Robin: Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM · +758</span><span class="today-odds" title="Odds"><strong>+758</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
@@ -707,7 +707,7 @@
             </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-start-ms="" data-risk="10.0" data-net="0" data-potential="944.9" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
-                <div class="today-pick-line"><h4 class="today-pick">Acuff o3.5 Brown Booker SGA o3.5 3PM</h4><button type="button" class="compact-pick" aria-describedby="today-bet-15-details" hidden>4 way parlay<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-15-details" class="pick-details" role="tooltip">Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM · +9449</span><span class="today-odds" title="Odds"><strong>+9449</strong></span></div>
+                <div class="today-pick-line"><h4 class="today-pick">Acuff o3.5 Brown Booker SGA o3.5 3PM</h4><button type="button" class="compact-pick" aria-describedby="today-bet-15-details" hidden>4 way parlay<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-15-details" class="pick-details" role="tooltip">Parlay: Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM · +9449</span><span class="today-odds" title="Odds"><strong>+9449</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">

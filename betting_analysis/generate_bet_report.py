@@ -526,6 +526,8 @@ NCAAF_ONLY_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
 
 # Schools missing from the original NCAA pack. Marks are the sdv-assets default PNGs.
 NCAA_GAP_LOGO_TEAMS: List[Tuple[Tuple[str, ...], str, str]] = [
+    (("DAY",), "dayton", "Dayton"),
+    (("UTU",), "utahTech", "Utah Tech"),
     (("SJU",), "stJohns", "St. John's"),
     (("GONZ", "ZAGA"), "gonzaga", "Gonzaga"),
     (("BEL", "BELM"), "belmont", "Belmont"),
@@ -2396,9 +2398,10 @@ def build_html_report(
             pick_title = f' title="{pick_tooltip}"'
             if bet_section == "parlay":
                 leg_count = _parlay_leg_count(r["pick"])
-                compact_label = f"{leg_count} way parlay" if leg_count else "Parlay"
+                wager_label = "round robin" if str(r.get("type") or "").strip().casefold() == "round robin" else "parlay"
+                compact_label = f"{leg_count} way {wager_label}" if leg_count else wager_label.title()
                 details_id = f"{panel_key}-bet-{card_index}-details"
-                details = html.escape(r["pick"])
+                details = f'{wager_label.title()}: {html.escape(r["pick"])}'
                 compact_pick = (
                     f'<button type="button" class="compact-pick" aria-describedby="{details_id}" hidden>'
                     f'{compact_label}<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button>'
@@ -3121,7 +3124,7 @@ def build_html_report(
     .today-bet-section-title {{ display: flex; align-items: center; gap: 8px; margin: 8px 0 6px; color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }}
     .today-bet-section-title::after {{ content: ''; flex: 1; height: 1px; background: var(--border); }}
     .today-bet {{ position: relative; isolation: isolate; --result-color: var(--muted); --result-rgb: 157, 176, 208; display: flex; flex-direction: column; min-width: 0; padding: 8px 9px; border: 1px solid rgba(var(--league-rgb),0.24); border-left: 2px solid rgba(var(--league-rgb),0.9); border-radius: 6px; background: linear-gradient(110deg, rgba(var(--league-rgb),0.12), rgba(var(--league-rgb),0.035)); box-shadow: inset 1px 0 0 rgba(var(--league-rgb),0.9); }}
-    .today-sport-watermark {{ position: absolute; inset: 0; z-index: -1; display: flex; justify-content: center; align-items: center; gap: 12px; overflow: hidden; border-radius: inherit; pointer-events: none; opacity: 0.085; }}
+    .today-sport-watermark {{ position: absolute; inset: 0; z-index: -1; display: flex; justify-content: flex-end; align-items: center; gap: 12px; overflow: hidden; border-radius: inherit; pointer-events: none; opacity: 0.085; }}
     .today-sport-mark {{ display: flex; align-items: center; justify-content: center; width: 140px; height: 100%; min-width: 0; color: var(--text); font-size: 48px; font-weight: 900; }}
     .today-sport-mark img {{ display: block; width: 100%; height: 100%; max-height: 120px; object-fit: contain; filter: grayscale(1); }}
     .today-panel[data-view="list"] .today-sport-mark {{ width: 100px; }}
