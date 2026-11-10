@@ -365,11 +365,12 @@
     .today-meta:empty { display: none; }
     .today-when { display: flex; align-items: baseline; min-width: 0; gap: 5px; }
     .today-broadcast-separator { color: var(--muted); opacity: 0.6; font-size: 9px; }
-    .today-broadcast { position: relative; display: inline-block; width: 40px; height: 10px; line-height: 10px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }
-    .today-network-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 40px; height: 18px; object-fit: contain; }
-    .today-network-logo[src$="ESPN-PNG-File.png"] { width: 46px; height: 26px; }
-    .today-bet-money .today-start { color: inherit; font: inherit; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
-    .today-bet-money .today-start.is-live { color: var(--bad); }
+    .today-broadcast { position: relative; display: inline-block; width: 32px; height: 8px; line-height: 8px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }
+    .today-network-logo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 28.8px; height: 12.8px; object-fit: contain; }
+    .today-network-logo[src$="ESPN-PNG-File.png"] { width: 33.6px; height: 18.4px; filter: url(#espn-plus-white); }
+    .today-bet-money .today-start { display: inline-block; padding: 0 4px; border-radius: 3.2px; color: rgb(var(--start-rgb,147,197,253)); background: rgba(var(--start-rgb,147,197,253),0.12); box-shadow: inset 0 0 0 1px rgba(var(--start-rgb,147,197,253),0.24); font: inherit; font-size: 8px; line-height: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
+    .today-bet-money .today-start.is-live { color: #fda4af; background: rgba(251,113,133,0.13); box-shadow: inset 0 0 0 1px rgba(251,113,133,0.3); }
+    .today-bet-money .today-start.is-final { color: var(--muted); background: rgba(157,176,208,0.08); box-shadow: inset 0 0 0 1px rgba(157,176,208,0.18); }
     .today-odds { flex-shrink: 0; white-space: nowrap; }
     .today-odds strong { color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }
     .today-bet .badge-logo { width: 18px; height: 18px; border-radius: 5px; }
@@ -448,9 +449,14 @@
   </style>
 </head>
 <body>
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"><defs>
+    <filter id="espn-plus-white" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0 0 0 0 1  -1 1 0 0 1  -1 0 1 0 1  0 0 0 1 0" />
+    </filter>
+  </defs></svg>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-11-10 | Last synced 3:00 PM EST</div>
+    <div class="subtitle">As of 2026-11-10 | Last synced 3:06 PM EST</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -508,7 +514,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:242,133,128;--risk-alpha:0.150"><dt>Risk</dt><dd><span class="today-risk-amount" title="10.26u · 1u = $100">$1,026</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Washington State Cougars at Duquesne Dukes · UPMC Cooper Fieldhouse, Pittsburgh · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Washington State Cougars at Duquesne Dukes · UPMC Cooper Fieldhouse, Pittsburgh · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$900</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="1000.0" data-net="0" data-potential="1090.0" data-count="1" data-open="true">
@@ -523,7 +529,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:242,136,128;--risk-alpha:0.148"><dt>Risk</dt><dd><span class="today-risk-amount" title="10u · 1u = $100">$1,000</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$1,090</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -538,7 +544,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -553,7 +559,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Wyoming Cowboys at North Carolina Tar Heels · Dean E. Smith Center, Chapel Hill · ACC Network">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ACC Network"><img class="today-network-logo" src="logos/networks/accn.png" alt="ACC Network" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Wyoming Cowboys at North Carolina Tar Heels · Dean E. Smith Center, Chapel Hill · ACC Network">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ACC Network"><img class="today-network-logo" src="logos/networks/accn.png" alt="ACC Network" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
@@ -568,7 +574,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:191,199,144;--risk-alpha:0.096"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.30u · 1u = $100">$330</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
@@ -583,7 +589,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:191,199,144;--risk-alpha:0.096"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.30u · 1u = $100">$330</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Harvard Crimson at Northeastern Huskies · Cabot Center, Boston · FloSports">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FloSports"><img class="today-network-logo" src="logos/networks/FloSports-logo.png" alt="FloSports" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Harvard Crimson at Northeastern Huskies · Cabot Center, Boston · FloSports">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FloSports"><img class="today-network-logo" src="logos/networks/FloSports-logo.png" alt="FloSports" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
@@ -598,7 +604,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:191,199,144;--risk-alpha:0.096"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.30u · 1u = $100">$330</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Detroit Mercy Titans at Xavier Musketeers · Cintas Center, Cincinnati · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Detroit Mercy Titans at Xavier Musketeers · Cintas Center, Cincinnati · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="172.5" data-net="0" data-potential="150.0" data-count="1" data-open="true">
@@ -613,7 +619,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:154,201,166;--risk-alpha:0.083"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.73u · 1u = $100">$172.50</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$150</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="153.0" data-net="0" data-potential="150.0" data-count="1" data-open="true">
@@ -628,7 +634,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:149,202,169;--risk-alpha:0.082"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.53u · 1u = $100">$153</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T00:00:00+00:00" style="--start-rgb:125,211,252" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$150</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794358800000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -643,7 +649,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,186,120;--risk-alpha:0.116"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.94u · 1u = $100">$594</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T01:00:00+00:00" title="Northern Kentucky Norse at Saint Louis Billikens · Chaifetz Arena, St. Louis · ESPN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T01:00:00+00:00" style="--start-rgb:216,180,254" title="Northern Kentucky Norse at Saint Louis Billikens · Chaifetz Arena, St. Louis · ESPN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794358800000" data-risk="550.0" data-net="0" data-potential="500.0" data-count="1" data-open="true">
@@ -658,7 +664,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,191,120;--risk-alpha:0.113"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.50u · 1u = $100">$550</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T01:00:00+00:00" title="UT Martin Skyhawks at Arkansas State Red Wolves · First National Bank Arena, Jonesboro · ESPN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T01:00:00+00:00" style="--start-rgb:216,180,254" title="UT Martin Skyhawks at Arkansas State Red Wolves · First National Bank Arena, Jonesboro · ESPN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$500</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -673,7 +679,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,186,120;--risk-alpha:0.116"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.94u · 1u = $100">$594</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Northern Arizona Lumberjacks at Arizona Wildcats · McKale Center at ALKEME Arena, Tucson · ESPN+">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" style="--start-rgb:252,211,77" title="Northern Arizona Lumberjacks at Arizona Wildcats · McKale Center at ALKEME Arena, Tucson · ESPN+">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="572.4" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -688,7 +694,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,189,120;--risk-alpha:0.115"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.72u · 1u = $100">$572.40</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Creighton Bluejays at Kansas State Wildcats · Bramlage Coliseum, Manhattan · FS1">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FS1"><img class="today-network-logo" src="logos/networks/fs1.png" alt="FS1" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" style="--start-rgb:252,211,77" title="Creighton Bluejays at Kansas State Wildcats · Bramlage Coliseum, Manhattan · FS1">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FS1"><img class="today-network-logo" src="logos/networks/fs1.png" alt="FS1" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="567.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
@@ -703,7 +709,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,189,120;--risk-alpha:0.114"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.67u · 1u = $100">$567</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" title="Utah Tech Trailblazers at Utah State Aggies · Dee Glen Smith Spectrum, Logan · YouTube">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" style="--start-rgb:252,211,77" title="Utah Tech Trailblazers at Utah State Aggies · Dee Glen Smith Spectrum, Logan · YouTube">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794366000000" data-risk="113.0" data-net="0" data-potential="113.0" data-count="1" data-open="true">
@@ -718,7 +724,7 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:140,202,174;--risk-alpha:0.079"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.13u · 1u = $100">$113</span></dd></div>
-                <div class="today-when"><time class="today-start" datetime="2026-11-11T03:00:00+00:00" title="Montana Grizzlies at San Francisco Dons · The Sobrato Center, San Francisco · ESPN+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-when"><time class="today-start" datetime="2026-11-11T03:00:00+00:00" style="--start-rgb:110,231,183" title="Montana Grizzlies at San Francisco Dons · The Sobrato Center, San Francisco · ESPN+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$113</dd></div>
               </dl>
             </li></ul></div><div class="today-bet-section" data-bet-section="parlay" role="group" aria-labelledby="today-open-parlay-title"><h4 id="today-open-parlay-title" class="today-bet-section-title">Parlays</h4><ul class="today-bets" aria-label="Open parlays bets"><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-start-ms="" data-risk="150.0" data-net="0" data-potential="1137.0" data-count="1" data-open="true">

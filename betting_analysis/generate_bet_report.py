@@ -1496,8 +1496,20 @@ def _game_time_html(start: Optional[Dict[str, str]]) -> str:
         kind = " is-final"
     elif start.get("display") == "Live":
         kind = " is-live"
+    badge_style = ""
+    if not kind:
+        try:
+            scheduled = dt.datetime.fromisoformat(start["iso"].replace("Z", "+00:00"))
+            if scheduled.tzinfo is None:
+                scheduled = scheduled.replace(tzinfo=dt.timezone.utc)
+            hour = scheduled.astimezone(_EASTERN).hour
+            palette = ("196,181,253", "253,230,138", "134,239,172", "125,211,252",
+                       "216,180,254", "252,211,77", "110,231,183", "165,180,252")
+            badge_style = f' style="--start-rgb:{palette[hour % len(palette)]}"'
+        except (ValueError, KeyError):
+            pass
     return (
-        f'<time class="today-start{kind}" datetime="{html.escape(start["iso"], quote=True)}" '
+        f'<time class="today-start{kind}" datetime="{html.escape(start["iso"], quote=True)}"{badge_style} '
         f'title="{html.escape(start["title"], quote=True)}">{html.escape(start["display"])}</time>'
     )
 
@@ -3242,11 +3254,12 @@ def build_html_report(
     .today-meta:empty {{ display: none; }}
     .today-when {{ display: flex; align-items: baseline; min-width: 0; gap: 5px; }}
     .today-broadcast-separator {{ color: var(--muted); opacity: 0.6; font-size: 9px; }}
-    .today-broadcast {{ position: relative; display: inline-block; width: 40px; height: 10px; line-height: 10px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }}
-    .today-network-logo {{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 40px; height: 18px; object-fit: contain; }}
-    .today-network-logo[src$="ESPN-PNG-File.png"] {{ width: 46px; height: 26px; }}
-    .today-bet-money .today-start {{ color: inherit; font: inherit; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
-    .today-bet-money .today-start.is-live {{ color: var(--bad); }}
+    .today-broadcast {{ position: relative; display: inline-block; width: 32px; height: 8px; line-height: 8px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }}
+    .today-network-logo {{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 28.8px; height: 12.8px; object-fit: contain; }}
+    .today-network-logo[src$="ESPN-PNG-File.png"] {{ width: 33.6px; height: 18.4px; filter: url(#espn-plus-white); }}
+    .today-bet-money .today-start {{ display: inline-block; padding: 0 4px; border-radius: 3.2px; color: rgb(var(--start-rgb,147,197,253)); background: rgba(var(--start-rgb,147,197,253),0.12); box-shadow: inset 0 0 0 1px rgba(var(--start-rgb,147,197,253),0.24); font: inherit; font-size: 8px; line-height: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
+    .today-bet-money .today-start.is-live {{ color: #fda4af; background: rgba(251,113,133,0.13); box-shadow: inset 0 0 0 1px rgba(251,113,133,0.3); }}
+    .today-bet-money .today-start.is-final {{ color: var(--muted); background: rgba(157,176,208,0.08); box-shadow: inset 0 0 0 1px rgba(157,176,208,0.18); }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
     .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
@@ -3325,6 +3338,11 @@ def build_html_report(
   </style>
 </head>
 <body>
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none"><defs>
+    <filter id="espn-plus-white" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0 0 0 0 1  -1 1 0 0 1  -1 0 1 0 1  0 0 0 1 0" />
+    </filter>
+  </defs></svg>
   <div class=\"container\">
     <h1>{html.escape(title)}</h1>
     <div class=\"subtitle\">As of {html.escape(as_of)} | Last synced {html.escape(last_synced)}</div>
