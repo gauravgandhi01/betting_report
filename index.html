@@ -383,7 +383,7 @@
     .today-bet-money .today-start { display: inline-block; padding: 0 4px; border-radius: 3.2px; color: rgb(var(--start-rgb,147,197,253)); background: rgba(var(--start-rgb,147,197,253),0.12); box-shadow: inset 0 0 0 1px rgba(var(--start-rgb,147,197,253),0.24); font: inherit; font-size: 8px; line-height: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
     .today-bet-money .today-start.is-live { color: #fda4af; background: rgba(251,113,133,0.13); box-shadow: inset 0 0 0 1px rgba(251,113,133,0.3); }
     .today-bet-money .today-start.is-final { color: var(--muted); background: rgba(157,176,208,0.08); box-shadow: inset 0 0 0 1px rgba(157,176,208,0.18); }
-    .today-margin { color: var(--muted); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; opacity: 0.85; }
+    .today-margin { color: var(--muted); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
     .today-odds { flex-shrink: 0; white-space: nowrap; }
     .today-odds strong { color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }
     .today-bet .badge-logo { width: 18px; height: 18px; border-radius: 5px; }
@@ -429,6 +429,8 @@
     .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return, .today-panel[data-view="list"] .today-when { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }
     .today-panel[data-view="list"] .today-return { margin-left: 0; padding-right: 0; }
     .today-panel[data-view="list"] .today-bet-money dd { margin: 0; font-size: 11px; font-weight: 400; }
+    .today-panel .today-margin.today-tone,
+    .today-panel .today-bet-money dd.today-tone { color: rgb(var(--tone-rgb)); font-weight: 650; }
     @media (min-width: 721px) {
       .today-panel[data-view="list"] .today-sort { display: none; }
       .today-panel[data-view="list"] .today-bet-section-title { display: none; }
@@ -497,7 +499,7 @@
   </defs></svg>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-11-11 | Last synced 6:46 PM EST</div>
+    <div class="subtitle">As of 2026-11-11 | Last synced 6:49 PM EST</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -556,7 +558,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,189,120;--risk-alpha:0.115"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.72u · 1u = $100">$572.40</span></dd></div>
                 <div class="today-when"><span class="today-broadcast" title="CBSSN">CBSSN</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$540</dd></div>
               </dl>
             </li></ul></div></div><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title"><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">19</span></h3><div class="today-bet-section" data-bet-section="straight" role="group" aria-labelledby="today-open-straight-title"><h4 id="today-open-straight-title" class="today-bet-section-title">Straight</h4><ul class="today-bets" aria-label="Open straight bets"><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="FUR/HC o147.5" data-odds="-110.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794441600000" data-risk="621.0" data-net="0" data-potential="564.55" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -566,12 +568,12 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
-                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Hart Center Arena, Worcester</div><div class="game-info-odds">FUR -13.5 -102/-118<br>151.5 o-105/u-115</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Hart Center Arena, Worcester</div><div class="game-info-odds">FUR -13.5 -102/-118<br>150.5 o-115/u-105</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:00:00+00:00" style="--start-rgb:125,211,252" title="Furman Paladins at Holy Cross Crusaders · Hart Center Arena, Worcester · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$564.55</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$564.55</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="MARQ/MICH o156.5" data-odds="-110.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794441600000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -586,7 +588,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,186,120;--risk-alpha:0.116"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.94u · 1u = $100">$594</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:00:00+00:00" style="--start-rgb:125,211,252" title="Marquette Golden Eagles at Michigan Wolverines · Crisler Center, Ann Arbor · FS1">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FS1"><img class="today-network-logo" src="logos/networks/fs1.png" alt="FS1" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="SJU -26.5" data-odds="-114.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794441600000" data-risk="342.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -601,7 +603,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:194,199,143;--risk-alpha:0.097"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.42u · 1u = $100">$342</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:00:00+00:00" style="--start-rgb:125,211,252" title="Colgate Raiders at St. John&#x27;s Red Storm · Carnesecca Arena, Queens · Peacock">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="Peacock">Peacock</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="UNCA/WGA u148.5" data-odds="-103.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794441600000" data-risk="319.33000000000004" data-net="0" data-potential="310.66999999999996" data-count="2" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -616,7 +618,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:188,199,146;--risk-alpha:0.095"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.19u · 1u = $100">$319.33</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:00:00+00:00" style="--start-rgb:125,211,252" title="UNC Asheville Bulldogs at West Georgia Wolves · The Coliseum, Carrollton · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$310.67</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$310.67</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-pick="WAS/IND o226.5" data-odds="-113.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794441600000" data-risk="170.0" data-net="0" data-potential="150.75" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -626,12 +628,12 @@
               </div>
               <div class="today-bet-top">
                 <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
-                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Gainbridge Fieldhouse, Indianapolis</div><div class="game-info-odds">IND -3.5 -104/-116<br>227.5 o-115/u-106</div></div></div><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
+                <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Gainbridge Fieldhouse, Indianapolis</div><div class="game-info-odds">IND -3.5 -104/-116<br>228.5 o-106/u-114</div></div></div><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:153,201,166;--risk-alpha:0.083"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.70u · 1u = $100">$170</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:00:00+00:00" style="--start-rgb:125,211,252" title="Washington Wizards at Indiana Pacers · Gainbridge Fieldhouse, Indianapolis · MNMT, DAZN IND">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="MNMT">MNMT</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$150.75</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$150.75</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="COLG/SJU u159.5" data-odds="-111.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794441600000" data-risk="165.79" data-net="0" data-potential="150.01" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -646,7 +648,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:152,201,167;--risk-alpha:0.083"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.66u · 1u = $100">$165.79</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:00:00+00:00" style="--start-rgb:125,211,252" title="Colgate Raiders at St. John&#x27;s Red Storm · Carnesecca Arena, Queens · Peacock">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="Peacock">Peacock</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$150.01</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$150.01</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="ARK -29.5" data-odds="-114.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794445200000" data-risk="1026.0" data-net="0" data-potential="900.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -661,7 +663,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:242,133,128;--risk-alpha:0.150"><dt>Risk</dt><dd><span class="today-risk-amount" title="10.26u · 1u = $100">$1,026</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T01:00:00+00:00" style="--start-rgb:216,180,254" title="Robert Morris Colonials at Arkansas Razorbacks · Bud Walton Arena, Fayetteville · SECN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="SECN+"><img class="today-network-logo" src="logos/networks/secn.png" alt="SECN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$900</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$900</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="HOU -35.5" data-odds="-110.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794445200000" data-risk="990.0" data-net="0" data-potential="900.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -676,7 +678,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:241,137,127;--risk-alpha:0.147"><dt>Risk</dt><dd><span class="today-risk-amount" title="9.90u · 1u = $100">$990</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T01:00:00+00:00" style="--start-rgb:216,180,254" title="Jacksonville State Gamecocks at Houston Cougars · Fertitta Center, Houston · ESPN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$900</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$900</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="RMU/ARK o154.5" data-odds="-115.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794445200000" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -691,7 +693,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T01:00:00+00:00" style="--start-rgb:216,180,254" title="Robert Morris Colonials at Arkansas Razorbacks · Bud Walton Arena, Fayetteville · SECN+">8 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="SECN+"><img class="today-network-logo" src="logos/networks/secn.png" alt="SECN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="CP/GCU o176.5" data-odds="-110.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794448800000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -706,7 +708,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:235,186,120;--risk-alpha:0.116"><dt>Risk</dt><dd><span class="today-risk-amount" title="5.94u · 1u = $100">$594</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T02:00:00+00:00" style="--start-rgb:252,211,77" title="Cal Poly Mustangs at Grand Canyon Lopes · Global Credit Union Arena, Phoenix · MW+">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="MW+">MW+</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="LIND/NEB o152.5" data-odds="-110.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794448800000" data-risk="165.0" data-net="0" data-potential="150.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -721,7 +723,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:152,201,167;--risk-alpha:0.083"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.65u · 1u = $100">$165</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T02:00:00+00:00" style="--start-rgb:252,211,77" title="Lindenwood Lions at Nebraska Cornhuskers · Pinnacle Bank Arena, Lincoln · FS1">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FS1"><img class="today-network-logo" src="logos/networks/fs1.png" alt="FS1" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$150</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$150</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="UCLA -47.5" data-odds="108.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794448800000" data-risk="144.0" data-net="0" data-potential="156.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -736,7 +738,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:147,202,170;--risk-alpha:0.081"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.44u · 1u = $100">$144</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T02:00:00+00:00" style="--start-rgb:252,211,77" title="Arkansas-Pine Bluff Golden Lions at UCLA Bruins · Pauley Pavilion, Los Angeles · Peacock">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="Peacock">Peacock</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$156</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$156</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="UTSA/SEA o148.5" data-odds="-115.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794452400000" data-risk="621.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -751,7 +753,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.21u · 1u = $100">$621</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T03:00:00+00:00" style="--start-rgb:110,231,183" title="UTSA Roadrunners at Seattle U Redhawks · Redhawk Center, Seattle · ESPN+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$540</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="PAC/LBSU u138.5" data-odds="-105.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794452400000" data-risk="425.25" data-net="0" data-potential="405.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -766,7 +768,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:213,197,131;--risk-alpha:0.103"><dt>Risk</dt><dd><span class="today-risk-amount" title="4.25u · 1u = $100">$425.25</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T03:00:00+00:00" style="--start-rgb:110,231,183" title="Pacific Tigers at Long Beach State Beach · LBS Financial Credit Union Pyramid, Long Beach · ESPN+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$405</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$405</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="ORE -36.5" data-odds="118.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794452400000" data-risk="89.08" data-net="0" data-potential="106.7" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -781,7 +783,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:134,203,178;--risk-alpha:0.077"><dt>Risk</dt><dd><span class="today-risk-amount" title="0.89u · 1u = $100">$89.08</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T03:00:00+00:00" style="--start-rgb:110,231,183" title="Mississippi Valley State Delta Devils at Oregon Ducks · Matthew Knight Arena, Eugene · B1G+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="B1G+">B1G+</span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$106.70</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$106.70</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-pick="Young o8.5 Ast" data-odds="-130.00000000" data-result="" data-date="2026-11-11" data-start-ms="" data-risk="130.0" data-net="0" data-potential="100.08" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -796,7 +798,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:144,202,172;--risk-alpha:0.080"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.30u · 1u = $100">$130</span></dd></div>
                 
-                <div class="today-return"><dt>wins</dt><dd class="">$100.08</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$100.08</dd></div>
               </dl>
             </li></ul></div><div class="today-bet-section" data-bet-section="parlay" role="group" aria-labelledby="today-open-parlay-title"><h4 id="today-open-parlay-title" class="today-bet-section-title">Parlays</h4><ul class="today-bets" aria-label="Open parlays bets"><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="PEPP/SHSU u160.5, USI &amp; HC ML" data-odds="7603.00000000" data-result="" data-date="2026-11-11" data-start-ms="1794443400000" data-risk="10.0" data-net="0" data-potential="760.3" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -811,7 +813,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:115,204,189;--risk-alpha:0.071"><dt>Risk</dt><dd><span class="today-risk-amount" title="0.10u · 1u = $100">$10</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-12T00:30:00+00:00" style="--start-rgb:125,211,252" title="Pepperdine Waves at Sam Houston Bearkats · Bernard G. Johnson Coliseum, Huntsville · ESPN+">7:30 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$760.30</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$760.30</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="Kucherov, McDavid o2.5 &amp; Celebrini o1.5 Pts" data-odds="5357.00000000" data-result="" data-date="2026-11-11" data-start-ms="" data-risk="10.0" data-net="0" data-potential="535.7" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -826,7 +828,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:115,204,189;--risk-alpha:0.071"><dt>Risk</dt><dd><span class="today-risk-amount" title="0.10u · 1u = $100">$10</span></dd></div>
                 
-                <div class="today-return"><dt>wins</dt><dd class="">$535.70</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$535.70</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-pick="Young o11.5 Ast &amp; Curry o4.5, Doncic o5.5 3PM" data-odds="3526.00000000" data-result="" data-date="2026-11-11" data-start-ms="" data-risk="10.0" data-net="0" data-potential="352.6" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -841,7 +843,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:115,204,189;--risk-alpha:0.071"><dt>Risk</dt><dd><span class="today-risk-amount" title="0.10u · 1u = $100">$10</span></dd></div>
                 
-                <div class="today-return"><dt>wins</dt><dd class="">$352.60</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$352.60</dd></div>
               </dl>
             </li></ul></div></div><details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title" open><summary id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">5</span></summary><div class="today-bet-section" data-bet-section="straight" role="group" aria-labelledby="today-closed-straight-title"><h4 id="today-closed-straight-title" class="today-bet-section-title">Straight</h4><ul class="today-bets" aria-label="Closed straight bets"><li class="today-bet today-bet--lost" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="UMKC/FAMU u148.5" data-odds="-110.00000000" data-result="L" data-date="2026-11-11" data-start-ms="1794416400000" data-risk="439.0" data-net="-439.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -855,8 +857,8 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:217,197,129;--risk-alpha:0.104"><dt>Risk</dt><dd><span class="today-risk-amount" title="4.39u · 1u = $100">$439</span></dd></div>
-                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T17:00:00+00:00" title="Kansas City Roos vs Florida A&amp;M Rattlers · McArthur Center, St. Petersburg · YouTube">Final</time><span class="today-margin" title="Lost by 3.5 (Total 152 vs 148.5)">−3.5</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$439</dd></div>
+                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T17:00:00+00:00" title="Kansas City Roos vs Florida A&amp;M Rattlers · McArthur Center, St. Petersburg · YouTube">Final</time><span class="today-margin today-tone" style="--tone-rgb:223,131,155" title="Lost by 3.5 (Total 152 vs 148.5)">−3.5</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
+                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative today-tone" style="--tone-rgb:251,113,133">−$439</dd></div>
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="UMKC -4.5" data-odds="-120.00000000" data-result="W" data-date="2026-11-11" data-start-ms="1794416400000" data-risk="360.0" data-net="300.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -870,8 +872,8 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:198,198,140;--risk-alpha:0.098"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.60u · 1u = $100">$360</span></dd></div>
-                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T17:00:00+00:00" title="Kansas City Roos vs Florida A&amp;M Rattlers · McArthur Center, St. Petersburg · YouTube">Final</time><span class="today-margin" title="Kansas City won by 22 (87–65)">+22</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="positive">+$300</dd></div>
+                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T17:00:00+00:00" title="Kansas City Roos vs Florida A&amp;M Rattlers · McArthur Center, St. Petersburg · YouTube">Final</time><span class="today-margin today-tone" style="--tone-rgb:52,211,153" title="Kansas City won by 22 (87–65)">+22</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
+                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="positive today-tone" style="--tone-rgb:52,211,153">+$300</dd></div>
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="DART/ALB u144.5" data-odds="-114.00000000" data-result="L" data-date="2026-11-11" data-start-ms="1794420000000" data-risk="615.6" data-net="-615.6" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -885,8 +887,8 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:236,183,121;--risk-alpha:0.118"><dt>Risk</dt><dd><span class="today-risk-amount" title="6.16u · 1u = $100">$615.60</span></dd></div>
-                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T18:00:00+00:00" title="Dartmouth Big Green at UAlbany Great Danes · Broadview Center, Albany · ESPN+">Final</time><span class="today-margin" title="Lost by 16.5 (Total 161 vs 144.5)">−16.5</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$615.60</dd></div>
+                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T18:00:00+00:00" title="Dartmouth Big Green at UAlbany Great Danes · Broadview Center, Albany · ESPN+">Final</time><span class="today-margin today-tone" style="--tone-rgb:251,113,133" title="Lost by 16.5 (Total 161 vs 144.5)">−16.5</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
+                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative today-tone" style="--tone-rgb:251,113,133">−$615.60</dd></div>
               </dl>
             </li><li class="today-bet today-bet--lost" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="LUC -9.5" data-odds="-102.00000000" data-result="L" data-date="2026-11-11" data-start-ms="1794427200000" data-risk="306.0" data-net="-306.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -900,8 +902,8 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:185,199,148;--risk-alpha:0.094"><dt>Risk</dt><dd><span class="today-risk-amount" title="3.06u · 1u = $100">$306</span></dd></div>
-                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T20:00:00+00:00" title="Loyola Chicago Ramblers at Air Force Falcons · Clune Arena, Colorado Springs · MW+">Final</time><span class="today-margin" title="Loyola Chicago lost by 14 (93–107)">−14</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="MW+">MW+</span></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$306</dd></div>
+                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T20:00:00+00:00" title="Loyola Chicago Ramblers at Air Force Falcons · Clune Arena, Colorado Springs · MW+">Final</time><span class="today-margin today-tone" style="--tone-rgb:251,113,133" title="Loyola Chicago lost by 14 (93–107)">−14</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="MW+">MW+</span></div>
+                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative today-tone" style="--tone-rgb:251,113,133">−$306</dd></div>
               </dl>
             </li><li class="today-bet today-bet--won" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="LUC/AFA o159.5" data-odds="-110.00000000" data-result="W" data-date="2026-11-11" data-start-ms="1794427200000" data-risk="165.0" data-net="150.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -915,8 +917,8 @@
               </div>
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:152,201,167;--risk-alpha:0.083"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.65u · 1u = $100">$165</span></dd></div>
-                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T20:00:00+00:00" title="Loyola Chicago Ramblers at Air Force Falcons · Clune Arena, Colorado Springs · MW+">Final</time><span class="today-margin" title="Won by 40.5 (Total 200 vs 159.5)">+40.5</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="MW+">MW+</span></div>
-                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="positive">+$150</dd></div>
+                <div class="today-when"><time class="today-start is-final" datetime="2026-11-11T20:00:00+00:00" title="Loyola Chicago Ramblers at Air Force Falcons · Clune Arena, Colorado Springs · MW+">Final</time><span class="today-margin today-tone" style="--tone-rgb:52,211,153" title="Won by 40.5 (Total 200 vs 159.5)">+40.5</span><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="MW+">MW+</span></div>
+                <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="positive today-tone" style="--tone-rgb:52,211,153">+$150</dd></div>
               </dl>
             </li></ul></div></details><p id="today-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>
         </section>
@@ -949,7 +951,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:239,160,124;--risk-alpha:0.133"><dt>Risk</dt><dd><span class="today-risk-amount" title="8.10u · 1u = $100">$810</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-13T00:00:00+00:00" style="--start-rgb:125,211,252" title="Canisius Golden Griffins at Brown Bears · Pizzitola Sports Center, Providence · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$675</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$675</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="CAN/BRWN u142.5" data-odds="-110.00000000" data-result="" data-date="2026-11-12" data-start-ms="1794528000000" data-risk="445.5" data-net="0" data-potential="405.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -964,7 +966,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:218,197,128;--risk-alpha:0.105"><dt>Risk</dt><dd><span class="today-risk-amount" title="4.46u · 1u = $100">$445.50</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-13T00:00:00+00:00" style="--start-rgb:125,211,252" title="Canisius Golden Griffins at Brown Bears · Pizzitola Sports Center, Providence · ESPN+">7 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$405</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$405</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="BYU -17.5" data-odds="-120.00000000" data-result="" data-date="2026-11-12" data-start-ms="1794535200000" data-risk="260.0" data-net="0" data-potential="216.67" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
@@ -979,7 +981,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:174,200,154;--risk-alpha:0.090"><dt>Risk</dt><dd><span class="today-risk-amount" title="2.60u · 1u = $100">$260</span></dd></div>
                 <div class="today-when"><time class="today-start" datetime="2026-11-13T02:00:00+00:00" style="--start-rgb:252,211,77" title="Montana State Bobcats at BYU Cougars · Marriott Center, Provo · ESPN+">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
-                <div class="today-return"><dt>wins</dt><dd class="">$216.67</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$216.67</dd></div>
               </dl>
             </li><li class="today-bet today-bet--open" data-league="(BLANK)" style="--league-color:#94A3B8;--league-rgb:148,163,184" data-pick="TBL/BUF 1P o1.5" data-odds="-142.00000000" data-result="" data-date="2027-11-11" data-start-ms="" data-risk="174.17" data-net="0" data-potential="122.47" data-count="2" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="(blank)">(blank)</span></span>
@@ -994,7 +996,7 @@
               <dl class="today-bet-money">
                 <div class="today-stake" style="--risk-rgb:154,201,166;--risk-alpha:0.084"><dt>Risk</dt><dd><span class="today-risk-amount" title="1.74u · 1u = $100">$174.17</span></dd></div>
                 
-                <div class="today-return"><dt>wins</dt><dd class="">$122.47</dd></div>
+                <div class="today-return"><dt>wins</dt><dd>$122.47</dd></div>
               </dl>
             </li></ul></div></div><p id="upcoming-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>
         </section>

@@ -284,6 +284,13 @@ NETWORK_LOGO_FILES = {
 # Stable hour colors in Eastern time; live/final styling overrides these.
 START_HOUR_COLORS = ("196,181,253", "253,230,138", "134,239,172", "125,211,252",
                      "216,180,254", "252,211,77", "110,231,183", "165,180,252")
+# Signed card text is full green or red at these magnitudes and fades toward
+# muted below them. Margin is points or goals. Net is dollars; 100 is one unit.
+MARGIN_TONE_SCALE = 7.0
+NET_TONE_SCALE = 100.0
+_TONE_MUTED = (157, 176, 208)
+_TONE_GOOD = (52, 211, 153)
+_TONE_BAD = (251, 113, 133)
 
 
 def _ncaa_logo_map(rows: List[Tuple[Tuple[str, ...], str, str]]) -> Dict[str, Tuple[str, str]]:
@@ -1924,13 +1931,44 @@ def _game_time_html(start: Optional[Dict[str, str]]) -> str:
     )
 
 
+def _parse_signed_number(text: str) -> Optional[float]:
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    sign = -1.0 if raw[0] in "-−" else 1.0
+    body = raw[1:] if raw[0] in "+-−" else raw
+    try:
+        return sign * float(body)
+    except ValueError:
+        return None
+
+
+def _tone_style(value: Any, scale: float) -> str:
+    """Color scale for a signed card amount. Empty at zero so the text stays muted.
+
+    Small amounts keep the green or red hue and sit closer to the muted text
+    color. The scale value is full strength.
+    """
+    number = _finite_float(value)
+    if number is None or number == 0 or not scale or scale <= 0:
+        return ""
+    intensity = min(1.0, abs(number) / scale)
+    # Square root keeps a close result tinted and still leaves room before full color.
+    strength = intensity ** 0.5
+    target = _TONE_GOOD if number > 0 else _TONE_BAD
+    rgb = ",".join(str(round(a + (b - a) * strength)) for a, b in zip(_TONE_MUTED, target))
+    return f' style="--tone-rgb:{rgb}"'
+
+
 def _margin_html(start: Optional[Dict[str, str]]) -> str:
-    """Quiet signed margin beside a final time. Straight bets only pass this in."""
+    """Signed margin beside a final time. Straight bets only pass this in."""
     if not start or not start.get("margin"):
         return ""
     title = str(start.get("margin_title") or "")
     title_attr = f' title="{html.escape(title, quote=True)}"' if title else ""
-    return f'<span class="today-margin"{title_attr}>{html.escape(str(start["margin"]))}</span>'
+    tone = _tone_style(_parse_signed_number(str(start["margin"])), MARGIN_TONE_SCALE)
+    klass = "today-margin today-tone" if tone else "today-margin"
+    return f'<span class="{klass}"{tone}{title_attr}>{html.escape(str(start["margin"]))}</span>'
 
 
 def _broadcast_html(
@@ -2892,6 +2930,8 @@ def build_html_report(
             if result and amount_value is not None:
                 amount_text = ("+" if amount_value > 0 else "−" if amount_value < 0 else "") + _fmt_money_compact(abs(amount_value))
             amount_class = _net_class(amount_value) if result and amount_value is not None else ""
+            tone = _tone_style(amount_value, NET_TONE_SCALE) if result else ""
+            return_class = " ".join(part for part in (amount_class, "today-tone" if tone else "") if part)
             risk_value = _finite_float(r.get("risk"))
             risk_style = ""
             if risk_value is not None:
@@ -2966,7 +3006,7 @@ def build_html_report(
               <dl class="today-bet-money">
                 <div class="today-stake"{risk_style}><dt>Risk</dt><dd><span class="today-risk-amount"{risk_tooltip}>{_fmt_money_compact(r.get("risk")) or "—"}</span></dd></div>
                 {when_html}
-                <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "wins"}</dt><dd class="{amount_class}">{amount_text}</dd></div>
+                <div class="today-return"><dt{(' class="today-net-label"' if result else '')}>{"Net result" if result else "wins"}</dt><dd{(' class="' + return_class + '"' if return_class else '')}{tone}>{amount_text}</dd></div>
               </dl>
             </li>''')
         group_markup = []
@@ -3744,7 +3784,7 @@ def build_html_report(
     .today-bet-money .today-start {{ display: inline-block; padding: 0 4px; border-radius: 3.2px; color: rgb(var(--start-rgb,147,197,253)); background: rgba(var(--start-rgb,147,197,253),0.12); box-shadow: inset 0 0 0 1px rgba(var(--start-rgb,147,197,253),0.24); font: inherit; font-size: 8px; line-height: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
     .today-bet-money .today-start.is-live {{ color: #fda4af; background: rgba(251,113,133,0.13); box-shadow: inset 0 0 0 1px rgba(251,113,133,0.3); }}
     .today-bet-money .today-start.is-final {{ color: var(--muted); background: rgba(157,176,208,0.08); box-shadow: inset 0 0 0 1px rgba(157,176,208,0.18); }}
-    .today-margin {{ color: var(--muted); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; opacity: 0.85; }}
+    .today-margin {{ color: var(--muted); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
     .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
@@ -3790,6 +3830,8 @@ def build_html_report(
     .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return, .today-panel[data-view="list"] .today-when {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
     .today-panel[data-view="list"] .today-return {{ margin-left: 0; padding-right: 0; }}
     .today-panel[data-view="list"] .today-bet-money dd {{ margin: 0; font-size: 11px; font-weight: 400; }}
+    .today-panel .today-margin.today-tone,
+    .today-panel .today-bet-money dd.today-tone {{ color: rgb(var(--tone-rgb)); font-weight: 650; }}
     @media (min-width: 721px) {{
       .today-panel[data-view="list"] .today-sort {{ display: none; }}
       .today-panel[data-view="list"] .today-bet-section-title {{ display: none; }}

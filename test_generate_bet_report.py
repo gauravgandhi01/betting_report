@@ -293,8 +293,16 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertIn('today-bet--won', today_html)
         self.assertIn('today-bet--lost', today_html)
         self.assertIn('today-bet--cash-out', today_html)
-        self.assertIn('<dd class="positive">+$100</dd>', today_html)
-        self.assertIn('<dd class="negative">−$10</dd>', today_html)
+        self.assertIn(
+            f'<dd class="positive today-tone"{report._tone_style(100, report.NET_TONE_SCALE)}>+$100</dd>',
+            today_html,
+        )
+        self.assertIn(
+            f'<dd class="negative today-tone"{report._tone_style(-10, report.NET_TONE_SCALE)}>−$10</dd>',
+            today_html,
+        )
+        open_card = today_html.split("Open Pick", 1)[1].split("</li>", 1)[0]
+        self.assertNotIn("today-tone", open_card)
         self.assertEqual(today_html.count('<li class="today-bet '), 6)
         self.assertIn('<details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title" open>', today_html)
         self.assertIn('<summary id="today-closed-title"', today_html)
@@ -327,9 +335,11 @@ class SettledPerformanceTests(unittest.TestCase):
         self.assertNotIn('wagers combined', today_html)
         self.assertIn('&lt;Win &quot;total&quot;&gt;', today_html)
         self.assertIn('<dt>Risk</dt><dd><span class="today-risk-amount" title="0.60u · 1u = $100">$60</span></dd>', today_html)
-        self.assertIn('<dt>wins</dt><dd class="">$90</dd>', today_html)
+        self.assertIn('<dt>wins</dt><dd>$90</dd>', today_html)
         self.assertIn('today-bet--push', today_html)
-        self.assertIn('<dt class="today-net-label">Net result</dt><dd class="">$0</dd>', today_html)
+        self.assertIn('<dt class="today-net-label">Net result</dt><dd>$0</dd>', today_html)
+        push_card = today_html.split("today-bet--push", 1)[1].split("</li>", 1)[0]
+        self.assertNotIn("today-tone", push_card)
 
     def test_today_empty_state(self) -> None:
         doc = report.build_html_report(report.summarize([]), 'Test', {}, 'NFL')
@@ -1060,11 +1070,41 @@ class FinalMarginTests(unittest.TestCase):
         )
         today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
         straight, parlay = today_html.split('data-bet-section="parlay"', 1)
-        self.assertIn('class="today-margin" title="Tampa Bay Lightning lost by 2 (2–4)"', straight)
+        lost_tone = report._tone_style(-2, report.MARGIN_TONE_SCALE)
+        self.assertIn(
+            f'class="today-margin today-tone"{lost_tone} title="Tampa Bay Lightning lost by 2 (2–4)"',
+            straight,
+        )
         self.assertIn(">−2</span>", straight)
+        self.assertIn(
+            f'<dd class="negative today-tone"{report._tone_style(-110, report.NET_TONE_SCALE)}>−$110</dd>',
+            straight,
+        )
         self.assertIn(">Final<", straight)
         self.assertNotIn("today-margin", parlay)
-        self.assertIn('class="today-margin"', today_html.split("MIN o3.5", 1)[1].split("</li>", 1)[0])
+        self.assertIn("today-tone", parlay)
+        covered = today_html.split("MIN o3.5", 1)[1].split("</li>", 1)[0]
+        self.assertIn(report._tone_style(0.5, report.MARGIN_TONE_SCALE), covered)
+        self.assertIn(
+            f'<dd class="positive today-tone"{report._tone_style(100, report.NET_TONE_SCALE)}>+$100</dd>',
+            covered,
+        )
+
+    def test_tone_scale_reaches_full_color_and_push_stays_plain(self) -> None:
+        self.assertEqual(report._parse_signed_number("−2"), -2.0)
+        self.assertEqual(report._parse_signed_number("+0.5"), 0.5)
+        self.assertEqual(report._parse_signed_number("0"), 0.0)
+        self.assertEqual(report._tone_style(0, report.MARGIN_TONE_SCALE), "")
+        self.assertEqual(report._tone_style(None, report.NET_TONE_SCALE), "")
+        self.assertIn("--tone-rgb:52,211,153", report._tone_style(7, report.MARGIN_TONE_SCALE))
+        self.assertIn("--tone-rgb:251,113,133", report._tone_style(-100, report.NET_TONE_SCALE))
+        soft = report._tone_style(0.5, report.MARGIN_TONE_SCALE)
+        self.assertIn("--tone-rgb:", soft)
+        self.assertNotIn("52,211,153", soft)
+        self.assertNotEqual(soft, report._tone_style(7, report.MARGIN_TONE_SCALE))
+        push = report._margin_html({"margin": "0", "margin_title": "tied"})
+        self.assertIn('class="today-margin"', push)
+        self.assertNotIn("today-tone", push)
 
 
 class BroadcastTests(unittest.TestCase):
