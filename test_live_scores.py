@@ -119,7 +119,7 @@ class ScoreTests(unittest.TestCase):
         text = cli.format_scores(snapshot, color=False)
         self.assertLess(text.index("1:00 - 3rd Period | TNT"), text.index("8:12 - 2nd Period"))
         self.assertIn("🏒 LIVE | 8:12 - 2nd Period\n", text)
-        self.assertIn("Away Team @ Home Team | starts in 30m | ESPN+", text)
+        self.assertIn("DET @ CHI | starts in 30m | ESPN+", text)
         self.assertLess(text.index("ESPN+"), text.index("starts in 3h 30m"))
         self.assertNotIn("ESPN+", text[text.index("starts in 3h 30m"):])
 
@@ -214,7 +214,7 @@ class ScoreTests(unittest.TestCase):
         text = cli.format_scores(snapshot, color=True)
         upcoming_lines = [line for line in text.splitlines() if "starts in" in line]
         self.assertEqual(len(upcoming_lines), 1)
-        self.assertIn("🏒 Away Team @ Home Team | \033[92mstarts in 30m\033[0m", upcoming_lines[0])
+        self.assertIn("🏒 TB @ MIN | \033[92mstarts in 30m\033[0m", upcoming_lines[0])
         self.assertIn("\033[96mTBL/MIN o6.5 $110; TB +1.5 $110\033[0m", upcoming_lines[0])
         self.assertNotIn("(-110)", text)
         for hidden in ("┌", "Margin:", "Total:", "ESPN", "123", "Test Book", "Unmatched"):
@@ -225,6 +225,68 @@ class ScoreTests(unittest.TestCase):
         live_only = cli.collect_scores([bet()], DAY, live_only=True, now=now,
                                        fetch=lambda *_: ([scheduled], None))
         self.assertEqual(live_only["upcoming"], [])
+
+    def test_upcoming_abbreviations_follow_the_wager(self):
+        now = dt.datetime(2026, 11, 9, 19, 30, tzinfo=report._EASTERN)
+        raw = event(event_id="77", state="pre", name="STATUS_SCHEDULED", detail="Scheduled",
+                    away_id=report.NCAA_ESPN_IDS["penn"], home_id=report.NCAA_ESPN_IDS["navy"],
+                    away_abbr="PENN", home_abbr="NAVY")
+        raw["competitions"][0]["odds"] = [{
+            "details": "PENN -7.5",
+            "overUnder": 146.5,
+            "pointSpread": {
+                "away": {"close": {"line": "-7.5", "odds": "-112"}},
+                "home": {"close": {"line": "+7.5", "odds": "-108"}},
+            },
+            "total": {
+                "over": {"close": {"line": "o146.5", "odds": "-110"}},
+                "under": {"close": {"line": "u146.5", "odds": "-110"}},
+            },
+            "moneyline": {
+                "away": {"close": {"odds": "-325"}},
+                "home": {"close": {"odds": "+260"}},
+            },
+        }]
+        slate = report._game_from_espn_event(raw)
+        self.assertEqual(slate["markets"]["spread"]["away"], {"line": "-7.5", "odds": "-112"})
+        self.assertEqual(slate["markets"]["moneyline"]["home"]["odds"], "+260")
+        snapshot = cli.collect_scores([
+            bet("PENN/NAVY u148.5", "NCAAB"),
+            bet("NAVY +9.5", "NCAAB", bet_type="Total"),
+            bet("PENN ML", "NCAAB", bet_type="ML"),
+        ], DAY, now=now, fetch=lambda *_: ([slate], None))
+        text = cli.format_scores(snapshot, color=False)
+        self.assertIn(
+            "🏀 PENN @ NAVY | starts in 30m | "
+            "PENN/NAVY u148.5 $110 · u146.5 (-110); "
+            "NAVY +9.5 $110 · NAVY +7.5 (-108); "
+            "PENN ML $110 · PENN -325",
+            text,
+        )
+        self.assertNotIn("Away Team", text)
+        self.assertNotIn("o146.5", text)
+        self.assertNotIn("PENN -7.5", text)
+        self.assertEqual(report._market_quotes({"overUnder": 150})["total"]["under"], {"line": "u150"})
+
+        air = game(event_id="88", state="pre", name="STATUS_SCHEDULED", detail="Scheduled",
+                   away_id=report.NCAA_ESPN_IDS["loyolaChicago"], home_id=report.NCAA_ESPN_IDS["airForce"],
+                   away_abbr="LUC", home_abbr="AF")
+        air["markets"] = {
+            "spread": {"home": {"line": "+3.5", "odds": "-110"}},
+            "total": {"over": {"line": "o159.5", "odds": "-105"}},
+            "moneyline": {"away": {"odds": "+150"}, "home": {"odds": "-180"}},
+        }
+        aliased = cli.collect_scores([
+            bet("AFA +3.5", "NCAAB", bet_type="Side"),
+            bet("LUC/AFA o159.5", "NCAAB"),
+            bet("LUC/AFA ML", "NCAAB", bet_type="ML"),
+        ], DAY, now=now, fetch=lambda *_: ([air], None))
+        aliased_text = cli.format_scores(aliased, color=False)
+        self.assertIn("LUC @ AF", aliased_text)
+        self.assertIn("AFA +3.5 $110 · AF +3.5 (-110)", aliased_text)
+        self.assertIn("LUC/AFA o159.5 $110 · o159.5 (-105)", aliased_text)
+        self.assertRegex(aliased_text, r"LUC/AFA ML \$110(?:;|$)")
+        self.assertNotIn("LUC/AFA ML $110 ·", aliased_text)
 
     def test_graded_bets_are_removed_and_upcoming_risk_keeps_cents(self):
         now = dt.datetime(2026, 11, 9, 19, 30, tzinfo=report._EASTERN)

@@ -7,6 +7,7 @@ import datetime as dt
 import json
 import math
 import os
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -25,6 +26,11 @@ SPORT_EMOJI = {"NHL": "🏒", "NBA": "🏀", "NCAAB": "🏀",
                "NFL": "🏈", "NCAAF": "🏈", "MLB": "⚾"}
 REGULATION = {"NCAAB": (2, 20), "NBA": (4, 12), "NFL": (4, 15),
               "NCAAF": (4, 15), "NHL": (3, 20)}
+_TOTAL_SIDE_RE = re.compile(r"\b([ou])\d+(?:\.\d+)?\b", re.IGNORECASE)
+_SPREAD_RE = re.compile(r"[+-]\d+(?:\.\d+)?")
+_ML_RE = re.compile(r"\bML\b", re.IGNORECASE)
+_SPREAD_TEAM_RE = re.compile(r"(?<!/)([A-Z]{2,6}(?:-[A-Z]{2,4})?)\s*[+-]\d")
+_ML_TEAM_RE = re.compile(r"(?<!/)([A-Z]{2,6}(?:-[A-Z]{2,4})?)\s+ML\b", re.IGNORECASE)
 
 
 def _bet_data(bet: report.Bet) -> Dict[str, Any]:
@@ -146,6 +152,7 @@ def collect_scores(
                 "home": game["home"],
                 "neutral_site": game["neutral_site"],
                 "broadcast": game.get("broadcast") or "",
+                "markets": game.get("markets") or {},
                 "bets": [],
             }
         grouped[key]["bets"].append(_bet_data(bet))
@@ -170,10 +177,83 @@ def _risk_amount(bet: Dict[str, Any]) -> str:
     return report._fmt_money_compact(bet.get("risk"))
 
 
-def _upcoming_pick(bet: Dict[str, Any]) -> str:
+def _upcoming_pick(bet: Dict[str, Any], line: str = "") -> str:
     pick = _text(bet["pick"])
     amount = _risk_amount(bet)
-    return f"{pick} {amount}" if amount else pick
+    text = f"{pick} {amount}" if amount else pick
+    return f"{text} · {line}" if line else text
+
+
+def _team_abbr(team: Any) -> str:
+    team = team or {}
+    return _text(team.get("abbr") or team.get("name") or "?")
+
+
+def _side_for_token(game: Dict[str, Any], token: str) -> Optional[str]:
+    """Away or home when the sheet code is that side of this game."""
+    token = token.upper()
+    ref = report._team_ref(token, str(game.get("league") or ""))
+    for side in ("away", "home"):
+        team = game.get(side) or {}
+        abbr = str(team.get("abbr") or "").upper()
+        team_id = str(team.get("id") or "")
+        if token == abbr:
+            return side
+        if not ref:
+            continue
+        if ref.get("espn_id") and ref["espn_id"] == team_id:
+            return side
+        if str(ref.get("espn_abbr") or "").upper() == abbr:
+            return side
+    return None
+
+
+def _named_side(game: Dict[str, Any], pick: str, pattern: re.Pattern[str]) -> Optional[str]:
+    match = pattern.search(pick or "")
+    tokens = [match.group(1)] if match else report._TEAM_ABBR_RE.findall(pick or "")
+    sides = []
+    for token in tokens:
+        side = _side_for_token(game, token)
+        if side and side not in sides:
+            sides.append(side)
+    return sides[0] if len(sides) == 1 else None
+
+
+def _quote_text(line: str, odds: str) -> str:
+    line, odds = _text(line), _text(odds)
+    if line and odds:
+        return f"{line} ({odds})"
+    return line or odds
+
+
+def _wager_line(game: Dict[str, Any], bet: Dict[str, Any]) -> str:
+    """Current close for this pick: the under or over, that team's spread, or its moneyline."""
+    pick = str(bet.get("pick") or "")
+    markets = game.get("markets") or {}
+    kind = str(bet.get("type") or "").strip().casefold()
+    total_side = _TOTAL_SIDE_RE.search(pick)
+    if total_side:
+        letter = total_side.group(1).lower()
+        quote = (markets.get("total") or {}).get("under" if letter == "u" else "over") or {}
+        line = str(quote.get("line") or "")
+        if line and line[0].lower() not in {"o", "u"}:
+            line = f"{letter}{line}"
+        return _quote_text(line, str(quote.get("odds") or ""))
+    if _ML_RE.search(pick) or kind in {"ml", "moneyline"}:
+        side = _named_side(game, pick, _ML_TEAM_RE)
+        quote = (markets.get("moneyline") or {}).get(side or "") or {}
+        price = str(quote.get("odds") or "")
+        if side is None or not price:
+            return ""
+        return f"{_team_abbr(game.get(side))} {price}"
+    if _SPREAD_RE.search(pick) or kind == "side":
+        side = _named_side(game, pick, _SPREAD_TEAM_RE)
+        quote = (markets.get("spread") or {}).get(side or "") or {}
+        line = str(quote.get("line") or "")
+        if side is None or not line:
+            return ""
+        return _quote_text(f"{_team_abbr(game.get(side))} {line}", str(quote.get("odds") or ""))
+    return ""
 
 
 def _text(value: Any) -> str:
@@ -344,9 +424,9 @@ def format_scores(snapshot: Dict[str, Any], *, color: Optional[bool] = None) -> 
             hours, minutes = divmod(minutes, 60)
             countdown = " ".join(f"{value}{unit}" for value, unit in ((days, "d"), (hours, "h"), (minutes, "m")) if value)
             countdown = _time_text(f"starts in {countdown}", remaining, color)
-            away = _text((game["away"] or {}).get("name") or "?")
-            home = _text((game["home"] or {}).get("name") or "?")
-            bets_text = "; ".join(_upcoming_pick(bet) for bet in game["bets"])
+            away = _team_abbr(game.get("away"))
+            home = _team_abbr(game.get("home"))
+            bets_text = "; ".join(_upcoming_pick(bet, _wager_line(game, bet)) for bet in game["bets"])
             if color:
                 bets_text = f"\033[96m{bets_text}\033[0m"
             versus = " vs " if game["neutral_site"] else " @ "

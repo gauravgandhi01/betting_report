@@ -1337,6 +1337,47 @@ def _matching_games(games: List[Dict[str, Any]], teams: List[Dict[str, str]]) ->
     return [game for game in games if wanted <= game["abbrs"]]
 
 
+def _close_quote(block: Any) -> Dict[str, str]:
+    """ESPN close line and American price, without the bet-link payload."""
+    close = block.get("close") if isinstance(block, dict) else None
+    if not isinstance(close, dict):
+        return {}
+    quote: Dict[str, str] = {}
+    line = str(close.get("line") or "").strip()
+    price = str(close.get("odds") or "").strip()
+    if line:
+        quote["line"] = line
+    if price:
+        quote["odds"] = price
+    return quote
+
+
+def _market_quotes(odds: Dict[str, Any]) -> Dict[str, Dict[str, Dict[str, str]]]:
+    """Spread, total, and moneyline closes keyed by side."""
+    markets: Dict[str, Dict[str, Dict[str, str]]] = {}
+    sources = {
+        "spread": ("pointSpread", ("away", "home")),
+        "total": ("total", ("over", "under")),
+        "moneyline": ("moneyline", ("away", "home")),
+    }
+    for market, (key, sides) in sources.items():
+        source = odds.get(key) or {}
+        if not isinstance(source, dict):
+            continue
+        quotes = {}
+        for side in sides:
+            quote = _close_quote(source.get(side))
+            if quote:
+                quotes[side] = quote
+        if quotes:
+            markets[market] = quotes
+    if "total" not in markets and odds.get("overUnder") is not None:
+        number = str(odds.get("overUnder")).strip()
+        if number:
+            markets["total"] = {"over": {"line": f"o{number}"}, "under": {"line": f"u{number}"}}
+    return markets
+
+
 def _format_game_start(raw: str) -> Optional[Tuple[str, str]]:
     text = (raw or "").strip()
     if text.endswith("Z"):
@@ -1415,6 +1456,8 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 networks.append(str(name))
     title = " · ".join(part for part in (matchup, venue_name, ", ".join(networks)) if part)
     odds = (comp.get("odds") or [{}])[0]
+    if not isinstance(odds, dict):
+        odds = {}
     total = odds.get("overUnder")
     spread_parts = []
     total_parts = []
@@ -1433,6 +1476,7 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "broadcast": ", ".join(networks),
         "spread": " · ".join(spread_parts) or str(odds.get("details") or ""),
         "total": " · ".join(total_parts) or (str(total) if total is not None else ""),
+        "markets": _market_quotes(odds),
         "event_id": str(event.get("id") or comp.get("id") or ""),
         "home": sides.get("home"),
         "away": sides.get("away"),
