@@ -2467,7 +2467,6 @@ def build_html_report(
             state, label, icon = statuses.get(result, ("other", _result_label(result), "—"))
             result_badge = (
                 f'<span class="today-result"><span aria-hidden="true">{icon}</span> {html.escape(label)}</span>'
-                if result else ""
             )
             league_marks = []
             for card_league in r["leagues"]:
@@ -2528,8 +2527,10 @@ def build_html_report(
             when_html = f'<div class="today-when">{start_html}{broadcast_html}</div>' if start_html else ""
             start_timestamp = card_sort_key(r)[0]
             start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""
+            odds_value = _finite_float(r.get("odds"))
+            odds_attr = "" if odds_value is None else f"{odds_value:.8f}"
             game_done = bool(start and start.get("done")) and not upcoming
-            items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+            items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-pick="{html.escape(str(r.get("pick") or ""), quote=True)}" data-odds="{odds_attr}" data-result="{html.escape(result, quote=True)}" data-date="{html.escape(str(r.get("date") or ""), quote=True)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               {sport_watermark}
               <div class="today-bet-body">
                 <div class="today-pick-line"{pick_title}><h4 class="today-pick">{pick_html}</h4>{compact_pick}<span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
@@ -2568,6 +2569,20 @@ def build_html_report(
                 f'{"".join(section_markup)}</{tag}>'
             )
         groups = "".join(group_markup)
+        status_key = "date" if upcoming else "result"
+        status_label = "Date" if upcoming else "Result"
+        status_title = "Earliest date first" if upcoming else "Open, then won, lost, push, and cash out"
+        list_head = (
+            f'<div class="today-list-head" role="group" aria-label="Sort {context}">'
+            f'<button type="button" data-list-sort="{status_key}" aria-sort="none" aria-controls="{panel_key}-bets" title="{status_title}">{status_label}</button>'
+            f'<button type="button" data-list-sort="pick" aria-sort="none" aria-controls="{panel_key}-bets">Pick</button>'
+            f'<button type="button" data-list-sort="odds" aria-sort="none" aria-controls="{panel_key}-bets" title="American odds">Odds</button>'
+            f'<button type="button" data-list-sort="time" aria-sort="ascending" aria-pressed="true" aria-controls="{panel_key}-bets" title="Earliest start first; unknown times last">Time</button>'
+            f'<button type="button" data-list-sort="risk" aria-sort="none" aria-controls="{panel_key}-bets" title="Highest risk first">Risk</button>'
+            f'<button type="button" data-list-sort="return" aria-sort="none" aria-controls="{panel_key}-bets" title="To win for open bets, net for settled bets">Return</button>'
+            f'<span class="today-list-books" aria-hidden="true"></span>'
+            f'</div>'
+        )
         return (
             '<div class="today-filter-bar" hidden><div class="today-filter-controls">'
             + f'<div class="today-filters" role="group" aria-label="Filter {context} by league">'
@@ -2577,7 +2592,7 @@ def build_html_report(
             + f'<button type="button" data-today-sort="time" aria-pressed="true" aria-controls="{panel_key}-bets" title="Earliest start first; unknown times last">Time ↑</button>'
             + f'<button type="button" data-today-sort="risk" aria-pressed="false" aria-controls="{panel_key}-bets" title="Highest risk first">Risk ↓</button>'
             + f'</div></div><span id="{panel_key}-filter-count" class="note today-filter-count" role="status">{len(rows)} bets</span></div>'
-            + f'<div id="{panel_key}-bets">' + groups
+            + f'<div id="{panel_key}-bets">' + list_head + groups
             + f'<p id="{panel_key}-filter-empty" class="today-empty" hidden>No bets match these filters.</p></div>'
         )
 
@@ -3188,7 +3203,7 @@ def build_html_report(
       box-shadow: inset 0 0 0 1px rgba(157, 176, 208, 0.45);
     }}
 
-    .today-panel {{ min-width: 0; padding: 12px; }}
+    .today-panel {{ --list-odds: 4.8rem; --list-gap: 8px; --list-cols: 7.4rem minmax(0, 1fr) var(--list-odds) minmax(7.4rem, 9.6rem) 4.8rem 5.4rem minmax(40px, 72px); min-width: 0; padding: 12px; }}
     .today-header {{ display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 7px; }}
     .today-heading {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }}
     .today-heading h2 {{ margin: 0; font-size: 16px; }}
@@ -3222,6 +3237,12 @@ def build_html_report(
     .today-filter-count {{ font-size: 11px; }}
     .today-sort {{ align-items: center; border-left: 1px solid var(--border); padding-left: 8px; }}
     .today-sort-label {{ color: var(--muted); font-size: 10px; margin-right: 2px; }}
+    .today-list-head {{ display: none; }}
+    .today-list-head button {{ appearance: none; min-width: 0; border: 0; background: transparent; color: var(--muted); padding: 2px 0; font: inherit; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; line-height: 1.4; text-align: left; text-transform: uppercase; white-space: nowrap; cursor: pointer; }}
+    .today-list-head button[data-list-sort="odds"], .today-list-head button[data-list-sort="risk"], .today-list-head button[data-list-sort="return"] {{ text-align: right; }}
+    .today-list-head button[aria-pressed="true"] {{ color: var(--accent); }}
+    .today-list-head button:hover {{ color: var(--text); }}
+    .today-list-head button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; }}
     .today-view button {{ display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); padding: 5px 8px; font: inherit; font-size: 11px; cursor: pointer; }}
     .today-view button[aria-pressed="true"] {{ color: var(--text); background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.35); }}
     .today-view button:hover {{ color: var(--text); }}
@@ -3312,6 +3333,7 @@ def build_html_report(
     .today-return {{ padding: 5px 0; text-align: right; }}
     .today-return dd {{ font-size: 16px; }}
     .today-net-label {{ position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }}
+    .today-bet--open .today-league {{ display: none; }}
     .today-panel[data-view="cards"] .today-bet {{ display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 6px 10px; padding: 10px; }}
     .today-panel[data-view="cards"] .today-bet-top {{ display: contents; }}
     .today-panel[data-view="cards"] .today-bet-body {{ grid-column: 1; grid-row: 1; padding: 0; }}
@@ -3341,9 +3363,36 @@ def build_html_report(
     .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return, .today-panel[data-view="list"] .today-when {{ display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }}
     .today-panel[data-view="list"] .today-return {{ margin-left: 0; padding-right: 0; }}
     .today-panel[data-view="list"] .today-bet-money dd {{ margin: 0; font-size: 11px; font-weight: 400; }}
+    @media (min-width: 721px) {{
+      .today-panel[data-view="list"] .today-sort {{ display: none; }}
+      .today-panel[data-view="list"] .today-bet-section-title {{ display: none; }}
+      .today-panel[data-view="list"] .today-bet-section + .today-bet-section {{ margin-top: 0; }}
+      .today-panel[data-view="list"] .today-list-head,
+      .today-panel[data-view="list"] .today-bet {{ box-sizing: border-box; grid-template-columns: var(--list-cols); column-gap: var(--list-gap); }}
+      .today-panel[data-view="list"] .today-list-head {{ display: grid; align-items: center; margin: 0 0 4px; padding: 0 8px 0 9px; }}
+      .today-panel[data-view="list"] .today-bet .today-bet-body,
+      .today-panel[data-view="list"] .today-bet .today-bet-money {{ display: contents; }}
+      .today-panel[data-view="list"] .today-bet--open .today-bet-body {{ grid-column: auto; }}
+      .today-panel[data-view="list"] .today-bet--open .today-league {{ display: flex; }}
+      .today-panel[data-view="list"] .today-league,
+      .today-panel[data-view="list"] .today-meta {{ grid-column: 1; grid-row: 1; min-width: 0; }}
+      .today-panel[data-view="list"] .today-meta {{ white-space: nowrap; }}
+      #upcoming-panel[data-view="list"] .today-league {{ display: none; }}
+      .today-panel[data-view="list"] .today-pick-line {{ grid-column: 2 / 4; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr) var(--list-odds); column-gap: var(--list-gap); align-items: center; min-width: 0; }}
+      .today-panel[data-view="list"] .today-pick,
+      .today-panel[data-view="list"] .compact-pick {{ grid-column: 1; }}
+      .today-panel[data-view="list"] .today-odds {{ grid-column: 2; justify-self: end; text-align: right; }}
+      .today-panel[data-view="list"] .today-when {{ grid-column: 4; grid-row: 1; flex-wrap: nowrap; }}
+      .today-panel[data-view="list"] .today-stake {{ grid-column: 5; grid-row: 1; justify-content: flex-end; }}
+      .today-panel[data-view="list"] .today-return {{ grid-column: 6; grid-row: 1; justify-content: flex-end; text-align: right; }}
+      .today-panel[data-view="list"] .today-logos {{ grid-column: 7; grid-row: 1; }}
+      .today-panel[data-view="list"] .today-stake dt,
+      .today-panel[data-view="list"] .today-return dt {{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }}
+      .today-panel[data-view="list"] .today-bet-money > * + *::before {{ content: none; margin: 0; }}
+    }}
     @media (max-width: 1100px) {{
       .today-bets {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
-      .today-panel[data-view="list"] .today-bet {{ grid-template-columns: max-content minmax(0, 1fr) minmax(220px, 36%) minmax(40px, 84px); gap: 6px; }}
+      .today-panel {{ --list-gap: 6px; --list-cols: 6.8rem minmax(0, 1fr) var(--list-odds) minmax(6.6rem, 8.2rem) 4.5rem 5rem minmax(36px, 64px); }}
     }}
     @media (max-width: 850px) {{
       .today-bets {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
@@ -3830,28 +3879,95 @@ def build_html_report(
     const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
     const sortButtons = panel.querySelectorAll('[data-today-sort]');
+    const listButtons = Array.from(panel.querySelectorAll('[data-list-sort]'));
     const sortStorageKey = upcoming ? 'bettingReportUpcomingSort' : 'bettingReportTodaySort';
+    const listStorageKey = upcoming ? 'bettingReportUpcomingListSort' : 'bettingReportTodayListSort';
     const originalOrder = new Map(bets.map((bet, index) => [bet, index]));
+    const homeList = new WeakMap(bets.map(bet => [bet, bet.parentElement]));
+    const listLabels = new Map(Array.from(panel.querySelectorAll('.today-bets'), list => [list, list.getAttribute('aria-label')]));
+    const columnSortQuery = window.matchMedia('(min-width: 721px)');
+    const listSortDefaults = {{ result: 'asc', date: 'asc', pick: 'asc', odds: 'desc', time: 'asc', risk: 'desc', return: 'desc' }};
+    const resultRank = {{ '': 0, W: 1, L: 2, P: 3, CO: 4 }};
+    let listState = {{ key: 'time', dir: 'asc' }};
     const startTime = bet => bet.dataset.startMs ? Number(bet.dataset.startMs) : Infinity;
+    const numericOrNull = value => {{
+      if (value == null || String(value).trim() === '') return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }};
+    const betReturn = bet => numericOrNull(bet.dataset.open === 'true' ? bet.dataset.potential : bet.dataset.net);
+    const compareMissingLast = (left, right, direction) => {{
+      if (left == null && right == null) return 0;
+      if (left == null) return 1;
+      if (right == null) return -1;
+      return (left - right) * direction;
+    }};
+    function compareTodayBet(a, b) {{
+      const direction = listState.dir === 'asc' ? 1 : -1;
+      let difference = 0;
+      if (listState.key === 'time') {{
+        difference = compareMissingLast(numericOrNull(a.dataset.startMs), numericOrNull(b.dataset.startMs), direction);
+      }} else if (listState.key === 'pick') {{
+        difference = (a.dataset.pick || '').localeCompare(b.dataset.pick || '', undefined, {{ numeric: true, sensitivity: 'base' }}) * direction;
+      }} else if (listState.key === 'result') {{
+        difference = ((resultRank[a.dataset.result || ''] ?? 9) - (resultRank[b.dataset.result || ''] ?? 9)) * direction;
+      }} else if (listState.key === 'date') {{
+        difference = (a.dataset.date || '').localeCompare(b.dataset.date || '') * direction;
+      }} else if (listState.key === 'return') {{
+        difference = compareMissingLast(betReturn(a), betReturn(b), direction);
+      }} else {{
+        difference = compareMissingLast(numericOrNull(a.dataset[listState.key]), numericOrNull(b.dataset[listState.key]), direction);
+      }}
+      return difference || originalOrder.get(a) - originalOrder.get(b);
+    }}
+    function columnSortActive() {{
+      return panel.dataset.view === 'list' && columnSortQuery.matches;
+    }}
+    function flattenGroup(group) {{
+      const lists = Array.from(group.querySelectorAll('.today-bets'));
+      const first = lists[0];
+      if (!first) return;
+      lists.slice(1).forEach(list => {{
+        while (list.firstElementChild) first.append(list.firstElementChild);
+      }});
+      const status = group.dataset.todayGroup || 'sorted';
+      first.setAttribute('aria-label', `${{status.charAt(0).toUpperCase()}}${{status.slice(1)}} bets`);
+    }}
+    function restoreHomes() {{
+      bets.forEach(bet => {{
+        const home = homeList.get(bet);
+        if (home && bet.parentElement !== home) home.append(bet);
+      }});
+      listLabels.forEach((label, list) => list.setAttribute('aria-label', label));
+    }}
+    function sortLists(compare) {{
+      panel.querySelectorAll('.today-bets').forEach(list => {{
+        const sorted = Array.from(list.children).sort(compare);
+        list.append(...sorted);
+      }});
+    }}
+    function updateListButtons() {{
+      listButtons.forEach(button => {{
+        if (!button.dataset.label) button.dataset.label = button.textContent.trim();
+        const active = button.dataset.listSort === listState.key;
+        button.setAttribute('aria-pressed', String(active));
+        button.setAttribute('aria-sort', active ? (listState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+        button.textContent = button.dataset.label + (active ? (listState.dir === 'asc' ? ' ↑' : ' ↓') : '');
+      }});
+    }}
     const setSort = value => {{
       const selected = value === 'risk' ? 'risk' : 'time';
       panel.dataset.sort = selected;
       sortButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todaySort === selected)));
-      panel.querySelectorAll('.today-bets').forEach(list => {{
-        const sorted = Array.from(list.children).sort((a, b) => {{
-          const timeDifference = startTime(a) - startTime(b);
-          const riskDifference = Number(b.dataset.risk) - Number(a.dataset.risk);
-          return (selected === 'risk' ? riskDifference || timeDifference : timeDifference || riskDifference)
-            || originalOrder.get(a) - originalOrder.get(b);
-        }});
-        list.append(...sorted);
-      }});
     }};
-    try {{ setSort(localStorage.getItem(sortStorageKey)); }} catch {{ setSort('time'); }}
-    sortButtons.forEach(button => button.addEventListener('click', () => {{
-      setSort(button.dataset.todaySort);
-      try {{ localStorage.setItem(sortStorageKey, panel.dataset.sort); }} catch {{ /* Sorting still works without storage. */ }}
-    }}));
+    const setListSort = value => {{
+      const [key, dir] = String(value || '').split(':');
+      const known = listButtons.some(button => button.dataset.listSort === key);
+      listState = known
+        ? {{ key, dir: dir === 'desc' ? 'desc' : 'asc' }}
+        : {{ key: 'time', dir: 'asc' }};
+      updateListButtons();
+    }};
     let league = '';
     const money = value => '$' + value.toLocaleString('en-US', {{minimumFractionDigits: 2, maximumFractionDigits: 2}}).replace(/[.]00$/, '');
     const applyFilters = () => {{
@@ -3889,8 +4005,41 @@ def build_html_report(
         : `${{wagers}} wagers · ${{open}} open · ${{wagers - open}} settled`;
       panel.querySelector(`#${{panelKey}}-filter-count`).textContent = `${{league || 'All leagues'}} · ${{visible}} of ${{bets.length}} bets`;
     }};
+    function applyArrangement() {{
+      if (columnSortActive()) {{
+        groups.forEach(flattenGroup);
+        sortLists(compareTodayBet);
+      }} else {{
+        restoreHomes();
+        const selected = panel.dataset.sort === 'risk' ? 'risk' : 'time';
+        sortLists((a, b) => {{
+          const timeDifference = startTime(a) - startTime(b);
+          const riskDifference = Number(b.dataset.risk) - Number(a.dataset.risk);
+          return (selected === 'risk' ? riskDifference || timeDifference : timeDifference || riskDifference)
+            || originalOrder.get(a) - originalOrder.get(b);
+        }});
+      }}
+      applyFilters();
+    }}
+    try {{ setSort(localStorage.getItem(sortStorageKey)); }} catch {{ setSort('time'); }}
+    try {{ setListSort(localStorage.getItem(listStorageKey)); }} catch {{ setListSort('time:asc'); }}
+    sortButtons.forEach(button => button.addEventListener('click', () => {{
+      setSort(button.dataset.todaySort);
+      try {{ localStorage.setItem(sortStorageKey, panel.dataset.sort); }} catch {{ /* Sorting still works without storage. */ }}
+      applyArrangement();
+    }}));
+    listButtons.forEach(button => button.addEventListener('click', () => {{
+      const key = button.dataset.listSort;
+      if (listState.key === key) listState.dir = listState.dir === 'asc' ? 'desc' : 'asc';
+      else listState = {{ key, dir: listSortDefaults[key] || 'asc' }};
+      updateListButtons();
+      try {{ localStorage.setItem(listStorageKey, `${{listState.key}}:${{listState.dir}}`); }} catch {{ /* Sorting still works without storage. */ }}
+      applyArrangement();
+    }}));
+    buttons.forEach(button => button.addEventListener('click', () => applyArrangement()));
+    columnSortQuery.addEventListener('change', () => applyArrangement());
     leagueButtons.forEach(button => button.addEventListener('click', () => {{ league = button.dataset.todayLeague; applyFilters(); }}));
-    applyFilters();
+    applyArrangement();
     filterBar.hidden = false;
   }});
 

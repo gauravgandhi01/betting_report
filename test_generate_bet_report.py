@@ -651,6 +651,33 @@ class CardSortingTests(unittest.TestCase):
                 self.assertEqual(picks, ["Early combined", "Early small", "Late large",
                                          "Unknown large", "Unknown small"])
 
+    def test_list_view_exposes_sortable_columns(self) -> None:
+        today = report.dt.date.today()
+        tomorrow = today + report.dt.timedelta(days=1)
+        bets = [
+            _bet(date=today, pick="Alpha", odds_american=-110, risk=25, result="", net=float("nan"), to_win=20),
+            _bet(date=today, pick="Zulu", odds_american=150, risk=80, result="W", net=40, to_win=40),
+            _bet(date=tomorrow, pick="Next", odds_american=-105, risk=15, result="", net=float("nan"), to_win=10),
+        ]
+        doc = report.build_html_report(report.summarize(bets), "Test", {}, "MLB", available_logo_files=set())
+        today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
+        upcoming = doc.split('<section id="upcoming-panel"', 1)[1].split("</section>", 1)[0]
+        for key in ("result", "pick", "odds", "time", "risk", "return"):
+            self.assertIn(f'data-list-sort="{key}"', today_html)
+        self.assertNotIn('data-list-sort="date"', today_html)
+        self.assertIn('data-list-sort="date"', upcoming)
+        self.assertNotIn('data-list-sort="result"', upcoming)
+        self.assertIn('data-pick="Alpha"', today_html)
+        self.assertIn('data-odds="-110.00000000"', today_html)
+        self.assertIn('data-pick="Zulu"', today_html)
+        self.assertIn('data-odds="150.00000000"', today_html)
+        self.assertIn('data-result="W"', today_html)
+        self.assertIn('compareTodayBet', doc)
+        self.assertIn("bettingReportTodayListSort", doc)
+        self.assertIn("bettingReportUpcomingListSort", doc)
+        self.assertIn('.today-bet--open .today-league { display: none; }', doc)
+        self.assertIn('.today-panel[data-view="list"] .today-bet--open .today-league { display: flex; }', doc)
+
 
 class GameTimeTests(unittest.TestCase):
     def test_pro_abbreviations_follow_espn_spelling(self) -> None:

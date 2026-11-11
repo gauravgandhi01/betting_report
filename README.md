@@ -101,8 +101,8 @@ python3 betting_analysis/live_scores.py
 # Refresh every 30 seconds. Stop with Ctrl+C.
 python3 betting_analysis/live_scores.py --watch
 
-# Refresh every 15 seconds, showing only open bets on live games.
-python3 betting_analysis/live_scores.py --watch 15 --open-only
+# Refresh every 15 seconds. Bets with a recorded result are omitted.
+python3 betting_analysis/live_scores.py --watch 15
 
 # Choose a date and one or more leagues.
 python3 betting_analysis/live_scores.py --date 2026-11-09 --league NCAAB --league NHL
@@ -125,12 +125,16 @@ aliases for NHL, NBA, NFL, MLB, NCAAB, and NCAAF. It fetches each needed league'
 scoreboard per refresh and groups your bets by game. The terminal shows a sport
 emoji, the live game clock/status, and a table with each team's total score.
 The leading team's margin and combined points appear beside the scoreboard.
+Live games are ordered by time remaining, closest to the end first. Upcoming
+games follow, soonest start first. The broadcast is shown on that line when
+ESPN provides one.
 `Total pace` appears only for games with a bet marked `Total` in the CSV.
 It projects the final regulation total as combined points divided by
 minutes played, multiplied by regulation game length. It uses the game clock,
 including halftime/intermission, and shows `-` before any time has elapsed,
 when clock/scores are missing, during overtime, or for baseball.
-Each bet shows only its pick in bright cyan in the terminal. Piped output
+Each live bet shows only its pick in bright cyan. Upcoming picks also show
+the risk amount. Piped output
 is plain text; setting `NO_COLOR` also disables color. Game clocks and upcoming
 countdowns are green above 15 minutes remaining, yellow from 5 to 15 minutes,
 and red at 5 minutes or less. Live colors use total game time remaining across
@@ -138,12 +142,14 @@ periods; overtime uses the current overtime clock. Unknown clocks stay plain.
 Full scoreboards appear for
 games currently in progress; halftime and intermission count as live. Confirmed
 upcoming games on the selected slate appear as one line per game with the matchup,
-time until start, and your picks. Countdowns refresh in watch mode. A countdown
+time until start, and each open pick with its risk. Countdowns refresh in watch mode. A countdown
 requires a unique game match, an event ID, a scheduled status, and a future start
 time; postponed, delayed, canceled, and past-due scheduled games are omitted.
 The CLI does not grade
-bets or track individual player statistics. `--open-only` additionally filters
-out bets with recorded results. `--live-only` hides upcoming countdowns.
+bets or track individual player statistics. Bets with a recorded result are
+omitted, including on the next `--watch` refresh after the sheet grades them.
+`--open-only` selects that same set and is the default. `--live-only` hides
+upcoming countdowns.
 
 Picks with an explicit `A/B` matchup match both teams. A single-team pick must
 match exactly one game on the selected slate. Player-only picks without a team,

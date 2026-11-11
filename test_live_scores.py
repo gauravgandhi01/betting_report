@@ -69,13 +69,59 @@ class ScoreTests(unittest.TestCase):
         self.assertIn("\033[92m8:12 - 2nd Period\033[0m", colored)
         self.assertIn("\033[96m  TBL/MIN o6.5\033[0m", colored)
         self.assertNotIn("\033[", cli.format_scores(snapshot, color=False))
-        for hidden in ("ESPN", "NHL", "123", "risk", "Test Book", "OPEN", "Unmatched", "skipped"):
+        for hidden in ("ESPN", "NHL", "123", "risk", "$", "Test Book", "OPEN", "Unmatched", "skipped"):
             self.assertNotIn(hidden, text)
         self.assertIsNone(json.loads(json.dumps(snapshot, allow_nan=False))["games"][0]["bets"][0]["net"])
         for bet_type in ("Side", "ML", "Player Prop", ""):
             side_only = cli.collect_scores([bet("TB +1.5", bet_type=bet_type)], DAY,
                                            fetch=lambda *_: ([game()], None))
             self.assertNotIn("Total pace:", cli.format_scores(side_only))
+
+    def test_orders_by_time_left_and_shows_broadcast_when_present(self):
+        def live(**overrides):
+            base = {"league": "NHL", "state": "in", "completed": False, "period": 1, "clock": "20:00",
+                    "status_name": "STATUS_IN_PROGRESS", "start": "2026-11-10T00:00:00+00:00", "event_id": "a"}
+            base.update(overrides)
+            return base
+
+        late = live(period=3, clock="1:00", event_id="late")
+        overtime = live(period=4, clock="2:00", event_id="ot")
+        second = live(period=2, clock="8:12", event_id="second")
+        half = live(period=2, clock="20:00", status_name="STATUS_HALFTIME", event_id="half")
+        mlb_ninth = live(league="MLB", period=8, event_id="mlb8")
+        mlb_second = live(league="MLB", period=2, event_id="mlb2")
+        soon = {"state": "pre", "completed": False, "league": "NHL", "period": 1, "clock": "",
+                "status_name": "STATUS_SCHEDULED", "start": "2026-11-10T01:00:00+00:00", "event_id": "soon"}
+        later = {**soon, "start": "2026-11-10T04:00:00+00:00", "event_id": "later"}
+        ordered = sorted([second, later, half, soon, overtime, mlb_second, late, mlb_ninth], key=cli._finish_order)
+        self.assertEqual([game["event_id"] for game in ordered],
+                         ["late", "ot", "second", "half", "mlb8", "mlb2", "soon", "later"])
+
+        closing = game(event_id="999", away_id="1", home_id="2", away_abbr="BOS", home_abbr="NYR",
+                       detail="1:00 - 3rd Period")
+        closing["period"] = 3
+        closing["clock"] = "1:00"
+        closing["status_detail"] = "1:00 - 3rd Period"
+        closing["broadcast"] = "TNT"
+        early = game()
+        soon_game = game(event_id="201", state="pre", name="STATUS_SCHEDULED", detail="Scheduled",
+                         away_id="3", home_id="4", away_abbr="DET", home_abbr="CHI")
+        soon_game["broadcast"] = "ESPN+"
+        later_game = game(event_id="202", state="pre", name="STATUS_SCHEDULED", detail="Scheduled",
+                          away_id="5", home_id="6", away_abbr="EDM", home_abbr="VAN")
+        later_game["iso"] = "2026-11-10T04:00:00+00:00"
+        now = dt.datetime(2026, 11, 9, 19, 30, tzinfo=report._EASTERN)
+        snapshot = cli.collect_scores([
+            bet(), bet("BOS/NYR o6.5"), bet("DET/CHI o6.5"), bet("EDM/VAN o6.5"),
+        ], DAY, now=now, fetch=lambda *_: ([closing, early, later_game, soon_game], None))
+        self.assertEqual([row["event_id"] for row in snapshot["games"]], ["999", "123"])
+        self.assertEqual([row["event_id"] for row in snapshot["upcoming"]], ["201", "202"])
+        text = cli.format_scores(snapshot, color=False)
+        self.assertLess(text.index("1:00 - 3rd Period | TNT"), text.index("8:12 - 2nd Period"))
+        self.assertIn("🏒 LIVE | 8:12 - 2nd Period\n", text)
+        self.assertIn("Away Team @ Home Team | starts in 30m | ESPN+", text)
+        self.assertLess(text.index("ESPN+"), text.index("starts in 3h 30m"))
+        self.assertNotIn("ESPN+", text[text.index("starts in 3h 30m"):])
 
     def test_college_uses_ids_even_when_abbreviations_differ(self):
         college = game(away_id=report.NCAA_ESPN_IDS["duke"],
@@ -131,7 +177,7 @@ class ScoreTests(unittest.TestCase):
         upcoming_lines = [line for line in text.splitlines() if "starts in" in line]
         self.assertEqual(len(upcoming_lines), 1)
         self.assertIn("🏒 Away Team @ Home Team | \033[92mstarts in 30m\033[0m", upcoming_lines[0])
-        self.assertIn("\033[96mTBL/MIN o6.5; TB +1.5\033[0m", upcoming_lines[0])
+        self.assertIn("\033[96mTBL/MIN o6.5 $110; TB +1.5 $110\033[0m", upcoming_lines[0])
         self.assertNotIn("(-110)", text)
         for hidden in ("┌", "Margin:", "Total:", "ESPN", "123", "Test Book", "Unmatched"):
             self.assertNotIn(hidden, text)
@@ -141,6 +187,30 @@ class ScoreTests(unittest.TestCase):
         live_only = cli.collect_scores([bet()], DAY, live_only=True, now=now,
                                        fetch=lambda *_: ([scheduled], None))
         self.assertEqual(live_only["upcoming"], [])
+
+    def test_graded_bets_are_removed_and_upcoming_risk_keeps_cents(self):
+        now = dt.datetime(2026, 11, 9, 19, 30, tzinfo=report._EASTERN)
+        fetch = Mock(return_value=([game()], None))
+        snapshot = cli.collect_scores([bet(), bet("TB +1.5", result="W")], DAY, fetch=fetch)
+        self.assertEqual(snapshot["selected_bets"], 1)
+        self.assertEqual([row["pick"] for row in snapshot["games"][0]["bets"]], ["TBL/MIN o6.5"])
+        self.assertNotIn("TB +1.5", cli.format_scores(snapshot))
+
+        unused = Mock()
+        graded = cli.collect_scores([bet(result="L"), bet(result="CO")], DAY, fetch=unused)
+        unused.assert_not_called()
+        self.assertEqual(graded["games"], [])
+        self.assertIn("No bets found", cli.format_scores(graded))
+
+        scheduled = game(state="pre", name="STATUS_SCHEDULED", detail="Scheduled")
+        upcoming = cli.collect_scores([
+            bet(risk=89.66), bet("TB +1.5", risk=float("nan")), bet("TB ML", result="P", risk=50),
+        ], DAY, now=now, fetch=lambda *_: ([scheduled], None))
+        text = cli.format_scores(upcoming, color=False)
+        self.assertIn("TBL/MIN o6.5 $89.66; TB +1.5", text)
+        self.assertNotIn("TB ML", text)
+        self.assertNotIn("$50", text)
+        self.assertNotRegex(text, r"TB \+1\.5 \$")
 
     def test_upcoming_requires_future_start_and_scheduled_status_and_event_id(self):
         now = dt.datetime(2026, 11, 9, 19, 30, tzinfo=report._EASTERN)

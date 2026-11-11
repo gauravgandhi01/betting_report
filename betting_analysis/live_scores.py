@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read local bets and display their current ESPN scores in the terminal."""
+"""Read local open bets and display their current ESPN scores in the terminal."""
 
 import argparse
 import csv
@@ -36,10 +36,14 @@ def _bet_data(bet: report.Bet) -> Dict[str, Any]:
 
 def collect_scores(
     bets: List[report.Bet], day: dt.date, *, leagues: Sequence[str] = (),
-    open_only: bool = False, live_only: bool = False, fetch: Optional[Fetch] = None,
+    open_only: bool = True, live_only: bool = False, fetch: Optional[Fetch] = None,
     now: Optional[dt.datetime] = None,
 ) -> Dict[str, Any]:
-    """Fetch each required league once; associate bets only with unique matches."""
+    """Fetch each required league once; associate open bets only with unique matches.
+
+    A bet with any recorded result is graded and is left out when ``open_only``
+    is set. That is the default, and the CLI always sets it.
+    """
     selected = [bet for bet in bets if bet.date == day
                 and (not leagues or bet.league.upper() in leagues)
                 and (not open_only or not bet.result)]
@@ -113,10 +117,11 @@ def collect_scores(
                 "away": game["away"],
                 "home": game["home"],
                 "neutral_site": game["neutral_site"],
+                "broadcast": game.get("broadcast") or "",
                 "bets": [],
             }
         grouped[key]["bets"].append(_bet_data(bet))
-    matched = sorted(grouped.values(), key=lambda game: (game["start"], game["league"], game["event_id"]))
+    matched = sorted(grouped.values(), key=_finish_order)
     games = [game for game in matched if game["state"] == "in"]
     upcoming = [game for game in matched if game["state"] == "pre"]
     return {
@@ -130,6 +135,17 @@ def collect_scores(
         "skipped": skipped,
         "errors": errors,
     }
+
+
+def _risk_amount(bet: Dict[str, Any]) -> str:
+    """Compact stake, or blank when the sheet left risk empty."""
+    return report._fmt_money_compact(bet.get("risk"))
+
+
+def _upcoming_pick(bet: Dict[str, Any]) -> str:
+    pick = _text(bet["pick"])
+    amount = _risk_amount(bet)
+    return f"{pick} {amount}" if amount else pick
 
 
 def _text(value: Any) -> str:
@@ -173,6 +189,35 @@ def _game_timing(game: Dict[str, Any]) -> Optional[Tuple[float, float]]:
             return None
         elapsed = period * minutes * 60 - remaining
     return elapsed, periods * minutes * 60
+
+
+def _seconds_until_finish(game: Dict[str, Any]) -> Optional[float]:
+    """Regulation or overtime seconds still to play, when the clock supports it."""
+    timing = _game_timing(game)
+    if timing is not None:
+        return timing[1] - timing[0]
+    if game.get("state") != "in" or game.get("completed"):
+        return None
+    spec = REGULATION.get(game.get("league"))
+    period = game.get("period")
+    if spec and isinstance(period, int) and period > spec[0]:
+        clock = _clock_seconds(game.get("clock"))
+        return 0.0 if clock is None else clock
+    return None
+
+
+def _finish_order(game: Dict[str, Any]) -> Tuple[Any, ...]:
+    """Closest to the end first. Upcoming games follow, soonest start first."""
+    start = game.get("start") or ""
+    league = game.get("league") or ""
+    event_id = str(game.get("event_id") or "")
+    remaining = _seconds_until_finish(game)
+    if remaining is not None:
+        return (0, remaining, start, league, event_id)
+    if game.get("state") == "in" and not game.get("completed"):
+        period = game.get("period") if isinstance(game.get("period"), int) else 0
+        return (1, -period, start, league, event_id)
+    return (2, start, league, event_id)
 
 
 def _projected_total(game: Dict[str, Any]) -> Optional[float]:
@@ -246,7 +291,7 @@ def format_scores(snapshot: Dict[str, Any], *, color: Optional[bool] = None) -> 
         lines.append("No bets found for this date and filters.")
     elif not snapshot["games"] and not upcoming:
         lines.append("No live games for your bets.")
-    for game in snapshot["games"]:
+    for game in sorted(snapshot["games"], key=_finish_order):
         emoji = SPORT_EMOJI.get(game["league"], "🏟️")
         timing = _game_timing(game)
         remaining = timing[1] - timing[0] if timing is not None else None
@@ -254,13 +299,17 @@ def format_scores(snapshot: Dict[str, Any], *, color: Optional[bool] = None) -> 
         if timing is None and spec and isinstance(game.get("period"), int) and game["period"] > spec[0]:
             remaining = _clock_seconds(game.get("clock"))
         status = _time_text(_text(game["status"]), remaining, color)
-        lines.extend(["", f"{emoji} LIVE | {status}", *_box_score(game)])
+        label = f"{emoji} LIVE | {status}"
+        broadcast = _text(game.get("broadcast") or "")
+        if broadcast:
+            label = f"{label} | {broadcast}"
+        lines.extend(["", label, *_box_score(game)])
         for bet in game["bets"]:
             text = f"  {_text(bet['pick'])}"
             lines.append(f"\033[96m{text}\033[0m" if color else text)
     if upcoming:
         lines.extend(["", "Upcoming"])
-        for game in upcoming:
+        for game in sorted(upcoming, key=_finish_order):
             remaining = (dt.datetime.fromisoformat(game["start"]) - now).total_seconds()
             minutes = max(1, math.ceil(remaining / 60))
             days, minutes = divmod(minutes, 24 * 60)
@@ -269,11 +318,13 @@ def format_scores(snapshot: Dict[str, Any], *, color: Optional[bool] = None) -> 
             countdown = _time_text(f"starts in {countdown}", remaining, color)
             away = _text((game["away"] or {}).get("name") or "?")
             home = _text((game["home"] or {}).get("name") or "?")
-            bets_text = "; ".join(_text(bet["pick"]) for bet in game["bets"])
+            bets_text = "; ".join(_upcoming_pick(bet) for bet in game["bets"])
             if color:
                 bets_text = f"\033[96m{bets_text}\033[0m"
             versus = " vs " if game["neutral_site"] else " @ "
-            lines.append(f"{SPORT_EMOJI.get(game['league'], '🏟️')} {away}{versus}{home} | {countdown} | {bets_text}")
+            broadcast = _text(game.get("broadcast") or "")
+            network = f" | {broadcast}" if broadcast else ""
+            lines.append(f"{SPORT_EMOJI.get(game['league'], '🏟️')} {away}{versus}{home} | {countdown}{network} | {bets_text}")
     if snapshot["errors"]:
         lines.extend(["", "Score updates failed (scores may be incomplete):"])
         lines.extend(f"  {_text(error).replace('ESPN ', '')}" for error in snapshot["errors"])
@@ -293,7 +344,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--start-year", type=int, default=2025, help="First CSV year, before M/D rollovers (default: 2025)")
     parser.add_argument("--date", type=dt.date.fromisoformat, help="Slate date YYYY-MM-DD (default: today in New York)")
     parser.add_argument("--league", action="append", type=str.upper, choices=sorted(report._ESPN_SCOREBOARDS), default=[], help="Filter league; repeat for multiple leagues")
-    parser.add_argument("--open-only", action="store_true", help="Only bets with a blank result")
+    parser.add_argument("--open-only", action="store_true", help="Omit bets that already have a result (also the default)")
     parser.add_argument("--live-only", action="store_true", help="Hide upcoming countdowns; only show games in progress")
     parser.add_argument("--watch", nargs="?", type=_positive_int, const=30, metavar="SECONDS", help="Refresh repeatedly (default: 30 seconds; minimum: 5)")
     parser.add_argument("--timeout", type=_positive_int, default=10, help="HTTP timeout in seconds per scoreboard request (default: 10)")
@@ -315,8 +366,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             except (OSError, ValueError, csv.Error) as exc:
                 print(f"Cannot read bets: {_text(exc)}", file=sys.stderr)
                 return 1
-            snapshot = collect_scores(bets, day, leagues=args.league,
-                                      open_only=args.open_only, live_only=args.live_only, fetch=fetch)
+            # Graded bets are always omitted. --open-only stays valid for existing commands.
+            snapshot = collect_scores(bets, day, leagues=args.league, open_only=True,
+                                      live_only=args.live_only, fetch=fetch)
             if args.watch and not args.json and sys.stdout.isatty():
                 print("\033[2J\033[H", end="")
             print(json.dumps(snapshot, allow_nan=False) if args.json else format_scores(snapshot), flush=True)

@@ -265,7 +265,7 @@
       box-shadow: inset 0 0 0 1px rgba(157, 176, 208, 0.45);
     }
 
-    .today-panel { min-width: 0; padding: 12px; }
+    .today-panel { --list-odds: 4.8rem; --list-gap: 8px; --list-cols: 7.4rem minmax(0, 1fr) var(--list-odds) minmax(7.4rem, 9.6rem) 4.8rem 5.4rem minmax(40px, 72px); min-width: 0; padding: 12px; }
     .today-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin-bottom: 7px; }
     .today-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
     .today-heading h2 { margin: 0; font-size: 16px; }
@@ -299,6 +299,12 @@
     .today-filter-count { font-size: 11px; }
     .today-sort { align-items: center; border-left: 1px solid var(--border); padding-left: 8px; }
     .today-sort-label { color: var(--muted); font-size: 10px; margin-right: 2px; }
+    .today-list-head { display: none; }
+    .today-list-head button { appearance: none; min-width: 0; border: 0; background: transparent; color: var(--muted); padding: 2px 0; font: inherit; font-size: 10px; font-weight: 600; letter-spacing: 0.04em; line-height: 1.4; text-align: left; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+    .today-list-head button[data-list-sort="odds"], .today-list-head button[data-list-sort="risk"], .today-list-head button[data-list-sort="return"] { text-align: right; }
+    .today-list-head button[aria-pressed="true"] { color: var(--accent); }
+    .today-list-head button:hover { color: var(--text); }
+    .today-list-head button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .today-view button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--muted); padding: 5px 8px; font: inherit; font-size: 11px; cursor: pointer; }
     .today-view button[aria-pressed="true"] { color: var(--text); background: rgba(96,165,250,0.18); border-color: rgba(96,165,250,0.35); }
     .today-view button:hover { color: var(--text); }
@@ -389,6 +395,7 @@
     .today-return { padding: 5px 0; text-align: right; }
     .today-return dd { font-size: 16px; }
     .today-net-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .today-bet--open .today-league { display: none; }
     .today-panel[data-view="cards"] .today-bet { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: 6px 10px; padding: 10px; }
     .today-panel[data-view="cards"] .today-bet-top { display: contents; }
     .today-panel[data-view="cards"] .today-bet-body { grid-column: 1; grid-row: 1; padding: 0; }
@@ -418,9 +425,36 @@
     .today-panel[data-view="list"] .today-stake, .today-panel[data-view="list"] .today-return, .today-panel[data-view="list"] .today-when { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 5px; padding: 0; }
     .today-panel[data-view="list"] .today-return { margin-left: 0; padding-right: 0; }
     .today-panel[data-view="list"] .today-bet-money dd { margin: 0; font-size: 11px; font-weight: 400; }
+    @media (min-width: 721px) {
+      .today-panel[data-view="list"] .today-sort { display: none; }
+      .today-panel[data-view="list"] .today-bet-section-title { display: none; }
+      .today-panel[data-view="list"] .today-bet-section + .today-bet-section { margin-top: 0; }
+      .today-panel[data-view="list"] .today-list-head,
+      .today-panel[data-view="list"] .today-bet { box-sizing: border-box; grid-template-columns: var(--list-cols); column-gap: var(--list-gap); }
+      .today-panel[data-view="list"] .today-list-head { display: grid; align-items: center; margin: 0 0 4px; padding: 0 8px 0 9px; }
+      .today-panel[data-view="list"] .today-bet .today-bet-body,
+      .today-panel[data-view="list"] .today-bet .today-bet-money { display: contents; }
+      .today-panel[data-view="list"] .today-bet--open .today-bet-body { grid-column: auto; }
+      .today-panel[data-view="list"] .today-bet--open .today-league { display: flex; }
+      .today-panel[data-view="list"] .today-league,
+      .today-panel[data-view="list"] .today-meta { grid-column: 1; grid-row: 1; min-width: 0; }
+      .today-panel[data-view="list"] .today-meta { white-space: nowrap; }
+      #upcoming-panel[data-view="list"] .today-league { display: none; }
+      .today-panel[data-view="list"] .today-pick-line { grid-column: 2 / 4; grid-row: 1; display: grid; grid-template-columns: minmax(0, 1fr) var(--list-odds); column-gap: var(--list-gap); align-items: center; min-width: 0; }
+      .today-panel[data-view="list"] .today-pick,
+      .today-panel[data-view="list"] .compact-pick { grid-column: 1; }
+      .today-panel[data-view="list"] .today-odds { grid-column: 2; justify-self: end; text-align: right; }
+      .today-panel[data-view="list"] .today-when { grid-column: 4; grid-row: 1; flex-wrap: nowrap; }
+      .today-panel[data-view="list"] .today-stake { grid-column: 5; grid-row: 1; justify-content: flex-end; }
+      .today-panel[data-view="list"] .today-return { grid-column: 6; grid-row: 1; justify-content: flex-end; text-align: right; }
+      .today-panel[data-view="list"] .today-logos { grid-column: 7; grid-row: 1; }
+      .today-panel[data-view="list"] .today-stake dt,
+      .today-panel[data-view="list"] .today-return dt { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+      .today-panel[data-view="list"] .today-bet-money > * + *::before { content: none; margin: 0; }
+    }
     @media (max-width: 1100px) {
       .today-bets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .today-panel[data-view="list"] .today-bet { grid-template-columns: max-content minmax(0, 1fr) minmax(220px, 36%) minmax(40px, 84px); gap: 6px; }
+      .today-panel { --list-gap: 6px; --list-cols: 6.8rem minmax(0, 1fr) var(--list-odds) minmax(6.6rem, 8.2rem) 4.5rem 5rem minmax(36px, 64px); }
     }
     @media (max-width: 850px) {
       .today-bets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -459,7 +493,7 @@
   </defs></svg>
   <div class="container">
     <h1>G&#x27;s Betting Report</h1>
-    <div class="subtitle">As of 2026-11-10 | Last synced 8:10 PM EST</div>
+    <div class="subtitle">As of 2026-11-10 | Last synced 8:18 PM EST</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="home">Home</button>
       <button class="tab-btn" data-tab="history">History</button>
@@ -505,14 +539,14 @@
               <button type="button" data-today-view="list" aria-pressed="false" aria-controls="today-bets"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h10M5 8h10M5 13h10M1 3h1M1 8h1M1 13h1"/></svg>List</button>
             </div>
           </div>
-          <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NBA</button><button type="button" data-today-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NCAAB</button><button type="button" data-today-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button></div><div class="today-filters today-sort" role="group" aria-label="Sort today’s bets"><span class="today-sort-label">Sort</span><button type="button" data-today-sort="time" aria-pressed="true" aria-controls="today-bets" title="Earliest start first; unknown times last">Time ↑</button><button type="button" data-today-sort="risk" aria-pressed="false" aria-controls="today-bets" title="Highest risk first">Risk ↓</button></div></div><span id="today-filter-count" class="note today-filter-count" role="status">28 bets</span></div><div id="today-bets"><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title"><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">25</span></h3><div class="today-bet-section" data-bet-section="straight" role="group" aria-labelledby="today-open-straight-title"><h4 id="today-open-straight-title" class="today-bet-section-title">Straight</h4><ul class="today-bets" aria-label="Open straight bets"><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="562.0" data-net="0" data-potential="492.98" data-count="1" data-open="true">
+          <div class="today-filter-bar" hidden><div class="today-filter-controls"><div class="today-filters" role="group" aria-label="Filter today’s bets by league"><button type="button" data-today-league="" aria-pressed="true" aria-controls="today-bets">All</button><button type="button" data-today-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NBA</button><button type="button" data-today-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NCAAB</button><button type="button" data-today-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" aria-pressed="false" aria-controls="today-bets"><span class="today-league-dot" aria-hidden="true"></span>NHL</button></div><div class="today-filters today-sort" role="group" aria-label="Sort today’s bets"><span class="today-sort-label">Sort</span><button type="button" data-today-sort="time" aria-pressed="true" aria-controls="today-bets" title="Earliest start first; unknown times last">Time ↑</button><button type="button" data-today-sort="risk" aria-pressed="false" aria-controls="today-bets" title="Highest risk first">Risk ↓</button></div></div><span id="today-filter-count" class="note today-filter-count" role="status">28 bets</span></div><div id="today-bets"><div class="today-list-head" role="group" aria-label="Sort today’s bets"><button type="button" data-list-sort="result" aria-sort="none" aria-controls="today-bets" title="Open, then won, lost, push, and cash out">Result</button><button type="button" data-list-sort="pick" aria-sort="none" aria-controls="today-bets">Pick</button><button type="button" data-list-sort="odds" aria-sort="none" aria-controls="today-bets" title="American odds">Odds</button><button type="button" data-list-sort="time" aria-sort="ascending" aria-pressed="true" aria-controls="today-bets" title="Earliest start first; unknown times last">Time</button><button type="button" data-list-sort="risk" aria-sort="none" aria-controls="today-bets" title="Highest risk first">Risk</button><button type="button" data-list-sort="return" aria-sort="none" aria-controls="today-bets" title="To win for open bets, net for settled bets">Return</button><span class="today-list-books" aria-hidden="true"></span></div><div class="today-group" data-today-group="open" role="group" aria-labelledby="today-open-title"><h3 id="today-open-title" class="today-group-title">Open <span class="today-group-count">25</span></h3><div class="today-bet-section" data-bet-section="straight" role="group" aria-labelledby="today-open-straight-title"><h4 id="today-open-straight-title" class="today-bet-section-title">Straight</h4><ul class="today-bets" aria-label="Open straight bets"><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="DUQ -3.5" data-odds="-114.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="562.0" data-net="0" data-potential="492.98" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Duquesne -3.5 · -114"><h4 class="today-pick"><span class="team-logo-tip" data-name="Duquesne"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2184.png" alt="Duquesne" loading="lazy" decoding="async" /><span class="team-abbr">DUQ</span></span> -3.5</h4><span class="today-odds" title="Odds"><strong>-114</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">UPMC Cooper Fieldhouse, Pittsburgh</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -520,14 +554,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Washington State Cougars at Duquesne Dukes · UPMC Cooper Fieldhouse, Pittsburgh · ESPN+">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$492.98</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="463.0" data-net="0" data-potential="402.61" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="DAY/SIEN o154.5" data-odds="-115.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="463.0" data-net="0" data-potential="402.61" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Dayton Siena o154.5 · -115"><h4 class="today-pick"><span class="team-logo-tip" data-name="Dayton"><img class="team-logo" src="logos/teams/ncaa/dayton.png" alt="Dayton" loading="lazy" decoding="async" /><span class="team-abbr">DAY</span></span> <span class="team-logo-tip" data-name="Siena"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2561.png" alt="Siena" loading="lazy" decoding="async" /><span class="team-abbr">SIEN</span></span> o154.5</h4><span class="today-odds" title="Odds"><strong>-115</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">UD Arena, Dayton</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -535,14 +569,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$402.61</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="411.0" data-net="0" data-potential="357.39" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="WYO/UNC o153.5" data-odds="-115.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="411.0" data-net="0" data-potential="357.39" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Wyoming North Carolina o153.5 · -115"><h4 class="today-pick"><span class="team-logo-tip" data-name="Wyoming"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2751.png" alt="Wyoming" loading="lazy" decoding="async" /><span class="team-abbr">WYO</span></span> <span class="team-logo-tip" data-name="North Carolina"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/153.png" alt="North Carolina" loading="lazy" decoding="async" /><span class="team-abbr">UNC</span></span> o153.5</h4><span class="today-odds" title="Odds"><strong>-115</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Dean E. Smith Center, Chapel Hill</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -550,14 +584,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Wyoming Cowboys at North Carolina Tar Heels · Dean E. Smith Center, Chapel Hill · ACC Network">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ACC Network"><img class="today-network-logo" src="logos/networks/accn.png" alt="ACC Network" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$357.39</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="SIEN +13.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Siena +13.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Siena"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2561.png" alt="Siena" loading="lazy" decoding="async" /><span class="team-abbr">SIEN</span></span> +13.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">UD Arena, Dayton</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -565,14 +599,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Siena Saints at Dayton Flyers · UD Arena, Dayton · ESPN+, Spectrum News 1">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="NE +10.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Northeastern +10.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Northeastern"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/111.png" alt="Northeastern" loading="lazy" decoding="async" /><span class="team-abbr">NE</span></span> +10.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Cabot Center, Boston</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -580,14 +614,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Harvard Crimson at Northeastern Huskies · Cabot Center, Boston · FloSports">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FloSports"><img class="today-network-logo" src="logos/networks/FloSports-logo.png" alt="FloSports" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="XAV -31.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="330.0" data-net="0" data-potential="300.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Xavier -31.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Xavier"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2752.png" alt="Xavier" loading="lazy" decoding="async" /><span class="team-abbr">XAV</span></span> -31.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Cintas Center, Cincinnati</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -595,14 +629,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Detroit Mercy Titans at Xavier Musketeers · Cintas Center, Cincinnati · ESPN+">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$300</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794355200000" data-risk="245.0" data-net="0" data-potential="200.08" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="WSH o3" data-odds="-122.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="245.0" data-net="0" data-potential="200.08" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Washington Capitals o3 · -122"><h4 class="today-pick"><span class="team-logo-tip" data-name="Washington Capitals"><img class="team-logo" src="logos/teams/nhl/wsh.png" alt="Washington Capitals" loading="lazy" decoding="async" /><span class="team-abbr">WSH</span></span> o3</h4><span class="today-odds" title="Odds"><strong>-122</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Canadian Tire Centre, Ottawa</div></div></div><span class="badge badge-logo" title="ProphetX"><img class="badge-logo-img" src="logos/prophetx.png" alt="ProphetX" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -610,14 +644,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Washington Capitals at Ottawa Senators · Canadian Tire Centre, Ottawa · ESPN+, MNMT">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$200.08</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794355200000" data-risk="212.38" data-net="0" data-potential="200.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="WSH ML" data-odds="-106.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="212.38" data-net="0" data-potential="200.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Washington Capitals ML · -106"><h4 class="today-pick"><span class="team-logo-tip" data-name="Washington Capitals"><img class="team-logo" src="logos/teams/nhl/wsh.png" alt="Washington Capitals" loading="lazy" decoding="async" /><span class="team-abbr">WSH</span></span> ML</h4><span class="today-odds" title="Odds"><strong>-106</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Canadian Tire Centre, Ottawa</div></div></div><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -625,14 +659,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Washington Capitals at Ottawa Senators · Canadian Tire Centre, Ottawa · ESPN+, MNMT">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$200</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794355200000" data-risk="172.5" data-net="0" data-potential="150.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="DUKE/MSU o147.5" data-odds="-115.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="172.5" data-net="0" data-potential="150.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Duke Michigan State o147.5 · -115"><h4 class="today-pick"><span class="team-logo-tip" data-name="Duke"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/150.png" alt="Duke" loading="lazy" decoding="async" /><span class="team-abbr">DUKE</span></span> <span class="team-logo-tip" data-name="Michigan State"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/127.png" alt="Michigan State" loading="lazy" decoding="async" /><span class="team-abbr">MSU</span></span> o147.5</h4><span class="today-odds" title="Odds"><strong>-115</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">United Center, Chicago</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -640,14 +674,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Michigan State Spartans vs Duke Blue Devils · United Center, Chicago · ESPN">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN"><img class="today-network-logo" src="logos/networks/ESPN_logos.png" alt="ESPN" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$150</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794355200000" data-risk="148.33" data-net="0" data-potential="192.66" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="WPG ML" data-odds="130.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="148.33" data-net="0" data-potential="192.66" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Winnipeg Jets ML · +130"><h4 class="today-pick"><span class="team-logo-tip" data-name="Winnipeg Jets"><img class="team-logo" src="logos/teams/nhl/wpg.png" alt="Winnipeg Jets" loading="lazy" decoding="async" /><span class="team-abbr">WPG</span></span> ML</h4><span class="today-odds" title="Odds"><strong>+130</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Canada Life Centre, Winnipeg</div></div></div><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -655,14 +689,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="New Jersey Devils at Winnipeg Jets · Canada Life Centre, Winnipeg · ESPN+, MSGSN">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$192.66</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794355200000" data-risk="60.0" data-net="0" data-potential="136.98" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="WSH o4" data-odds="228.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="60.0" data-net="0" data-potential="136.98" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Washington Capitals o4 · +228"><h4 class="today-pick"><span class="team-logo-tip" data-name="Washington Capitals"><img class="team-logo" src="logos/teams/nhl/wsh.png" alt="Washington Capitals" loading="lazy" decoding="async" /><span class="team-abbr">WSH</span></span> o4</h4><span class="today-odds" title="Odds"><strong>+228</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Canadian Tire Centre, Ottawa</div></div></div><span class="badge badge-logo" title="ProphetX"><img class="badge-logo-img" src="logos/prophetx.png" alt="ProphetX" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -670,14 +704,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Washington Capitals at Ottawa Senators · Canadian Tire Centre, Ottawa · ESPN+, MNMT">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$136.98</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794356100000" data-risk="168.0" data-net="0" data-potential="150.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="MEM +14.5" data-odds="-112.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794356100000" data-risk="168.0" data-net="0" data-potential="150.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Memphis +14.5 · -112"><h4 class="today-pick"><span class="team-logo-tip" data-name="Memphis"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/235.png" alt="Memphis" loading="lazy" decoding="async" /><span class="team-abbr">MEM</span></span> +14.5</h4><span class="today-odds" title="Odds"><strong>-112</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Memorial Gymnasium (TN), Nashville</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -685,14 +719,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:15:00+00:00" title="Memphis Tigers at Vanderbilt Commodores · Memorial Gymnasium (TN), Nashville · SECN+">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="SECN+"><img class="today-network-logo" src="logos/networks/secn.png" alt="SECN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$150</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794357000000" data-risk="742.5" data-net="0" data-potential="675.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="EVAN/MTSU u144.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794357000000" data-risk="742.5" data-net="0" data-potential="675.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Evansville Middle Tennessee u144.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Evansville"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/339.png" alt="Evansville" loading="lazy" decoding="async" /><span class="team-abbr">EVAN</span></span> <span class="team-logo-tip" data-name="Middle Tennessee"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2393.png" alt="Middle Tennessee" loading="lazy" decoding="async" /><span class="team-abbr">MTSU</span></span> u144.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Murphy Center, Murfreesboro</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -700,14 +734,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:30:00+00:00" title="Evansville Purple Aces at Middle Tennessee Blue Raiders · Murphy Center, Murfreesboro · ESPN+">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$675</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794358800000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="NKY/SLU o166.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794358800000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Northern Kentucky Saint Louis o166.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Northern Kentucky"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/94.png" alt="Northern Kentucky" loading="lazy" decoding="async" /><span class="team-abbr">NKY</span></span> <span class="team-logo-tip" data-name="Saint Louis"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/139.png" alt="Saint Louis" loading="lazy" decoding="async" /><span class="team-abbr">SLU</span></span> o166.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Chaifetz Arena, St. Louis</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -715,14 +749,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T01:00:00+00:00" title="Northern Kentucky Norse at Saint Louis Billikens · Chaifetz Arena, St. Louis · ESPN+">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794358800000" data-risk="401.0" data-net="0" data-potential="364.55" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="ARST/UTM o151.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794358800000" data-risk="401.0" data-net="0" data-potential="364.55" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Arkansas State UT Martin o151.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Arkansas State"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2032.png" alt="Arkansas State" loading="lazy" decoding="async" /><span class="team-abbr">ARST</span></span> <span class="team-logo-tip" data-name="UT Martin"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2630.png" alt="UT Martin" loading="lazy" decoding="async" /><span class="team-abbr">UTM</span></span> o151.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">First National Bank Arena, Jonesboro</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -730,14 +764,14 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T01:00:00+00:00" title="UT Martin Skyhawks at Arkansas State Red Wolves · First National Bank Arena, Jonesboro · ESPN+">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$364.55</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="NAU/ARIZ o155.5" data-odds="-110.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794362400000" data-risk="594.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Northern Arizona Arizona o155.5 · -110"><h4 class="today-pick"><span class="team-logo-tip" data-name="Northern Arizona"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2464.png" alt="Northern Arizona" loading="lazy" decoding="async" /><span class="team-abbr">NAU</span></span> <span class="team-logo-tip" data-name="Arizona"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/12.png" alt="Arizona" loading="lazy" decoding="async" /><span class="team-abbr">ARIZ</span></span> o155.5</h4><span class="today-odds" title="Odds"><strong>-110</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">McKale Center at ALKEME Arena, Tucson</div><div class="game-info-odds">ARIZ -35.5 -112/-108<br>157.5 o-112/u-108</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -745,14 +779,14 @@
                 <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" style="--start-rgb:252,211,77" title="Northern Arizona Lumberjacks at Arizona Wildcats · McKale Center at ALKEME Arena, Tucson · ESPN+">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="572.4" data-net="0" data-potential="540.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="CREI/KSU o156.5" data-odds="-106.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794362400000" data-risk="572.4" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Creighton Kansas State o156.5 · -106"><h4 class="today-pick"><span class="team-logo-tip" data-name="Creighton"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/156.png" alt="Creighton" loading="lazy" decoding="async" /><span class="team-abbr">CREI</span></span> <span class="team-logo-tip" data-name="Kansas State"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2306.png" alt="Kansas State" loading="lazy" decoding="async" /><span class="team-abbr">KSU</span></span> o156.5</h4><span class="today-odds" title="Odds"><strong>-106</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Bramlage Coliseum, Manhattan</div><div class="game-info-odds">CREI -3.5 -105/-115<br>159.5 o-108/u-112</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -760,14 +794,14 @@
                 <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" style="--start-rgb:252,211,77" title="Creighton Bluejays at Kansas State Wildcats · Bramlage Coliseum, Manhattan · FS1">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="FS1"><img class="today-network-logo" src="logos/networks/fs1.png" alt="FS1" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794362400000" data-risk="567.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="UTU/USU o153.5" data-odds="-105.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794362400000" data-risk="567.0" data-net="0" data-potential="540.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Utah Tech Utah State o153.5 · -105"><h4 class="today-pick"><span class="team-logo-tip" data-name="Utah Tech"><img class="team-logo" src="logos/teams/ncaa/utahtech.png" alt="Utah Tech" loading="lazy" decoding="async" /><span class="team-abbr">UTU</span></span> <span class="team-logo-tip" data-name="Utah State"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/328.png" alt="Utah State" loading="lazy" decoding="async" /><span class="team-abbr">USU</span></span> o153.5</h4><span class="today-odds" title="Odds"><strong>-105</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">Dee Glen Smith Spectrum, Logan</div><div class="game-info-odds">USU -25.5 -112/-108<br>156.5 o-112/u-108</div></div></div><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -775,14 +809,14 @@
                 <div class="today-when"><time class="today-start" datetime="2026-11-11T02:00:00+00:00" style="--start-rgb:252,211,77" title="Utah Tech Trailblazers at Utah State Aggies · Dee Glen Smith Spectrum, Logan · YouTube">9 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="YouTube"><img class="today-network-logo" src="logos/networks/Youtube_logo.png" alt="YouTube" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$540</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-start-ms="1794366000000" data-risk="113.0" data-net="0" data-potential="113.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NCAAB" style="--league-color:#A78BFA;--league-rgb:167,139,250" data-pick="SF -11.5" data-odds="100.00000000" data-result="" data-date="2026-11-10" data-start-ms="1794366000000" data-risk="113.0" data-net="0" data-potential="113.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NCAAB"><img src="logos/ncaab.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="San Francisco -11.5 · +100"><h4 class="today-pick"><span class="team-logo-tip" data-name="San Francisco"><img class="team-logo" src="https://a.espncdn.com/i/teamlogos/ncaa/500/2539.png" alt="San Francisco" loading="lazy" decoding="async" /><span class="team-abbr">SF</span></span> -11.5</h4><span class="today-odds" title="Odds"><strong>+100</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><div class="game-info"><button type="button" class="game-info-trigger" aria-label="Game information">i</button><div class="game-info-bubble" role="tooltip"><div class="game-info-line">The Sobrato Center, San Francisco</div><div class="game-info-odds">SF -11.5 -108/-112<br>147.5 o-112/u-108</div></div></div><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -790,14 +824,14 @@
                 <div class="today-when"><time class="today-start" datetime="2026-11-11T03:00:00+00:00" style="--start-rgb:110,231,183" title="Montana Grizzlies at San Francisco Dons · The Sobrato Center, San Francisco · ESPN+">10 PM</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt>wins</dt><dd class="">$113</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="" data-risk="165.0" data-net="0" data-potential="222.75" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="Mackinnon o1.5 Pts" data-odds="135.00000000" data-result="" data-date="2026-11-10" data-start-ms="" data-risk="165.0" data-net="0" data-potential="222.75" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Mackinnon o1.5 Pts · +135"><h4 class="today-pick">Mackinnon o1.5 Pts</h4><span class="today-odds" title="Odds"><strong>+135</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><span class="badge badge-logo" title="BM"><img class="badge-logo-img" src="logos/bookmaker.png" alt="BM" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -805,14 +839,14 @@
                 
                 <div class="today-return"><dt>wins</dt><dd class="">$222.75</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="" data-risk="145.0" data-net="0" data-potential="170.29999999999998" data-count="2" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="Tkachuk o3.5 SOG" data-odds="117.00000000" data-result="" data-date="2026-11-10" data-start-ms="" data-risk="145.0" data-net="0" data-potential="170.29999999999998" data-count="2" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Tkachuk o3.5 SOG · +117"><h4 class="today-pick">Tkachuk o3.5 SOG</h4><span class="today-odds" title="Odds"><strong>+117</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><span class="badge badge-logo" title="Novig"><img class="badge-logo-img" src="logos/novig.jpeg" alt="Novig" loading="lazy" decoding="async" /></span><span class="badge badge-logo" title="DraftKings"><img class="badge-logo-img" src="logos/draftkings.png" alt="DraftKings" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -820,14 +854,14 @@
                 
                 <div class="today-return"><dt>wins</dt><dd class="">$170.30</dd></div>
               </dl>
-            </li></ul></div><div class="today-bet-section" data-bet-section="parlay" role="group" aria-labelledby="today-open-parlay-title"><h4 id="today-open-parlay-title" class="today-bet-section-title">Parlays</h4><ul class="today-bets" aria-label="Open parlays bets"><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="" data-risk="204.99" data-net="0" data-potential="202.15" data-count="1" data-open="true">
+            </li></ul></div><div class="today-bet-section" data-bet-section="parlay" role="group" aria-labelledby="today-open-parlay-title"><h4 id="today-open-parlay-title" class="today-bet-section-title">Parlays</h4><ul class="today-bets" aria-label="Open parlays bets"><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="Makar &amp; Kaprizov o0.5 Pts" data-odds="100.00000000" data-result="" data-date="2026-11-10" data-start-ms="" data-risk="204.99" data-net="0" data-potential="202.15" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line"><h4 class="today-pick">Makar Kaprizov o0.5 Pts</h4><button type="button" class="compact-pick" aria-describedby="today-bet-22-details" hidden>2 way parlay<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-22-details" class="pick-details" role="tooltip">Parlay: Makar &amp; Kaprizov o0.5 Pts · +100</span><span class="today-odds" title="Odds"><strong>+100</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><span class="badge badge-logo" title="Kalshi"><img class="badge-logo-img" src="logos/kalshi.png" alt="Kalshi" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -835,14 +869,14 @@
                 
                 <div class="today-return"><dt>wins</dt><dd class="">$202.15</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-start-ms="" data-risk="150.0" data-net="0" data-potential="1137.0" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-pick="Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM" data-odds="758.00000000" data-result="" data-date="2026-11-10" data-start-ms="" data-risk="150.0" data-net="0" data-potential="1137.0" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line"><h4 class="today-pick">Acuff o3.5 Brown Booker SGA o3.5 3PM</h4><button type="button" class="compact-pick" aria-describedby="today-bet-24-details" hidden>4 way round robin<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-24-details" class="pick-details" role="tooltip">Round Robin: Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM · +758</span><span class="today-odds" title="Odds"><strong>+758</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -850,14 +884,14 @@
                 
                 <div class="today-return"><dt>wins</dt><dd class="">$1,137</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-start-ms="" data-risk="10.0" data-net="0" data-potential="944.9" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NBA" style="--league-color:#FB923C;--league-rgb:251,146,60" data-pick="Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM" data-odds="9449.00000000" data-result="" data-date="2026-11-10" data-start-ms="" data-risk="10.0" data-net="0" data-potential="944.9" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NBA"><img src="logos/nba.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line"><h4 class="today-pick">Acuff o3.5 Brown Booker SGA o3.5 3PM</h4><button type="button" class="compact-pick" aria-describedby="today-bet-26-details" hidden>4 way parlay<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-26-details" class="pick-details" role="tooltip">Parlay: Acuff o3.5 &amp; Brown, Booker &amp; SGA o3.5 3PM · +9449</span><span class="today-odds" title="Odds"><strong>+9449</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><span class="badge badge-logo" title="FanDuel"><img class="badge-logo-img" src="logos/fanduel.png" alt="FanDuel" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -865,14 +899,14 @@
                 
                 <div class="today-return"><dt>wins</dt><dd class="">$944.90</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="" data-risk="6.39" data-net="0" data-potential="748.97" data-count="1" data-open="true">
+            </li><li class="today-bet today-bet--open" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="Suzuki, Reinhart, Finnie &amp; Nylander ATG" data-odds="11721.00000000" data-result="" data-date="2026-11-10" data-start-ms="" data-risk="6.39" data-net="0" data-potential="748.97" data-count="1" data-open="true">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line"><h4 class="today-pick">Suzuki Reinhart Finnie Nylander ATG</h4><button type="button" class="compact-pick" aria-describedby="today-bet-27-details" hidden>4 way parlay<span class="pick-details-icon" aria-hidden="true">ⓘ</span></button><span id="today-bet-27-details" class="pick-details" role="tooltip">Parlay: Suzuki, Reinhart, Finnie &amp; Nylander ATG · +11721</span><span class="today-odds" title="Odds"><strong>+11721</strong></span></div>
                 <div class="today-meta"></div>
               </div>
               <div class="today-bet-top">
-                <div class="today-league"></div>
+                <div class="today-league"><span class="today-result"><span aria-hidden="true">◷</span> Open</span></div>
                 <div class="chip-row today-logos"><span class="badge badge-logo" title="DraftKings"><img class="badge-logo-img" src="logos/draftkings.png" alt="DraftKings" loading="lazy" decoding="async" /></span></div>
               </div>
               <dl class="today-bet-money">
@@ -880,7 +914,7 @@
                 
                 <div class="today-return"><dt>wins</dt><dd class="">$748.97</dd></div>
               </dl>
-            </li></ul></div></div><details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title" open><summary id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">3</span></summary><div class="today-bet-section" data-bet-section="straight" role="group" aria-labelledby="today-closed-straight-title"><h4 id="today-closed-straight-title" class="today-bet-section-title">Straight</h4><ul class="today-bets" aria-label="Closed straight bets"><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794355200000" data-risk="195.0" data-net="-195.0" data-potential="0" data-count="1" data-open="false">
+            </li></ul></div></div><details class="today-group" data-today-group="closed" aria-labelledby="today-closed-title" open><summary id="today-closed-title" class="today-group-title">Closed <span class="today-group-count">3</span></summary><div class="today-bet-section" data-bet-section="straight" role="group" aria-labelledby="today-closed-straight-title"><h4 id="today-closed-straight-title" class="today-bet-section-title">Straight</h4><ul class="today-bets" aria-label="Closed straight bets"><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="WSH/OTT 1P o1.5" data-odds="-130.00000000" data-result="L" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="195.0" data-net="-195.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Washington Capitals Ottawa Senators 1P o1.5 · -130"><h4 class="today-pick"><span class="team-logo-tip" data-name="Washington Capitals"><img class="team-logo" src="logos/teams/nhl/wsh.png" alt="Washington Capitals" loading="lazy" decoding="async" /><span class="team-abbr">WSH</span></span> <span class="team-logo-tip" data-name="Ottawa Senators"><img class="team-logo" src="logos/teams/nhl/ott.png" alt="Ottawa Senators" loading="lazy" decoding="async" /><span class="team-abbr">OTT</span></span> 1P o1.5</h4><span class="today-odds" title="Odds"><strong>-130</strong></span></div>
@@ -895,7 +929,7 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Washington Capitals at Ottawa Senators · Canadian Tire Centre, Ottawa · ESPN+, MNMT">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$195</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794355200000" data-risk="90.0" data-net="-90.0" data-potential="0" data-count="1" data-open="false">
+            </li><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="MTL/MIN 1P o1.5" data-odds="-138.00000000" data-result="L" data-date="2026-11-10" data-start-ms="1794355200000" data-risk="90.0" data-net="-90.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Montreal Canadiens Minnesota Wild 1P o1.5 · -138"><h4 class="today-pick"><span class="team-logo-tip" data-name="Montreal Canadiens"><img class="team-logo" src="logos/teams/nhl/mtl.png" alt="Montreal Canadiens" loading="lazy" decoding="async" /><span class="team-abbr">MTL</span></span> <span class="team-logo-tip" data-name="Minnesota Wild"><img class="team-logo" src="logos/teams/nhl/min.png" alt="Minnesota Wild" loading="lazy" decoding="async" /><span class="team-abbr">MIN</span></span> 1P o1.5</h4><span class="today-odds" title="Odds"><strong>-138</strong></span></div>
@@ -910,7 +944,7 @@
                 <div class="today-when"><time class="today-start is-live" datetime="2026-11-11T00:00:00+00:00" title="Minnesota Wild at Montreal Canadiens · Bell Centre, Montreal · ESPN+, MINNHL">Live</time><span class="today-broadcast-separator" aria-hidden="true">|</span><span class="today-broadcast" title="ESPN+"><img class="today-network-logo" src="logos/networks/ESPN-PNG-File.png" alt="ESPN+" decoding="async" /></span></div>
                 <div class="today-return"><dt class="today-net-label">Net result</dt><dd class="negative">−$90</dd></div>
               </dl>
-            </li><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-start-ms="1794357000000" data-risk="180.0" data-net="-180.0" data-potential="0" data-count="1" data-open="false">
+            </li><li class="today-bet today-bet--lost" data-league="NHL" style="--league-color:#67E8F9;--league-rgb:103,232,249" data-pick="FLA/CBJ 1P o1.5" data-odds="-120.00000000" data-result="L" data-date="2026-11-10" data-start-ms="1794357000000" data-risk="180.0" data-net="-180.0" data-potential="0" data-count="1" data-open="false">
               <span class="today-sport-watermark"><span class="today-sport-mark" role="img" aria-label="NHL"><img src="logos/nhl.png" alt="" loading="lazy" decoding="async" /></span></span>
               <div class="today-bet-body">
                 <div class="today-pick-line" title="Florida Panthers Columbus Blue Jackets 1P o1.5 · -120"><h4 class="today-pick"><span class="team-logo-tip" data-name="Florida Panthers"><img class="team-logo" src="logos/teams/nhl/fla.png" alt="Florida Panthers" loading="lazy" decoding="async" /><span class="team-abbr">FLA</span></span> <span class="team-logo-tip" data-name="Columbus Blue Jackets"><img class="team-logo" src="logos/teams/nhl/cbj.png" alt="Columbus Blue Jackets" loading="lazy" decoding="async" /><span class="team-abbr">CBJ</span></span> 1P o1.5</h4><span class="today-odds" title="Odds"><strong>-120</strong></span></div>
@@ -1473,28 +1507,95 @@
     const groups = panel.querySelectorAll('[data-today-group]');
     const bets = Array.from(panel.querySelectorAll('.today-bet'));
     const sortButtons = panel.querySelectorAll('[data-today-sort]');
+    const listButtons = Array.from(panel.querySelectorAll('[data-list-sort]'));
     const sortStorageKey = upcoming ? 'bettingReportUpcomingSort' : 'bettingReportTodaySort';
+    const listStorageKey = upcoming ? 'bettingReportUpcomingListSort' : 'bettingReportTodayListSort';
     const originalOrder = new Map(bets.map((bet, index) => [bet, index]));
+    const homeList = new WeakMap(bets.map(bet => [bet, bet.parentElement]));
+    const listLabels = new Map(Array.from(panel.querySelectorAll('.today-bets'), list => [list, list.getAttribute('aria-label')]));
+    const columnSortQuery = window.matchMedia('(min-width: 721px)');
+    const listSortDefaults = { result: 'asc', date: 'asc', pick: 'asc', odds: 'desc', time: 'asc', risk: 'desc', return: 'desc' };
+    const resultRank = { '': 0, W: 1, L: 2, P: 3, CO: 4 };
+    let listState = { key: 'time', dir: 'asc' };
     const startTime = bet => bet.dataset.startMs ? Number(bet.dataset.startMs) : Infinity;
+    const numericOrNull = value => {
+      if (value == null || String(value).trim() === '') return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    };
+    const betReturn = bet => numericOrNull(bet.dataset.open === 'true' ? bet.dataset.potential : bet.dataset.net);
+    const compareMissingLast = (left, right, direction) => {
+      if (left == null && right == null) return 0;
+      if (left == null) return 1;
+      if (right == null) return -1;
+      return (left - right) * direction;
+    };
+    function compareTodayBet(a, b) {
+      const direction = listState.dir === 'asc' ? 1 : -1;
+      let difference = 0;
+      if (listState.key === 'time') {
+        difference = compareMissingLast(numericOrNull(a.dataset.startMs), numericOrNull(b.dataset.startMs), direction);
+      } else if (listState.key === 'pick') {
+        difference = (a.dataset.pick || '').localeCompare(b.dataset.pick || '', undefined, { numeric: true, sensitivity: 'base' }) * direction;
+      } else if (listState.key === 'result') {
+        difference = ((resultRank[a.dataset.result || ''] ?? 9) - (resultRank[b.dataset.result || ''] ?? 9)) * direction;
+      } else if (listState.key === 'date') {
+        difference = (a.dataset.date || '').localeCompare(b.dataset.date || '') * direction;
+      } else if (listState.key === 'return') {
+        difference = compareMissingLast(betReturn(a), betReturn(b), direction);
+      } else {
+        difference = compareMissingLast(numericOrNull(a.dataset[listState.key]), numericOrNull(b.dataset[listState.key]), direction);
+      }
+      return difference || originalOrder.get(a) - originalOrder.get(b);
+    }
+    function columnSortActive() {
+      return panel.dataset.view === 'list' && columnSortQuery.matches;
+    }
+    function flattenGroup(group) {
+      const lists = Array.from(group.querySelectorAll('.today-bets'));
+      const first = lists[0];
+      if (!first) return;
+      lists.slice(1).forEach(list => {
+        while (list.firstElementChild) first.append(list.firstElementChild);
+      });
+      const status = group.dataset.todayGroup || 'sorted';
+      first.setAttribute('aria-label', `${status.charAt(0).toUpperCase()}${status.slice(1)} bets`);
+    }
+    function restoreHomes() {
+      bets.forEach(bet => {
+        const home = homeList.get(bet);
+        if (home && bet.parentElement !== home) home.append(bet);
+      });
+      listLabels.forEach((label, list) => list.setAttribute('aria-label', label));
+    }
+    function sortLists(compare) {
+      panel.querySelectorAll('.today-bets').forEach(list => {
+        const sorted = Array.from(list.children).sort(compare);
+        list.append(...sorted);
+      });
+    }
+    function updateListButtons() {
+      listButtons.forEach(button => {
+        if (!button.dataset.label) button.dataset.label = button.textContent.trim();
+        const active = button.dataset.listSort === listState.key;
+        button.setAttribute('aria-pressed', String(active));
+        button.setAttribute('aria-sort', active ? (listState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+        button.textContent = button.dataset.label + (active ? (listState.dir === 'asc' ? ' ↑' : ' ↓') : '');
+      });
+    }
     const setSort = value => {
       const selected = value === 'risk' ? 'risk' : 'time';
       panel.dataset.sort = selected;
       sortButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.todaySort === selected)));
-      panel.querySelectorAll('.today-bets').forEach(list => {
-        const sorted = Array.from(list.children).sort((a, b) => {
-          const timeDifference = startTime(a) - startTime(b);
-          const riskDifference = Number(b.dataset.risk) - Number(a.dataset.risk);
-          return (selected === 'risk' ? riskDifference || timeDifference : timeDifference || riskDifference)
-            || originalOrder.get(a) - originalOrder.get(b);
-        });
-        list.append(...sorted);
-      });
     };
-    try { setSort(localStorage.getItem(sortStorageKey)); } catch { setSort('time'); }
-    sortButtons.forEach(button => button.addEventListener('click', () => {
-      setSort(button.dataset.todaySort);
-      try { localStorage.setItem(sortStorageKey, panel.dataset.sort); } catch { /* Sorting still works without storage. */ }
-    }));
+    const setListSort = value => {
+      const [key, dir] = String(value || '').split(':');
+      const known = listButtons.some(button => button.dataset.listSort === key);
+      listState = known
+        ? { key, dir: dir === 'desc' ? 'desc' : 'asc' }
+        : { key: 'time', dir: 'asc' };
+      updateListButtons();
+    };
     let league = '';
     const money = value => '$' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).replace(/[.]00$/, '');
     const applyFilters = () => {
@@ -1532,8 +1633,41 @@
         : `${wagers} wagers · ${open} open · ${wagers - open} settled`;
       panel.querySelector(`#${panelKey}-filter-count`).textContent = `${league || 'All leagues'} · ${visible} of ${bets.length} bets`;
     };
+    function applyArrangement() {
+      if (columnSortActive()) {
+        groups.forEach(flattenGroup);
+        sortLists(compareTodayBet);
+      } else {
+        restoreHomes();
+        const selected = panel.dataset.sort === 'risk' ? 'risk' : 'time';
+        sortLists((a, b) => {
+          const timeDifference = startTime(a) - startTime(b);
+          const riskDifference = Number(b.dataset.risk) - Number(a.dataset.risk);
+          return (selected === 'risk' ? riskDifference || timeDifference : timeDifference || riskDifference)
+            || originalOrder.get(a) - originalOrder.get(b);
+        });
+      }
+      applyFilters();
+    }
+    try { setSort(localStorage.getItem(sortStorageKey)); } catch { setSort('time'); }
+    try { setListSort(localStorage.getItem(listStorageKey)); } catch { setListSort('time:asc'); }
+    sortButtons.forEach(button => button.addEventListener('click', () => {
+      setSort(button.dataset.todaySort);
+      try { localStorage.setItem(sortStorageKey, panel.dataset.sort); } catch { /* Sorting still works without storage. */ }
+      applyArrangement();
+    }));
+    listButtons.forEach(button => button.addEventListener('click', () => {
+      const key = button.dataset.listSort;
+      if (listState.key === key) listState.dir = listState.dir === 'asc' ? 'desc' : 'asc';
+      else listState = { key, dir: listSortDefaults[key] || 'asc' };
+      updateListButtons();
+      try { localStorage.setItem(listStorageKey, `${listState.key}:${listState.dir}`); } catch { /* Sorting still works without storage. */ }
+      applyArrangement();
+    }));
+    buttons.forEach(button => button.addEventListener('click', () => applyArrangement()));
+    columnSortQuery.addEventListener('change', () => applyArrangement());
     leagueButtons.forEach(button => button.addEventListener('click', () => { league = button.dataset.todayLeague; applyFilters(); }));
-    applyFilters();
+    applyArrangement();
     filterBar.hidden = false;
   });
 
