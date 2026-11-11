@@ -1187,6 +1187,26 @@ _ESPN_SCOREBOARDS = {
 _ESPN_TEAM_ID_RE = re.compile(r"/ncaa/500/(\d+)\.png$", re.IGNORECASE)
 _MATCHUP_RE = re.compile(r"\b([A-Z]{2,6}(?:-[A-Z]{2,4})?)/([A-Z]{2,6}(?:-[A-Z]{2,4})?)\b")
 _EASTERN = ZoneInfo("America/New_York")
+_SCORE_SCOPE = r"1P|2P|3P|1Q|2Q|3Q|4Q|1H|2H"
+_OU_RE = re.compile(rf"\b([ou])(\d+(?:\.\d+)?)\b", re.IGNORECASE)
+_SCOPE_RE = re.compile(rf"\b({_SCORE_SCOPE})\b", re.IGNORECASE)
+_REG_RE = re.compile(r"\(\s*REG\s*\)", re.IGNORECASE)
+_SPREAD_PICK_RE = re.compile(
+    rf"(?<![\w/])([A-Z]{{2,6}}(?:-[A-Z]{{2,4}})?)\s*(?:(?:{_SCORE_SCOPE})\s+)?([+\-−])(\d+(?:\.\d+)?)\b"
+)
+_PK_PICK_RE = re.compile(rf"(?<![\w/])([A-Z]{{2,6}}(?:-[A-Z]{{2,4}})?)\s+(?:(?:{_SCORE_SCOPE})\s+)?PK\b")
+_ML_PICK_RE = re.compile(
+    rf"(?<![\w/])([A-Z]{{2,6}}(?:-[A-Z]{{2,4}})?)\s+(?:(?:{_SCORE_SCOPE})\s+)?ML\b",
+    re.IGNORECASE,
+)
+_TEAM_OU_RE = re.compile(
+    rf"(?<![\w/])([A-Z]{{2,6}}(?:-[A-Z]{{2,4}})?)\s+(?:(?:{_SCORE_SCOPE})\s+)?[ou]\d",
+    re.IGNORECASE,
+)
+_MARGIN_TYPES = {"side": "side", "ml": "ml", "moneyline": "ml", "total": "total", "team total": "team_total"}
+_SKIP_MARGIN_TYPES = {"parlay", "round robin", "player prop", "game prop", "future", "other"}
+_QUARTER_LEAGUES = {"NBA", "NFL", "NCAAF"}
+_REGULATION_PERIODS = {"NHL": 3, "NBA": 4, "NFL": 4, "NCAAF": 4, "NCAAB": 2, "MLB": 9}
 
 
 def _slate_team_index(games: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
@@ -1426,6 +1446,7 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 "abbr": abbr,
                 "name": name,
                 "score": str(competitor["score"]) if competitor.get("score") is not None else None,
+                "linescores": _parsed_linescores(competitor),
             }
         if side == "home":
             home = name
@@ -1555,6 +1576,218 @@ def _clock_label(game: Dict[str, Any], now: dt.datetime) -> Dict[str, str]:
     }
 
 
+def _parsed_linescores(competitor: Dict[str, Any]) -> List[Dict[str, float]]:
+    parsed: List[Dict[str, float]] = []
+    for index, item in enumerate(competitor.get("linescores") or [], start=1):
+        if not isinstance(item, dict):
+            continue
+        try:
+            period = int(item["period"]) if item.get("period") is not None else index
+        except (TypeError, ValueError):
+            period = index
+        value = _finite_float(item.get("value"))
+        if value is None:
+            value = _finite_float(item.get("displayValue"))
+        if value is None:
+            continue
+        parsed.append({"period": period, "value": value})
+    return parsed
+
+
+def _plain_number(value: float) -> str:
+    rounded = abs(round(float(value), 1))
+    if abs(rounded - round(rounded)) < 1e-9:
+        return str(int(round(rounded)))
+    return f"{rounded:.1f}"
+
+
+def _signed_number(value: float) -> str:
+    rounded = round(float(value), 1)
+    if abs(rounded) < 1e-9:
+        return "0"
+    body = _plain_number(abs(rounded))
+    return f"+{body}" if rounded > 0 else f"−{body}"
+
+
+def _score_window(league: str, pick: str) -> Tuple[str, Optional[Tuple[int, int]]]:
+    """Which periods count. Full-game bets use the final score, including overtime."""
+    scope = _SCOPE_RE.search(pick or "")
+    reg = _REG_RE.search(pick or "")
+    if not scope and not reg:
+        return "final", None
+    league = (league or "").upper()
+    label = scope.group(1).upper() if scope else ""
+    if label.endswith("Q"):
+        if league not in _QUARTER_LEAGUES:
+            return "unsupported", None
+        period = int(label[0])
+        return "slice", (period, period)
+    if label.endswith("P"):
+        if league != "NHL":
+            return "unsupported", None
+        period = int(label[0])
+        return "slice", (period, period)
+    if label == "1H":
+        if league == "NCAAB":
+            return "slice", (1, 1)
+        if league in _QUARTER_LEAGUES:
+            return "slice", (1, 2)
+        return "unsupported", None
+    if label == "2H":
+        if league == "NCAAB":
+            return "slice", (2, 2)
+        if league in _QUARTER_LEAGUES:
+            return "slice", (3, 4)
+        return "unsupported", None
+    periods = _REGULATION_PERIODS.get(league)
+    if periods is None:
+        return "unsupported", None
+    return "slice", (1, periods)
+
+
+def _points_for(side: Any, window: Tuple[str, Optional[Tuple[int, int]]]) -> Optional[float]:
+    if not isinstance(side, dict):
+        return None
+    kind, span = window
+    if kind == "final":
+        return _finite_float(side.get("score"))
+    if kind != "slice" or span is None:
+        return None
+    by_period: Dict[int, float] = {}
+    for item in side.get("linescores") or []:
+        if not isinstance(item, dict):
+            continue
+        period = _finite_float(item.get("period"))
+        value = _finite_float(item.get("value"))
+        if period is None or value is None:
+            continue
+        by_period[int(period)] = value
+    start, end = span
+    if any(period not in by_period for period in range(start, end + 1)):
+        return None
+    return sum(by_period[period] for period in range(start, end + 1))
+
+
+def _market_kind(pick: str, bet_type: str) -> Optional[str]:
+    kind = (bet_type or "").strip().casefold()
+    if kind in _SKIP_MARGIN_TYPES:
+        return None
+    mapped = _MARGIN_TYPES.get(kind)
+    if mapped:
+        return mapped
+    if kind:
+        return None
+    if _OU_RE.search(pick or ""):
+        return "total" if _MATCHUP_RE.search(pick or "") else "team_total" if _TEAM_OU_RE.search(pick or "") else None
+    if _ML_PICK_RE.search(pick or ""):
+        return "ml"
+    if _SPREAD_PICK_RE.search(pick or "") or _PK_PICK_RE.search(pick or ""):
+        return "side"
+    return None
+
+
+def _ref_for_token(token: str, league: str, teams: List[Dict[str, str]]) -> Optional[Dict[str, str]]:
+    token = (token or "").upper()
+    for team in teams:
+        if str(team.get("abbr") or "").upper() == token:
+            return team
+    return _team_ref(token, league)
+
+
+def _side_for_ref(game: Dict[str, Any], ref: Optional[Dict[str, str]]) -> Optional[str]:
+    if not ref:
+        return None
+    for side in ("away", "home"):
+        info = game.get(side) or {}
+        if not isinstance(info, dict):
+            continue
+        if ref.get("espn_id") and str(ref["espn_id"]) == str(info.get("id") or ""):
+            return side
+        abbr = str(ref.get("espn_abbr") or "").upper()
+        if abbr and abbr == str(info.get("abbr") or "").upper():
+            return side
+    return None
+
+
+def _final_margin(
+    pick: str,
+    bet_type: str,
+    league: str,
+    game: Dict[str, Any],
+    teams: List[Dict[str, str]],
+) -> Dict[str, str]:
+    """Signed final margin for one straight bet. Empty when the score cannot settle it.
+
+    Sides and moneylines use that team's margin of victory. Totals and team
+    totals use how many points the wager won or lost by.
+    """
+    kind = _market_kind(pick, bet_type)
+    if kind is None or not game:
+        return {}
+    window = _score_window(league, pick)
+    if window[0] == "unsupported":
+        return {}
+
+    def described(delta: float, title: str) -> Dict[str, str]:
+        return {"margin": _signed_number(delta), "margin_title": title}
+
+    if kind in {"total", "team_total"}:
+        quote = _OU_RE.search(pick or "")
+        if not quote:
+            return {}
+        line = float(quote.group(2))
+        if kind == "total":
+            away = _points_for(game.get("away"), window)
+            home = _points_for(game.get("home"), window)
+            if away is None or home is None:
+                return {}
+            actual = away + home
+            subject = "Total"
+        else:
+            token_match = _TEAM_OU_RE.search(pick or "")
+            token = token_match.group(1) if token_match else (teams[0]["abbr"] if len(teams) == 1 else "")
+            ref = _ref_for_token(token, league, teams)
+            side = _side_for_ref(game, ref)
+            actual = _points_for(game.get(side or ""), window)
+            if actual is None or not ref:
+                return {}
+            subject = str(ref.get("name") or token)
+        delta = (actual - line) if quote.group(1).lower() == "o" else (line - actual)
+        actual_text = _plain_number(actual)
+        line_text = _plain_number(line)
+        if abs(delta) < 1e-9:
+            title = f"Push ({subject} {actual_text})"
+        else:
+            verb = "Won" if delta > 0 else "Lost"
+            title = f"{verb} by {_plain_number(abs(delta))} ({subject} {actual_text} vs {line_text})"
+        return described(delta, title)
+
+    if kind == "ml":
+        token_match = _ML_PICK_RE.search(pick or "")
+    else:
+        token_match = _SPREAD_PICK_RE.search(pick or "") or _PK_PICK_RE.search(pick or "")
+    if not token_match:
+        return {}
+    ref = _ref_for_token(token_match.group(1), league, teams)
+    side = _side_for_ref(game, ref)
+    if side is None or not ref:
+        return {}
+    other = "home" if side == "away" else "away"
+    team_points = _points_for(game.get(side), window)
+    other_points = _points_for(game.get(other), window)
+    if team_points is None or other_points is None:
+        return {}
+    delta = team_points - other_points
+    name = str(ref.get("name") or token_match.group(1))
+    scoreline = f"{_plain_number(team_points)}–{_plain_number(other_points)}"
+    if abs(delta) < 1e-9:
+        title = f"{name} tied ({scoreline})"
+    else:
+        verb = "won" if delta > 0 else "lost"
+        title = f"{name} {verb} by {_plain_number(abs(delta))} ({scoreline})"
+    return described(delta, title)
+
+
 def resolve_game_times(
     rows: List[Dict[str, Any]],
     fetch: Optional[Callable[[str, dt.date], Tuple[List[Dict[str, Any]], Optional[str]]]] = None,
@@ -1645,7 +1878,17 @@ def resolve_game_times(
         hits = _matching_games(games, teams)
         label = " and ".join(team["name"] for team in teams)
         if len(hits) == 1:
-            times[(date_text, league, pick)] = _clock_label(hits[0], now)
+            key = (date_text, league, pick)
+            label = _clock_label(hits[0], now)
+            if label.get("done"):
+                margin = _final_margin(pick, str(row.get("type") or ""), league, hits[0], teams)
+                # The same pick string can also be a parlay. Keep a straight margin.
+                if margin:
+                    label.update(margin)
+                elif times.get(key, {}).get("margin"):
+                    label["margin"] = times[key]["margin"]
+                    label["margin_title"] = times[key].get("margin_title", "")
+            times[key] = label
         elif len(hits) > 1:
             notes.append(f"{date_text} {league} {pick}: more than one game matches {label}")
         else:
@@ -1681,8 +1924,20 @@ def _game_time_html(start: Optional[Dict[str, str]]) -> str:
     )
 
 
+def _margin_html(start: Optional[Dict[str, str]]) -> str:
+    """Quiet signed margin beside a final time. Straight bets only pass this in."""
+    if not start or not start.get("margin"):
+        return ""
+    title = str(start.get("margin_title") or "")
+    title_attr = f' title="{html.escape(title, quote=True)}"' if title else ""
+    return f'<span class="today-margin"{title_attr}>{html.escape(str(start["margin"]))}</span>'
+
+
 def _broadcast_html(
-    broadcast: str, logo_base_href: str = "logos", available_logo_files: Optional[set[str]] = None
+    broadcast: str,
+    logo_base_href: str = "logos",
+    available_logo_files: Optional[set[str]] = None,
+    separator: bool = True,
 ) -> str:
     """Render the first network in the fixed-size footer slot, falling back to text."""
     broadcast = broadcast.split(",", 1)[0].strip()
@@ -1695,8 +1950,8 @@ def _broadcast_html(
     safe_name = html.escape(broadcast, quote=True)
     mark = (f'<img class="today-network-logo" src="{html.escape(logo_href, quote=True)}" '
             f'alt="{safe_name}" decoding="async" />' if logo_href else safe_name)
-    return ('<span class="today-broadcast-separator" aria-hidden="true">|</span>'
-            f'<span class="today-broadcast" title="{safe_name}">{mark}</span>')
+    sep = '<span class="today-broadcast-separator" aria-hidden="true">|</span>' if separator else ""
+    return f'{sep}<span class="today-broadcast" title="{safe_name}">{mark}</span>'
 
 
 def _game_info_html(start: Optional[Dict[str, str]]) -> str:
@@ -2677,14 +2932,6 @@ def build_html_report(
                 pick_title = ""
             start = (game_times or {}).get((r["date"], league, r["pick"]))
             game_info = _game_info_html(start)
-            start_html = _game_time_html(start)
-            broadcast = str((start or {}).get("broadcast") or "")
-            broadcast_html = _broadcast_html(broadcast, logo_base_href, available_logo_files)
-            when_html = f'<div class="today-when">{start_html}{broadcast_html}</div>' if start_html else ""
-            start_timestamp = card_sort_key(r)[0]
-            start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""
-            odds_value = _finite_float(r.get("odds"))
-            odds_attr = "" if odds_value is None else f"{odds_value:.8f}"
             game_done = bool(start and start.get("done")) and not upcoming
             in_progress = (
                 not upcoming
@@ -2693,6 +2940,18 @@ def build_html_report(
                 and bool(start)
                 and start.get("display") == "Live"
             )
+            # The Live group heading already says these games are live.
+            start_html = "" if in_progress else _game_time_html(start)
+            broadcast = str((start or {}).get("broadcast") or "")
+            broadcast_html = _broadcast_html(
+                broadcast, logo_base_href, available_logo_files, separator=bool(start_html)
+            )
+            margin_html = _margin_html(start) if bet_section == "straight" and game_done else ""
+            when_html = f'<div class="today-when">{start_html}{margin_html}{broadcast_html}</div>' if start_html or broadcast_html else ""
+            start_timestamp = card_sort_key(r)[0]
+            start_ms = str(int(start_timestamp * 1000)) if math.isfinite(start_timestamp) else ""
+            odds_value = _finite_float(r.get("odds"))
+            odds_attr = "" if odds_value is None else f"{odds_value:.8f}"
             group = "closed" if result or game_done else "live" if in_progress else "open"
             items[group][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-pick="{html.escape(str(r.get("pick") or ""), quote=True)}" data-odds="{odds_attr}" data-result="{html.escape(result, quote=True)}" data-date="{html.escape(str(r.get("date") or ""), quote=True)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               {sport_watermark}
@@ -3485,6 +3744,7 @@ def build_html_report(
     .today-bet-money .today-start {{ display: inline-block; padding: 0 4px; border-radius: 3.2px; color: rgb(var(--start-rgb,147,197,253)); background: rgba(var(--start-rgb,147,197,253),0.12); box-shadow: inset 0 0 0 1px rgba(var(--start-rgb,147,197,253),0.24); font: inherit; font-size: 8px; line-height: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
     .today-bet-money .today-start.is-live {{ color: #fda4af; background: rgba(251,113,133,0.13); box-shadow: inset 0 0 0 1px rgba(251,113,133,0.3); }}
     .today-bet-money .today-start.is-final {{ color: var(--muted); background: rgba(157,176,208,0.08); box-shadow: inset 0 0 0 1px rgba(157,176,208,0.18); }}
+    .today-margin {{ color: var(--muted); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; opacity: 0.85; }}
     .today-odds {{ flex-shrink: 0; white-space: nowrap; }}
     .today-odds strong {{ color: #b5d3fa; font-size: var(--pick-font-size); font-weight: 700; font-variant-numeric: tabular-nums; }}
     .today-bet .badge-logo {{ width: 18px; height: 18px; border-radius: 5px; }}
@@ -4788,7 +5048,8 @@ def main() -> int:
     game_times, game_time_notes, slate_logos = resolve_game_times(card_rows)
     print(f"Game start times attached: {len(game_times)}")
     for (slate_date, league, pick), start in game_times.items():
-        print(f"  {slate_date} {league} {pick} -> {start['display']}")
+        margin = f" {start['margin']}" if start.get("margin") else ""
+        print(f"  {slate_date} {league} {pick} -> {start['display']}{margin}")
     if slate_logos:
         print("Logos taken from the ESPN slate:")
         for (slate_date, league), teams in sorted(slate_logos.items()):

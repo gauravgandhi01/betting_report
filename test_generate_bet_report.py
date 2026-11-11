@@ -555,7 +555,7 @@ class TodayTeamLogoTests(unittest.TestCase):
         day = today.isoformat()
         times = {
             (day, "NHL", "BOS/NYR o6.5"): clock("7 PM", "2026-11-08T00:00:00+00:00"),
-            (day, "NHL", "MTL/TOR o6.5"): clock("Live", "2026-11-07T23:00:00+00:00"),
+            (day, "NHL", "MTL/TOR o6.5"): {**clock("Live", "2026-11-07T23:00:00+00:00"), "broadcast": "ESPN"},
             (day, "NHL", "TBL/MIN o6.5"): clock("Final", "2026-11-07T17:00:00+00:00", "1"),
             (day, "NHL", "DAL & COL ML"): clock("Live", "2026-11-07T23:30:00+00:00"),
             (tomorrow.isoformat(), "NHL", "MTL/TOR o6.5"): clock("Live", "2026-11-08T23:00:00+00:00"),
@@ -589,8 +589,10 @@ class TodayTeamLogoTests(unittest.TestCase):
         self.assertIn('data-bet-section="straight"', live_html)
         self.assertIn(">Straight</h4>", live_html)
         self.assertIn("MTL/TOR o6.5", live_html)
-        self.assertIn('class="today-start is-live"', live_html)
-        self.assertIn(">Live<", live_html)
+        self.assertNotIn('class="today-start is-live"', live_html)
+        self.assertNotIn(">Live<", live_html)
+        self.assertIn('class="today-broadcast" title="ESPN"', live_html)
+        self.assertNotIn("today-broadcast-separator", live_html)
         self.assertIn('data-bet-section="parlay"', live_html)
         self.assertIn(">Parlays</h4>", live_html)
         self.assertIn("DAL &amp; COL ML", live_html)
@@ -940,6 +942,129 @@ class GameTimeTests(unittest.TestCase):
             {"abbr": "KC", "id": "140", "name": "Kansas City"},
             {"abbr": "FAMU", "id": "50", "name": "Florida A&M"},
         ])
+
+
+class FinalMarginTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.game = {
+            "away": {
+                "abbr": "TB", "id": "20", "name": "Tampa Bay Lightning", "score": "3",
+                "linescores": [
+                    {"period": 1, "value": 1}, {"period": 2, "value": 0},
+                    {"period": 3, "value": 1}, {"period": 4, "value": 1},
+                ],
+            },
+            "home": {
+                "abbr": "MIN", "id": "30", "name": "Minnesota Wild", "score": "4",
+                "linescores": [
+                    {"period": 1, "value": 2}, {"period": 2, "value": 1},
+                    {"period": 3, "value": 1}, {"period": 4, "value": 0},
+                ],
+            },
+        }
+        self.teams = [report._team_ref("TB", "NHL"), report._team_ref("MIN", "NHL")]
+
+    def margin(self, pick: str, bet_type: str, league: str = "NHL", game=None, teams=None):
+        return report._final_margin(pick, bet_type, league, game if game is not None else self.game, teams if teams is not None else self.teams)
+
+    def test_spread_and_moneyline_use_margin_of_victory(self) -> None:
+        side = self.margin("TB -1.5", "Side")
+        self.assertEqual(side["margin"], "−1")
+        self.assertIn("Tampa Bay Lightning lost by 1", side["margin_title"])
+        self.assertIn("3–4", side["margin_title"])
+        moneyline = self.margin("MIN ML", "ML")
+        self.assertEqual(moneyline["margin"], "+1")
+        self.assertIn("Minnesota Wild won by 1", moneyline["margin_title"])
+        self.assertEqual(self.margin("TB ML (REG)", "ML")["margin"], "−2")
+        tied = dict(self.game)
+        tied["home"] = dict(self.game["home"], score="3")
+        self.assertEqual(self.margin("TB ML", "ML", game=tied)["margin"], "0")
+        self.assertIn("tied", self.margin("TB ML", "ML", game=tied)["margin_title"])
+
+    def test_totals_use_points_won_or_lost_by(self) -> None:
+        under = self.margin("TBL/MIN u6.5", "Total")
+        self.assertEqual(under["margin"], "−0.5")
+        self.assertIn("Lost by 0.5", under["margin_title"])
+        self.assertIn("Total 7 vs 6.5", under["margin_title"])
+        self.assertEqual(self.margin("TBL/MIN o6.5", "Total")["margin"], "+0.5")
+        self.assertEqual(self.margin("TBL/MIN u7", "Total")["margin"], "0")
+        self.assertIn("Push", self.margin("TBL/MIN u7", "Total")["margin_title"])
+        team = self.margin("MIN u3.5", "Team Total")
+        self.assertEqual(team["margin"], "−0.5")
+        self.assertIn("Minnesota Wild 4 vs 3.5", team["margin_title"])
+        self.assertEqual(self.margin("MIN o3.5", "Team Total")["margin"], "+0.5")
+
+    def test_period_and_regulation_use_linescores(self) -> None:
+        self.assertEqual(self.margin("TBL/MIN 1P o1.5", "Total")["margin"], "+1.5")
+        self.assertEqual(self.margin("MIN 1P u1.5", "Team Total")["margin"], "−0.5")
+        self.assertEqual(self.margin("TBL/MIN u6.5 (REG)", "Total")["margin"], "+0.5")
+        halves = {
+            "away": {"abbr": "DUKE", "id": "150", "score": "70", "linescores": [
+                {"period": 1, "value": 40}, {"period": 2, "value": 30}]},
+            "home": {"abbr": "UNC", "id": "153", "score": "60", "linescores": [
+                {"period": 1, "value": 20}, {"period": 2, "value": 40}]},
+        }
+        duke = {"abbr": "DUKE", "name": "Duke", "espn_abbr": "DUKE", "espn_id": "150"}
+        half = report._final_margin("DUKE 1H -4.5", "Side", "NCAAB", halves, [duke])
+        self.assertEqual(half["margin"], "+20")
+        quarters = {
+            "away": {"abbr": "KC", "id": "12", "score": "24", "linescores": [
+                {"period": 1, "value": 7}, {"period": 2, "value": 3},
+                {"period": 3, "value": 7}, {"period": 4, "value": 7}]},
+            "home": {"abbr": "BUF", "id": "2", "score": "17", "linescores": [
+                {"period": 1, "value": 0}, {"period": 2, "value": 7},
+                {"period": 3, "value": 3}, {"period": 4, "value": 7}]},
+        }
+        kc = {"abbr": "KC", "name": "Kansas City Chiefs", "espn_abbr": "KC", "espn_id": "12"}
+        first_half = report._final_margin("KC 1H -3", "Side", "NFL", quarters, [kc])
+        self.assertEqual(first_half["margin"], "+3")
+
+    def test_skips_parlays_props_and_unknown_scores(self) -> None:
+        self.assertEqual(self.margin("TB -1.5 & MIN ML", "Parlay"), {})
+        self.assertEqual(self.margin("McDavid o1.5 Ast", "Player Prop"), {})
+        self.assertEqual(self.margin("TB 1P ML", "ML", league="NBA"), {})
+        blank = {"away": {"abbr": "TB", "score": None}, "home": {"abbr": "MIN", "score": None}}
+        self.assertEqual(self.margin("TB ML", "ML", game=blank), {})
+
+    def test_final_straight_card_shows_margin_and_parlay_does_not(self) -> None:
+        today = report.dt.date.today()
+        raw = {
+            "id": "9", "date": "2026-11-11T23:00:00Z",
+            "competitions": [{
+                "date": "2026-11-11T23:00:00Z",
+                "status": {"type": {"state": "post", "completed": True}},
+                "competitors": [
+                    {"homeAway": "away", "score": "2", "team": {
+                        "abbreviation": "TB", "id": "20", "displayName": "Tampa Bay Lightning"}},
+                    {"homeAway": "home", "score": "4", "team": {
+                        "abbreviation": "MIN", "id": "30", "displayName": "Minnesota Wild"}},
+                ],
+            }],
+        }
+        game = report._game_from_espn_event(raw)
+        bets = [
+            _bet(date=today, pick="TB -1.5", league="NHL", bet_type="Side", result="L", net=-110),
+            _bet(date=today, pick="TB -1.5", league="NHL", bet_type="Parlay", result="L", net=-110),
+            _bet(date=today, pick="MIN o3.5", league="NHL", bet_type="Team Total", result="W", net=100),
+        ]
+        times, notes, _logos = report.resolve_game_times(
+            [report.bet_to_row(bet) for bet in bets],
+            fetch=lambda league, date: ([game], None),
+            now=report.dt.datetime(2026, 11, 12, 4, tzinfo=report.dt.timezone.utc),
+        )
+        self.assertEqual(notes, [])
+        self.assertEqual(times[(today.isoformat(), "NHL", "TB -1.5")]["margin"], "−2")
+        self.assertEqual(times[(today.isoformat(), "NHL", "MIN o3.5")]["margin"], "+0.5")
+        doc = report.build_html_report(
+            report.summarize(bets), "Test", {}, "NHL", game_times=times, available_logo_files=set(),
+        )
+        today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
+        straight, parlay = today_html.split('data-bet-section="parlay"', 1)
+        self.assertIn('class="today-margin" title="Tampa Bay Lightning lost by 2 (2–4)"', straight)
+        self.assertIn(">−2</span>", straight)
+        self.assertIn(">Final<", straight)
+        self.assertNotIn("today-margin", parlay)
+        self.assertIn('class="today-margin"', today_html.split("MIN o3.5", 1)[1].split("</li>", 1)[0])
 
 
 class BroadcastTests(unittest.TestCase):
