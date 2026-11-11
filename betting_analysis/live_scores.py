@@ -34,6 +34,18 @@ def _bet_data(bet: report.Bet) -> Dict[str, Any]:
             for key, value in row.items()}
 
 
+def _unlisted_college_code(pick: str, league: str) -> bool:
+    """True when a college token is on neither the hand map nor the text-only block list.
+
+    Those codes can still be a school's abbreviation on that day's ESPN scoreboard.
+    """
+    if league not in {"NCAAB", "NCAAF"}:
+        return False
+    known = report.TEAM_LOGO_BY_LEAGUE.get(league) or {}
+    blocked = report.NCAA_TEXT_ONLY_ABBRS.get(league, frozenset())
+    return any(abbr not in known and abbr not in blocked for abbr in report._TEAM_ABBR_RE.findall(pick or ""))
+
+
 def collect_scores(
     bets: List[report.Bet], day: dt.date, *, leagues: Sequence[str] = (),
     open_only: bool = True, live_only: bool = False, fetch: Optional[Fetch] = None,
@@ -42,32 +54,37 @@ def collect_scores(
     """Fetch each required league once; associate open bets only with unique matches.
 
     A bet with any recorded result is graded and is left out when ``open_only``
-    is set. That is the default, and the CLI always sets it.
+    is set. That is the default, and the CLI always sets it. College codes that
+    are missing from the hand map are read from that day's ESPN abbreviations
+    before matching. Text-only codes stay unmatched.
     """
     selected = [bet for bet in bets if bet.date == day
                 and (not leagues or bet.league.upper() in leagues)
                 and (not open_only or not bet.result)]
     skipped = []
     candidates = []
+    deferred = []
     for bet in selected:
         league = bet.league.upper()
         if bet.bet_type.casefold() == "parlay":
-            reason = "parlay requires individual leg mappings"
-            teams = []
-        elif league not in report._ESPN_SCOREBOARDS:
-            reason = f"no ESPN scoreboard for {league or 'unknown league'}"
-            teams = []
-        else:
-            teams, reason = report._matchup_from_pick(bet.pick, league)
-        if reason or not teams:
-            skipped.append({"bet": _bet_data(bet), "reason": reason or "no recognized teams"})
-        else:
+            skipped.append({"bet": _bet_data(bet), "reason": "parlay requires individual leg mappings"})
+            continue
+        if league not in report._ESPN_SCOREBOARDS:
+            skipped.append({"bet": _bet_data(bet),
+                            "reason": f"no ESPN scoreboard for {league or 'unknown league'}"})
+            continue
+        teams, reason = report._matchup_from_pick(bet.pick, league)
+        if not reason and teams:
             candidates.append((bet, teams))
+        elif _unlisted_college_code(bet.pick, league):
+            deferred.append(bet)
+        else:
+            skipped.append({"bet": _bet_data(bet), "reason": reason or "no recognized teams"})
 
     fetch = fetch or report._espn_slate
     slates = {}
     errors = []
-    needed = sorted({bet.league.upper() for bet, _ in candidates})
+    needed = sorted({bet.league.upper() for bet, _ in candidates} | {bet.league.upper() for bet in deferred})
     if needed:
         with ThreadPoolExecutor(max_workers=len(needed)) as pool:
             pending = {league: pool.submit(fetch, league, day) for league in needed}
@@ -79,6 +96,17 @@ def collect_scores(
                 slates[league] = (games, error)
                 if error:
                     errors.append(error)
+    for bet in deferred:
+        league = bet.league.upper()
+        games, error = slates[league]
+        teams, reason = report._matchup_from_pick(
+            bet.pick, league, report._slate_team_index(games) if games else None)
+        if not reason and teams:
+            candidates.append((bet, teams))
+            continue
+        if error and not games:
+            reason = error
+        skipped.append({"bet": _bet_data(bet), "reason": reason or "no recognized teams"})
 
     now = now or dt.datetime.now(report._EASTERN)
     if now.tzinfo is None:

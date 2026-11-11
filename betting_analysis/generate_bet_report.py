@@ -2565,7 +2565,7 @@ def build_html_report(
         filters = [f'<button type="button" data-today-league="" aria-pressed="true" aria-controls="{panel_key}-bets">All</button>']
         for league in league_names:
             filters.append(f'<button type="button" data-today-league="{html.escape(league, quote=True)}" style="{league_style(league)}" aria-pressed="false" aria-controls="{panel_key}-bets"><span class="today-league-dot" aria-hidden="true"></span>{html.escape(league)}</button>')
-        items = {status: {"straight": [], "parlay": []} for status in (["open"] if upcoming else ["open", "closed"])}
+        items = {status: {"straight": [], "parlay": []} for status in (["open"] if upcoming else ["live", "open", "closed"])}
         statuses = {
             "": ("open", "Open", "◷"),
             "W": ("won", "Won", "✓"),
@@ -2642,7 +2642,15 @@ def build_html_report(
             odds_value = _finite_float(r.get("odds"))
             odds_attr = "" if odds_value is None else f"{odds_value:.8f}"
             game_done = bool(start and start.get("done")) and not upcoming
-            items["closed" if result or game_done else "open"][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-pick="{html.escape(str(r.get("pick") or ""), quote=True)}" data-odds="{odds_attr}" data-result="{html.escape(result, quote=True)}" data-date="{html.escape(str(r.get("date") or ""), quote=True)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
+            in_progress = (
+                not upcoming
+                and not result
+                and not game_done
+                and bool(start)
+                and start.get("display") == "Live"
+            )
+            group = "closed" if result or game_done else "live" if in_progress else "open"
+            items[group][bet_section].append(f'''<li class="today-bet today-bet--{state}" data-league="{html.escape(league, quote=True)}" style="{league_style(league)}" data-pick="{html.escape(str(r.get("pick") or ""), quote=True)}" data-odds="{odds_attr}" data-result="{html.escape(result, quote=True)}" data-date="{html.escape(str(r.get("date") or ""), quote=True)}" data-start-ms="{start_ms}" data-risk="{_sum_finite([r.get('risk')])}" data-net="{_sum_finite([r.get('net')]) if result else 0}" data-potential="{_sum_finite([r.get('to_win')]) if not result else 0}" data-count="{r['row_count']}" data-open="{str(not result).lower()}">
               {sport_watermark}
               <div class="today-bet-body">
                 <div class="today-pick-line"{pick_title}><h4 class="today-pick">{pick_html}</h4>{compact_pick}<span class="today-odds" title="Odds"><strong>{odds_text}</strong></span></div>
@@ -2674,7 +2682,7 @@ def build_html_report(
                 )
             tag = "details" if status == "closed" else "div"
             heading = "summary" if status == "closed" else "h3"
-            role = ' role="group"' if status == "open" else ""
+            role = ' role="group"' if tag == "div" else ""
             group_markup.append(
                 f'<{tag} class="today-group" data-today-group="{status}"{role} aria-labelledby="{panel_key}-{status}-title"{(" open" if status == "closed" else "")}{(" hidden" if not count else "")}>'
                 f'<{heading} id="{panel_key}-{status}-title" class="today-group-title">{status.title()} <span class="today-group-count">{count}</span></{heading}>'
@@ -3338,6 +3346,7 @@ def build_html_report(
     details.today-group > summary:hover {{ color: var(--text); }}
     details.today-group > summary:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }}
     [data-today-group="open"] .today-group-title {{ color: var(--accent); }}
+    [data-today-group="live"] .today-group-title {{ color: #fda4af; }}
     .today-group-count {{ font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }}
     .today-filters {{ display: flex; flex-wrap: wrap; gap: 4px; }}
     .today-filters button {{ display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 2px 7px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }}

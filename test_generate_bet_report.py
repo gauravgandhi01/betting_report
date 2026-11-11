@@ -541,23 +541,24 @@ class TodayTeamLogoTests(unittest.TestCase):
 
     def test_finished_game_moves_to_closed(self) -> None:
         today = report.dt.date.today()
+        tomorrow = today + report.dt.timedelta(days=1)
         bets = [
+            _bet(date=today, pick="BOS/NYR o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
             _bet(date=today, pick="MTL/TOR o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
             _bet(date=today, pick="TBL/MIN o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
+            _bet(date=today, pick="DAL & COL ML", league="NHL", result="", net=float("nan"), bet_type="Parlay"),
+            _bet(date=tomorrow, pick="MTL/TOR o6.5", league="NHL", result="", net=float("nan"), bet_type="Total"),
         ]
+        def clock(display, iso, done=""):
+            return {"display": display, "iso": iso, "title": display, "done": done}
+
+        day = today.isoformat()
         times = {
-            (today.isoformat(), "NHL", "MTL/TOR o6.5"): {
-                "display": "Live",
-                "iso": "2026-11-07T23:00:00+00:00",
-                "title": "Montreal Canadiens at Toronto Maple Leafs",
-                "done": "",
-            },
-            (today.isoformat(), "NHL", "TBL/MIN o6.5"): {
-                "display": "Final",
-                "iso": "2026-11-07T17:00:00+00:00",
-                "title": "Tampa Bay Lightning at Minnesota Wild",
-                "done": "1",
-            },
+            (day, "NHL", "BOS/NYR o6.5"): clock("7 PM", "2026-11-08T00:00:00+00:00"),
+            (day, "NHL", "MTL/TOR o6.5"): clock("Live", "2026-11-07T23:00:00+00:00"),
+            (day, "NHL", "TBL/MIN o6.5"): clock("Final", "2026-11-07T17:00:00+00:00", "1"),
+            (day, "NHL", "DAL & COL ML"): clock("Live", "2026-11-07T23:30:00+00:00"),
+            (tomorrow.isoformat(), "NHL", "MTL/TOR o6.5"): clock("Live", "2026-11-08T23:00:00+00:00"),
         }
         doc = report.build_html_report(
             report.summarize(bets),
@@ -569,13 +570,40 @@ class TodayTeamLogoTests(unittest.TestCase):
             game_times=times,
         )
         today_html = doc.split('<section id="today-panel"', 1)[1].split("</section>", 1)[0]
-        open_html, closed_html = today_html.split('data-today-group="closed"', 1)
-        self.assertIn('class="today-start is-live"', open_html)
-        self.assertIn(">Live<", open_html)
+        upcoming_html = doc.split('<section id="upcoming-panel"', 1)[1].split("</section>", 1)[0]
+
+        def group(html: str, name: str) -> str:
+            marker = f'data-today-group="{name}"'
+            start = html.index(marker)
+            rest = html[start:]
+            nxt = rest.find('data-today-group="', len(marker))
+            return rest if nxt < 0 else rest[:nxt]
+
+        live_html = group(today_html, "live")
+        open_html = group(today_html, "open")
+        closed_html = group(today_html, "closed")
+        self.assertLess(today_html.index('data-today-group="live"'), today_html.index('data-today-group="open"'))
+        self.assertLess(today_html.index('data-today-group="open"'), today_html.index('data-today-group="closed"'))
+        self.assertIn('<div class="today-group" data-today-group="live" role="group" aria-labelledby="today-live-title">', today_html)
+        self.assertIn('<h3 id="today-live-title" class="today-group-title">Live <span class="today-group-count">2</span></h3>', today_html)
+        self.assertIn('data-bet-section="straight"', live_html)
+        self.assertIn(">Straight</h4>", live_html)
+        self.assertIn("MTL/TOR o6.5", live_html)
+        self.assertIn('class="today-start is-live"', live_html)
+        self.assertIn(">Live<", live_html)
+        self.assertIn('data-bet-section="parlay"', live_html)
+        self.assertIn(">Parlays</h4>", live_html)
+        self.assertIn("DAL &amp; COL ML", live_html)
+        self.assertIn("BOS/NYR o6.5", open_html)
+        self.assertIn(">7 PM<", open_html)
+        self.assertNotIn("MTL/TOR o6.5", open_html)
         self.assertNotIn(">Final<", open_html)
+        self.assertIn("TBL/MIN o6.5", closed_html)
         self.assertIn(">Final<", closed_html)
         self.assertIn('class="today-start is-final"', closed_html)
         self.assertNotIn(">Live<", closed_html)
+        self.assertNotIn('data-today-group="live"', upcoming_html)
+        self.assertIn("MTL/TOR o6.5", upcoming_html)
 
 
 class CardSortingTests(unittest.TestCase):

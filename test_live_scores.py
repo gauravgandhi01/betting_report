@@ -136,6 +136,44 @@ class ScoreTests(unittest.TestCase):
         self.assertNotIn("1H", text)
         self.assertNotIn("2H", text)
 
+    def test_unlisted_college_codes_resolve_from_the_slate(self):
+        now = dt.datetime(2026, 11, 9, 19, 30, tzinfo=report._EASTERN)
+        loyola = game(event_id="501", state="pre", name="STATUS_SCHEDULED", detail="Scheduled",
+                      away_id=report.NCAA_ESPN_IDS["loyolaChicago"], home_id=report.NCAA_ESPN_IDS["airForce"],
+                      away_abbr="LUC", home_abbr="AF")
+        colgate = game(event_id="502", state="pre", name="STATUS_SCHEDULED", detail="Scheduled",
+                       away_id="2142", home_id=report.NCAA_ESPN_IDS["stJohns"],
+                       away_abbr="COLG", home_abbr="SJU")
+        fetch = Mock(return_value=([loyola, colgate], None))
+        snapshot = cli.collect_scores([
+            bet("LUC -9.5", "NCAAB", bet_type="Side"),
+            bet("COLG/SJU u159.5", "NCAAB"),
+            bet("LUC/AFA o159.5", "NCAAB"),
+            bet("SHU/NCST u144.5", "NCAAB"),
+        ], DAY, now=now, fetch=fetch)
+        fetch.assert_called_once_with("NCAAB", DAY)
+        self.assertEqual(snapshot["matched_bets"], 3)
+        self.assertEqual(snapshot["displayed_bets"], 3)
+        picks = {row["event_id"]: [item["pick"] for item in row["bets"]] for row in snapshot["upcoming"]}
+        self.assertEqual(picks["501"], ["LUC -9.5", "LUC/AFA o159.5"])
+        self.assertEqual(picks["502"], ["COLG/SJU u159.5"])
+        self.assertIn("unrecognized team (SHU)", snapshot["skipped"][0]["reason"])
+
+        blocked = Mock()
+        skipped = cli.collect_scores([bet("SHU -3", "NCAAB", bet_type="Side")], DAY, fetch=blocked)
+        blocked.assert_not_called()
+        self.assertIn("no recognized team", skipped["skipped"][0]["reason"])
+
+        parlay = Mock()
+        cli.collect_scores([bet("LUC/AFA ML", "NCAAB", bet_type="Parlay")], DAY, fetch=parlay)
+        parlay.assert_not_called()
+
+        failed = Mock(return_value=([], "ESPN scoreboard request failed for NCAAB"))
+        offline = cli.collect_scores([bet("LUC -9.5", "NCAAB", bet_type="Side")], DAY, fetch=failed)
+        self.assertEqual(offline["matched_bets"], 0)
+        self.assertIn("scoreboard request failed", offline["skipped"][0]["reason"])
+        self.assertEqual(offline["errors"], ["ESPN scoreboard request failed for NCAAB"])
+
     def test_unsupported_props_and_parlays_do_not_trigger_requests(self):
         fetch = Mock()
         bets = [bet("McDavid o1.5 Ast"), bet("TB ML", bet_type="Parlay"),
