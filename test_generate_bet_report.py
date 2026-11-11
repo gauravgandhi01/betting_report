@@ -754,7 +754,7 @@ class GameTimeTests(unittest.TestCase):
             {"date": day, "league": "NBA", "pick": "NYK/BOS o220"},
         ]
         before_tip = report.dt.datetime(2026, 11, 7, 15, 0, tzinfo=report.dt.timezone.utc)
-        times, notes = report.resolve_game_times(rows, fetch=fetch, now=before_tip)
+        times, notes, _logos = report.resolve_game_times(rows, fetch=fetch, now=before_tip)
         self.assertEqual(times[(day, "NHL", "TBL/MIN 1P o1.5")]["display"], "8 PM")
         self.assertEqual(times[(day, "NCAAF", "DUKE/NCST o52")]["display"], "12:30 PM")
         self.assertEqual(times[(day, "NFL", "TB +6")]["display"], "1 PM")
@@ -785,10 +785,10 @@ class GameTimeTests(unittest.TestCase):
                 ], None
             return _fetch
 
-        live, _ = report.resolve_game_times(rows, fetch=fetch(False), now=after_tip)
+        live, _, _ = report.resolve_game_times(rows, fetch=fetch(False), now=after_tip)
         self.assertEqual(live[(day, "NHL", "TBL/MIN o6.5")]["display"], "Live")
         self.assertEqual(live[(day, "NHL", "TBL/MIN o6.5")]["done"], "")
-        final, _ = report.resolve_game_times(rows, fetch=fetch(True), now=after_tip)
+        final, _, _ = report.resolve_game_times(rows, fetch=fetch(True), now=after_tip)
         self.assertEqual(final[(day, "NHL", "TBL/MIN o6.5")]["display"], "Final")
         self.assertEqual(final[(day, "NHL", "TBL/MIN o6.5")]["done"], "1")
 
@@ -805,6 +805,113 @@ class GameTimeTests(unittest.TestCase):
         self.assertEqual(sast["espn_id"], report.NCAA_ESPN_IDS["sacramentoState"])
         sam = report._team_ref("SAM", "NCAAB")
         self.assertEqual(sam["name"], "Samford")
+
+    def test_hand_map_beats_slate_and_text_only_stays_text(self) -> None:
+        mercyhurst = {"MERC": {"abbr": "MERC", "name": "Mercyhurst", "espn_id": "2385"}}
+        mercer = report._team_ref("MERC", "NCAAB", mercyhurst)
+        self.assertEqual(mercer["name"], "Mercer")
+        self.assertEqual(mercer["espn_id"], report.NCAA_ESPN_IDS["mercer"])
+        sacred = {"SHU": {"abbr": "SHU", "name": "Sacred Heart", "espn_id": "2529"}}
+        self.assertIsNone(report._team_ref("SHU", "NCAAB", sacred))
+        self.assertEqual(report._team_ref("SHU", "NCAAF", sacred)["name"], "Sacred Heart")
+        famu = {"FAMU": {"abbr": "FAMU", "name": "Florida A&M", "espn_id": "50"}}
+        self.assertEqual(report._team_ref("FAMU", "NCAAB", famu)["espn_id"], "50")
+        self.assertIsNone(report._team_ref("FAMU", "NCAAB"))
+
+    def test_slate_logo_fills_unlisted_school_and_keeps_blocked_codes_text(self) -> None:
+        day = "2026-11-11"
+        kansas_city = report.NCAA_ESPN_IDS["kansasCity"]
+        ncst = report.NCAA_ESPN_IDS["ncState"]
+
+        def fetch(league: str, date: report.dt.date):
+            self.assertEqual((league, date.isoformat()), ("NCAAB", day))
+            return [
+                {
+                    "abbrs": frozenset({"FAMU", "KC"}),
+                    "ids": frozenset({"50", kansas_city}),
+                    "teams": [
+                        {"abbr": "FAMU", "id": "50", "name": "Florida A&M"},
+                        {"abbr": "KC", "id": kansas_city, "name": "Kansas City"},
+                    ],
+                    "display": "6:00 PM",
+                    "iso": "2026-11-11T23:00:00+00:00",
+                    "title": "Kansas City Roos at Florida A&M Rattlers",
+                    "done": False,
+                },
+                {
+                    "abbrs": frozenset({"SHU", "NCSU"}),
+                    "ids": frozenset({"2529", ncst}),
+                    "teams": [
+                        {"abbr": "SHU", "id": "2529", "name": "Sacred Heart"},
+                        {"abbr": "NCSU", "id": ncst, "name": "NC State"},
+                    ],
+                    "display": "7:00 PM",
+                    "iso": "2026-11-12T00:00:00+00:00",
+                    "title": "Sacred Heart at NC State",
+                    "done": False,
+                },
+                {
+                    "abbrs": frozenset({"LUC", "AF"}),
+                    "ids": frozenset({"2350", "2005"}),
+                    "teams": [
+                        {"abbr": "LUC", "id": "2350", "name": "Loyola Chicago"},
+                        {"abbr": "AF", "id": "2005", "name": "Air Force"},
+                    ],
+                    "display": "8:00 PM",
+                    "iso": "2026-11-12T01:00:00+00:00",
+                    "title": "Loyola Chicago Ramblers at Air Force Falcons",
+                    "done": False,
+                },
+            ], None
+
+        rows = [
+            {"date": day, "league": "NCAAB", "pick": "UMKC/FAMU u148.5"},
+            {"date": day, "league": "NCAAB", "pick": "SHU/NCST u144.5"},
+            {"date": day, "league": "NCAAB", "pick": "LUC -9.5"},
+        ]
+        before_tip = report.dt.datetime(2026, 11, 11, 16, 0, tzinfo=report.dt.timezone.utc)
+        times, notes, logos = report.resolve_game_times(rows, fetch=fetch, now=before_tip)
+        self.assertEqual(times[(day, "NCAAB", "UMKC/FAMU u148.5")]["display"], "6 PM")
+        self.assertEqual(times[(day, "NCAAB", "LUC -9.5")]["display"], "8 PM")
+        self.assertNotIn((day, "NCAAB", "SHU/NCST u144.5"), times)
+        joined = "\n".join(notes)
+        self.assertIn("unrecognized team (SHU)", joined)
+        self.assertNotIn("Sacred Heart", joined)
+        famu_logo = report.ESPN_NCAA_LOGO.format(team_id="50")
+        luc_logo = report.ESPN_NCAA_LOGO.format(team_id="2350")
+        self.assertEqual(logos[(day, "NCAAB")]["FAMU"], (famu_logo, "Florida A&M"))
+        self.assertEqual(logos[(day, "NCAAB")]["LUC"], (luc_logo, "Loyola Chicago"))
+        self.assertNotIn("SHU", logos[(day, "NCAAB")])
+        self.assertNotIn("UMKC", logos[(day, "NCAAB")])
+        pick = report._today_pick_html("UMKC/FAMU u148.5", "NCAAB", "logos", set(), logos[(day, "NCAAB")])
+        self.assertIn(f'src="{famu_logo}"', pick)
+        self.assertIn('data-name="Florida A&amp;M"', pick)
+        self.assertIn(report.ESPN_NCAA_LOGO.format(team_id=kansas_city), pick)
+        self.assertTrue(report._today_pick_html("SHU/NCST u144.5", "NCAAB", "logos", set(), logos[(day, "NCAAB")]).startswith("SHU "))
+
+    def test_espn_event_keeps_short_team_name_for_logos(self) -> None:
+        event = {
+            "date": "2026-11-11T23:00:00Z",
+            "competitions": [{
+                "date": "2026-11-11T23:00:00Z",
+                "competitors": [
+                    {"homeAway": "away", "team": {
+                        "abbreviation": "KC", "id": "140",
+                        "displayName": "Kansas City Roos", "shortDisplayName": "Kansas City",
+                    }},
+                    {"homeAway": "home", "team": {
+                        "abbreviation": "FAMU", "id": "50",
+                        "displayName": "Florida A&M Rattlers", "shortDisplayName": "Florida A&M",
+                    }},
+                ],
+                "status": {"type": {"state": "pre", "completed": False}},
+            }],
+        }
+        game = report._game_from_espn_event(event)
+        self.assertEqual(game["teams"], [
+            {"abbr": "KC", "id": "140", "name": "Kansas City"},
+            {"abbr": "FAMU", "id": "50", "name": "Florida A&M"},
+        ])
 
 
 class BroadcastTests(unittest.TestCase):

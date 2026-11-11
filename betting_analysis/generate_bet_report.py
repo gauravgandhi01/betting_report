@@ -963,6 +963,13 @@ TEAM_LOGO_BY_LEAGUE["NCAAB"] = _ncaa_logo_map(NCAA_LOGO_TEAMS + NCAA_GAP_LOGO_TE
 TEAM_LOGO_BY_LEAGUE["NCAAF"] = _ncaa_logo_map(
     NCAA_LOGO_TEAMS + NCAAF_ONLY_LOGO_TEAMS + NCAA_GAP_LOGO_TEAMS
 )
+# ESPN uses these abbreviations, but the sheet does not mean that school
+# unambiguously. NCAAB SHU has been Sacred Heart and Seton Hall. Louisville's
+# confirmed code is LOUI, so LOU stays text.
+NCAA_TEXT_ONLY_ABBRS = {
+    "NCAAB": frozenset({"SHU", "LOU"}),
+    "NCAAF": frozenset({"LOU"}),
+}
 
 _TEAM_ABBR_RE = re.compile(r"\b([A-Z]{2,6}(?:-[A-Z]{2,4})?)\b")
 
@@ -1063,12 +1070,18 @@ def _team_logo_for_abbr(
     abbr: str,
     league: str,
     available_logo_files: Optional[set[str]] = None,
+    extra_logos: Optional[Dict[str, Tuple[str, str]]] = None,
 ) -> Optional[Tuple[str, str]]:
-    """Return (filename, full name) when this abbreviation is shown as a logo."""
-    mapping = TEAM_LOGO_BY_LEAGUE.get((league or "").strip().upper())
-    if not mapping:
-        return None
+    """Return (filename, full name) when this abbreviation is shown as a logo.
+
+    extra_logos carries schools found on that day's ESPN slate. The hand map
+    wins when both know the abbreviation.
+    """
+    league_key = (league or "").strip().upper()
+    mapping = TEAM_LOGO_BY_LEAGUE.get(league_key) or {}
     entry = mapping.get(abbr)
+    if entry is None and extra_logos:
+        entry = extra_logos.get(abbr)
     if entry is None:
         return None
     filename, name = entry
@@ -1098,10 +1111,11 @@ def _today_pick_text(
     pick: str,
     league: str,
     available_logo_files: Optional[set[str]] = None,
+    extra_logos: Optional[Dict[str, Tuple[str, str]]] = None,
 ) -> str:
     """Pick text with shown logos expanded to full team names."""
     def replace(match: re.Match[str]) -> str:
-        logo = _team_logo_for_abbr(match.group(1), league, available_logo_files)
+        logo = _team_logo_for_abbr(match.group(1), league, available_logo_files, extra_logos)
         return logo[1] if logo else match.group(1)
 
     return _TEAM_ABBR_RE.sub(replace, _display_pick(pick))
@@ -1112,6 +1126,7 @@ def _today_pick_html(
     league: str,
     logo_base_href: str = "logos",
     available_logo_files: Optional[set[str]] = None,
+    extra_logos: Optional[Dict[str, Tuple[str, str]]] = None,
 ) -> str:
     """Replace team abbreviations on today cards with a uniform logo."""
     pick = _display_pick(pick)
@@ -1120,7 +1135,7 @@ def _today_pick_html(
     for match in _TEAM_ABBR_RE.finditer(pick):
         parts.append(html.escape(pick[last:match.start()]))
         abbr = match.group(1)
-        logo = _team_logo_for_abbr(abbr, league, available_logo_files)
+        logo = _team_logo_for_abbr(abbr, league, available_logo_files, extra_logos)
         if logo is None:
             parts.append(html.escape(abbr))
         else:
@@ -1174,15 +1189,58 @@ _MATCHUP_RE = re.compile(r"\b([A-Z]{2,6}(?:-[A-Z]{2,4})?)/([A-Z]{2,6}(?:-[A-Z]{2
 _EASTERN = ZoneInfo("America/New_York")
 
 
-def _team_ref(abbr: str, league: str) -> Optional[Dict[str, str]]:
-    """Sheet abbreviation -> name, ESPN abbreviation, and ESPN team id when we have one."""
+def _slate_team_index(games: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
+    """ESPN abbreviation -> id and short name for one slate. Conflicting ids are dropped."""
+    found: Dict[str, Dict[str, str]] = {}
+    conflict = set()
+    for game in games:
+        teams = list(game.get("teams") or [])
+        if not teams:
+            for side in ("away", "home"):
+                team = game.get(side)
+                if isinstance(team, dict) and team.get("abbr"):
+                    teams.append(team)
+        for team in teams:
+            abbr = str(team.get("abbr") or "").upper()
+            team_id = str(team.get("id") or "")
+            name = str(team.get("name") or "").strip() or abbr
+            if not abbr or not team_id:
+                continue
+            previous = found.get(abbr)
+            if previous and previous["espn_id"] != team_id:
+                conflict.add(abbr)
+                continue
+            found[abbr] = {"abbr": abbr, "name": name, "espn_id": team_id}
+    for abbr in conflict:
+        found.pop(abbr, None)
+    return found
+
+
+def _team_ref(
+    abbr: str,
+    league: str,
+    slate_teams: Optional[Dict[str, Dict[str, str]]] = None,
+) -> Optional[Dict[str, str]]:
+    """Sheet abbreviation -> name, ESPN abbreviation, and ESPN team id when we have one.
+
+    The hand map is checked first. A college code that ESPN uses for a team on
+    that day's slate is used after that, unless the code is text-only.
+    """
     league = (league or "").strip().upper()
-    mapping = TEAM_LOGO_BY_LEAGUE.get(league)
-    if not mapping:
-        return None
+    mapping = TEAM_LOGO_BY_LEAGUE.get(league) or {}
     entry = mapping.get(abbr)
     if entry is None:
-        return None
+        if abbr in NCAA_TEXT_ONLY_ABBRS.get(league, frozenset()):
+            return None
+        slate = (slate_teams or {}).get(abbr)
+        if not slate or not slate.get("espn_id"):
+            return None
+        return {
+            "abbr": abbr,
+            "name": slate["name"],
+            "espn_abbr": abbr,
+            "espn_id": slate["espn_id"],
+        }
     filename, name = entry
     id_match = _ESPN_TEAM_ID_RE.search(filename)
     espn_id = id_match.group(1) if id_match else ""
@@ -1201,11 +1259,15 @@ def _team_ref(abbr: str, league: str) -> Optional[Dict[str, str]]:
     }
 
 
-def _recognized_teams(pick: str, league: str) -> List[Dict[str, str]]:
+def _recognized_teams(
+    pick: str,
+    league: str,
+    slate_teams: Optional[Dict[str, Dict[str, str]]] = None,
+) -> List[Dict[str, str]]:
     seen = set()
     teams = []
     for abbr in _TEAM_ABBR_RE.findall(pick or ""):
-        ref = _team_ref(abbr, league)
+        ref = _team_ref(abbr, league, slate_teams)
         if ref is None:
             continue
         key = ref["espn_id"] or ref["espn_abbr"]
@@ -1217,7 +1279,9 @@ def _recognized_teams(pick: str, league: str) -> List[Dict[str, str]]:
 
 
 def _matchup_from_pick(
-    pick: str, league: str
+    pick: str,
+    league: str,
+    slate_teams: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Tuple[List[Dict[str, str]], Optional[str]]:
     """Teams to look up: both sides of one A/B matchup, or the one named team."""
     league = (league or "").strip().upper()
@@ -1226,8 +1290,8 @@ def _matchup_from_pick(
     partial: List[str] = []
     missing_ids: List[str] = []
     for left, right in _MATCHUP_RE.findall(pick or ""):
-        away = _team_ref(left, league)
-        home = _team_ref(right, league)
+        away = _team_ref(left, league, slate_teams)
+        home = _team_ref(right, league, slate_teams)
         if away and home:
             if league in {"NCAAB", "NCAAF"} and not (away["espn_id"] and home["espn_id"]):
                 missing_ids.append(away["abbr"] if not away["espn_id"] else home["abbr"])
@@ -1253,7 +1317,7 @@ def _matchup_from_pick(
         return [], f"no ESPN team id for {missing_ids[0]}"
     if partial:
         return [], f"unrecognized team ({partial[0]})"
-    teams = _recognized_teams(pick, league)
+    teams = _recognized_teams(pick, league, slate_teams)
     if not teams:
         return [], "no recognized team abbreviation"
     if len(teams) == 1:
@@ -1301,6 +1365,7 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     home = ""
     away = ""
     sides: Dict[str, Dict[str, Any]] = {}
+    teams: List[Dict[str, str]] = []
     for competitor in comp.get("competitors") or []:
         team = competitor.get("team") or {}
         abbr = str(team.get("abbreviation") or "").upper()
@@ -1310,6 +1375,9 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if team_id:
             ids.append(team_id)
         name = str(team.get("displayName") or abbr)
+        short = str(team.get("shortDisplayName") or "").strip()
+        if abbr and team_id:
+            teams.append({"abbr": abbr, "id": team_id, "name": short or name})
         side = competitor.get("homeAway")
         if side in {"home", "away"}:
             sides[side] = {
@@ -1376,6 +1444,7 @@ def _game_from_espn_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "clock": str(status.get("displayClock") or ""),
         "abbrs": frozenset(abbrs),
         "ids": frozenset(ids),
+        "teams": teams,
         "display": display,
         "iso": iso,
         "title": title,
@@ -1446,12 +1515,19 @@ def resolve_game_times(
     rows: List[Dict[str, Any]],
     fetch: Optional[Callable[[str, dt.date], Tuple[List[Dict[str, Any]], Optional[str]]]] = None,
     now: Optional[dt.datetime] = None,
-) -> Tuple[Dict[Tuple[str, str, str], Dict[str, str]], List[str]]:
+) -> Tuple[
+    Dict[Tuple[str, str, str], Dict[str, str]],
+    List[str],
+    Dict[Tuple[str, str], Dict[str, Tuple[str, str]]],
+]:
     """Start times for today/upcoming team cards.
 
     A matchup uses both teams. A single-team side, moneyline, or total uses that
     team's only game on the slate date. Parlays are skipped. The notes are the
     cards we could not place, plus one summary line for picks with no team.
+
+    The third value maps (date, league) to logos for sheet codes that are not in
+    the hand list but match a team abbreviation on that day's ESPN slate.
     """
     fetch = fetch or _espn_slate
     if now is None:
@@ -1459,12 +1535,51 @@ def resolve_game_times(
     times: Dict[Tuple[str, str, str], Dict[str, str]] = {}
     notes: List[str] = []
     no_team = 0
-    slates: Dict[Tuple[str, dt.date], Tuple[List[Dict[str, Any]], Optional[str]]] = {}
+    slates: Dict[
+        Tuple[str, dt.date],
+        Tuple[List[Dict[str, Any]], Optional[str], Dict[str, Dict[str, str]]],
+    ] = {}
+    logos: Dict[Tuple[str, str], Dict[str, Tuple[str, str]]] = {}
+
+    def load_slate(
+        league: str, day: dt.date
+    ) -> Tuple[List[Dict[str, Any]], Optional[str], Dict[str, Dict[str, str]]]:
+        key = (league, day)
+        if key not in slates:
+            games, error = fetch(league, day)
+            slates[key] = (games, error, {} if error else _slate_team_index(games))
+        return slates[key]
+
     for row in rows:
         league = str(row.get("league") or "").strip().upper() or "OTHER"
         pick = str(row.get("pick") or "")
         date_text = str(row.get("date") or "").strip()
-        teams, reason = _matchup_from_pick(pick, league)
+        try:
+            day: Optional[dt.date] = dt.date.fromisoformat(date_text)
+        except ValueError:
+            day = None
+        slate_teams: Optional[Dict[str, Dict[str, str]]] = None
+        # College cards learn an unlisted school from the slate before matching,
+        # because the hand list is what used to make the scoreboard lookup fail.
+        if day is not None and league in {"NCAAB", "NCAAF"} and _TEAM_ABBR_RE.search(pick):
+            games, error, index = load_slate(league, day)
+            if error:
+                notes.append(f"{date_text} {league} {pick}: {error}")
+                continue
+            slate_teams = index
+            hand = TEAM_LOGO_BY_LEAGUE.get(league) or {}
+            blocked = NCAA_TEXT_ONLY_ABBRS.get(league, frozenset())
+            for abbr in _TEAM_ABBR_RE.findall(pick):
+                if abbr in hand or abbr in blocked:
+                    continue
+                ref = index.get(abbr)
+                if not ref:
+                    continue
+                logos.setdefault((date_text, league), {})[abbr] = (
+                    ESPN_NCAA_LOGO.format(team_id=ref["espn_id"]),
+                    ref["name"],
+                )
+        teams, reason = _matchup_from_pick(pick, league, slate_teams)
         if not teams:
             if reason == "no recognized team abbreviation":
                 no_team += 1
@@ -1476,15 +1591,10 @@ def resolve_game_times(
             else:
                 notes.append(f"{date_text} {league} {pick}: {reason}")
             continue
-        try:
-            day = dt.date.fromisoformat(date_text)
-        except ValueError:
+        if day is None:
             notes.append(f"{date_text} {league} {pick}: bet date is not a slate date")
             continue
-        slate_key = (league, day)
-        if slate_key not in slates:
-            slates[slate_key] = fetch(league, day)
-        games, error = slates[slate_key]
+        games, error, _index = load_slate(league, day)
         if error:
             notes.append(f"{date_text} {league} {pick}: {error}")
             continue
@@ -1500,7 +1610,7 @@ def resolve_game_times(
         notes.append(
             f"{no_team} cards have no recognized team abbreviation, so no start time"
         )
-    return times, notes
+    return times, notes, {key: value for key, value in logos.items() if value}
 
 
 def _game_time_html(start: Optional[Dict[str, str]]) -> str:
@@ -2380,6 +2490,7 @@ def build_html_report(
     logo_base_href: str = "logos",
     available_logo_files: Optional[set[str]] = None,
     game_times: Optional[Dict[Tuple[str, str, str], Dict[str, str]]] = None,
+    extra_team_logos: Optional[Dict[Tuple[str, str], Dict[str, Tuple[str, str]]]] = None,
 ) -> str:
     as_of = summary["as_of"]
     synced_at = dt.datetime.now().astimezone()
@@ -2502,9 +2613,10 @@ def build_html_report(
                 date_label = f'<time datetime="{html.escape(r["date"], quote=True)}">{html.escape(_fmt_date_short(r["date"]))}, {html.escape(r["date"][:4])}</time>'
             bet_section = "parlay" if str(r.get("type") or "").strip().casefold() in {"parlay", "round robin"} else "straight"
             odds_text = html.escape(_fmt_odds(r.get("odds"))) or "—"
-            pick_label = _today_pick_text(r["pick"], league, available_logo_files)
+            card_logos = (extra_team_logos or {}).get((r["date"], league))
+            pick_label = _today_pick_text(r["pick"], league, available_logo_files, card_logos)
             pick_tooltip = html.escape(f'{pick_label} · {_fmt_odds(r.get("odds")) or "—"}', quote=True)
-            pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files)
+            pick_html = _today_pick_html(r["pick"], league, logo_base_href, available_logo_files, card_logos)
             compact_pick = ""
             pick_title = f' title="{pick_tooltip}"'
             if bet_section == "parlay":
@@ -4618,10 +4730,15 @@ def main() -> int:
     card_rows = _collapse_bet_rows(
         summary["today_open"] + summary["today_settled"] + summary["future_open"]
     )
-    game_times, game_time_notes = resolve_game_times(card_rows)
+    game_times, game_time_notes, slate_logos = resolve_game_times(card_rows)
     print(f"Game start times attached: {len(game_times)}")
     for (slate_date, league, pick), start in game_times.items():
         print(f"  {slate_date} {league} {pick} -> {start['display']}")
+    if slate_logos:
+        print("Logos taken from the ESPN slate:")
+        for (slate_date, league), teams in sorted(slate_logos.items()):
+            for abbr, (_url, name) in sorted(teams.items()):
+                print(f"  {slate_date} {league} {abbr} -> {name}")
     if game_time_notes:
         print("No start time:")
         for note in game_time_notes:
@@ -4635,6 +4752,7 @@ def main() -> int:
         logo_base_href=logo_base_href,
         available_logo_files=available_logo_files,
         game_times=game_times,
+        extra_team_logos=slate_logos,
     )
 
     if out_dir and not os.path.exists(out_dir):
