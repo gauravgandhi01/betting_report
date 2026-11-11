@@ -66,8 +66,9 @@ Mappings live in `betting_analysis/generate_bet_report.py`:
   exact filename in `NETWORK_LOGO_FILES`. Names match without case sensitivity;
   file paths preserve case for hosting. Missing files fall back to network text.
 - `START_HOUR_COLORS` controls scheduled badge colors. Network CSS uses fixed
-  footer dimensions; ESPN+ has extra scaling for image padding and a color filter
-  that makes its dark E white while retaining the yellow plus.
+  footer dimensions. ESPN+ has extra scaling for image padding and a color filter
+  that makes its dark E white while retaining the yellow plus. FS1 uses a larger
+  box because its wordmark sits in a square canvas.
 
 `team-logos/` and `logos/sdv-assets/` are ignored source asset directories, not
 runtime dependencies. Keep assets used by the site under `logos/`.

@@ -3427,6 +3427,8 @@ def build_html_report(
     .today-broadcast {{ position: relative; display: inline-block; width: 32px; height: 8px; line-height: 8px; vertical-align: baseline; color: var(--muted); font-size: 9px; font-weight: 400; white-space: nowrap; }}
     .today-network-logo {{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; width: 28.8px; height: 12.8px; object-fit: contain; }}
     .today-network-logo[src$="ESPN-PNG-File.png"] {{ width: 33.6px; height: 18.4px; filter: url(#espn-plus-white); }}
+    .today-broadcast:has(img[src$="fs1.png"]) {{ width: 40px; }}
+    .today-network-logo[src$="fs1.png"] {{ width: 44px; height: 40px; }}
     .today-bet-money .today-start {{ display: inline-block; padding: 0 4px; border-radius: 3.2px; color: rgb(var(--start-rgb,147,197,253)); background: rgba(var(--start-rgb,147,197,253),0.12); box-shadow: inset 0 0 0 1px rgba(var(--start-rgb,147,197,253),0.24); font: inherit; font-size: 8px; line-height: 12px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }}
     .today-bet-money .today-start.is-live {{ color: #fda4af; background: rgba(251,113,133,0.13); box-shadow: inset 0 0 0 1px rgba(251,113,133,0.3); }}
     .today-bet-money .today-start.is-final {{ color: var(--muted); background: rgba(157,176,208,0.08); box-shadow: inset 0 0 0 1px rgba(157,176,208,0.18); }}
